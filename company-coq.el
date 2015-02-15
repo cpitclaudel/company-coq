@@ -245,7 +245,7 @@ company-coq-maybe-reload-symbols."
   (let ((doc (company-coq-documentation name))
         (def (company-coq-join-lines (company-coq-definition-header name) "\n")))
     (when (and doc def)
-      (let* ((doc-tagline (format company-coq-doc-tagline (upcase name)))
+      (let* ((doc-tagline (format company-coq-doc-tagline name))
              (doc-underline (make-string (length doc-tagline) ?=))
              (doc-full (concat doc-tagline "\n" doc-underline "\n\n" doc company-coq-doc-def-sep def)))
         (company-coq-print-in-pg-buffer doc-full)))))
