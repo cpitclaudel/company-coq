@@ -91,8 +91,9 @@
     available))
 
 (defun company-coq-get-symbols ()
-  "Load symbols by issuing command company-coq-all-symbols-cmd and parsing the results"
+  "Load symbols by issuing command company-coq-all-symbols-cmd and parsing the results. Do not call if proof process is busy."
   (interactive)
+  (with-temp-message "company-coq: Loading symbols..."
   (let* ((name-regexp (concat "^" company-coq-name-regexp ":.*"))
          (output (company-coq-ask-prover company-coq-all-symbols-cmd))
          (lines (company-coq-split-lines output))
@@ -100,7 +101,7 @@
          (names (mapcar (lambda (line) (replace-regexp-in-string name-regexp "\\1" line)) filtered-lines))
          (names-sorted (sort names 'string<)))
     (company-coq-dbg "Loaded %d symbols" (length names-sorted))
-    names-sorted))
+      names-sorted)))
 
 ;; TODO don't sort
 
