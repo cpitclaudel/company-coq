@@ -154,7 +154,7 @@
 (defun company-coq-complete-symbol (prefix)
   "List elements of company-coq-defined-symbols starting with PREFIX"
   (interactive)
-  (company-coq-dbg "company-coq-complete-symbol: Completing for prefix %s" prefix)
+  (company-coq-dbg "company-coq-complete-symbol: Completing for prefix %s (%s symbols)" prefix (length company-coq-defined-symbols))
   (all-completions prefix company-coq-defined-symbols))
 
 (defun company-coq-shell-output-is-end-of-def ()
@@ -202,8 +202,8 @@ company-coq-maybe-reload-symbols."
 
 (defun company-coq-grab-symbol ()
   (if (looking-at "\\_>")
-    (save-excursion ;; TODO could be optimized
-      (when (looking-back company-coq-prefix-regexp (point-at-bol) t)
+      (save-excursion ;; TODO could be optimized
+        (when (looking-back company-coq-prefix-regexp (point-at-bol) t)
           (match-string 0)))
     (unless (and (char-after) (memq (char-syntax (char-after)) '(?w ?_))) "")))
 
