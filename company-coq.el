@@ -225,11 +225,9 @@ company-coq-maybe-reload-symbols."
         (insert doc)
         (coq-response-mode)
         (goto-char (point-min))))
-    ;; (company-coq-save-pg-window-properties window buffer was-dedicated-p)
-    ;; (add-hook 'buffer-list-update-hook 'company-coq-restore-pg-buffer)
+    ;; Disable dedication; in general, the *goal* buffer isn't dedicated, and if
+    ;; it is it's not worth restoring
     (set-window-dedicated-p window nil)
-    ;; ;; Disable dedication; in general, the *goal* buffer isn't dedicates, and if
-    ;; ;; it is it's not worth restoring
     (set-window-buffer window buffer)))
 
 (defun company-coq-print-in-pg-buffer (doc)
