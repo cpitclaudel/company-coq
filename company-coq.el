@@ -300,8 +300,8 @@ company-coq-maybe-reload-symbols."
     ;; post-completion <candidate> => after insertion, for snippets
     ))
 
-;; TODO merge with company-math-symbols-unicode
 ;; TODO Support autocompletion of commands
+;; TODO Fix import of non-existent modules
 
 (provide 'company-coq)
 ;;; company-coq.el ends here
