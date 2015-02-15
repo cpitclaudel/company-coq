@@ -256,7 +256,7 @@ company-coq-maybe-reload-symbols."
   (company-coq-init-symbols)
   (company-coq-complete-symbol (company-coq-prefix-symbol)))
 
-(defun coq-company-backend (command &optional arg &rest ignored)
+(defun company-coq (command &optional arg &rest ignored)
   "A company-mode backend for known Coq symbols."
   (interactive (list 'interactive))
   (company-coq-dbg "Coq backend called with command %s" command)
