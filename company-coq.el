@@ -199,10 +199,12 @@ company-coq-maybe-reload-symbols."
 
 (defun company-coq-meta (name)
   (company-coq-dbg "company-coq-meta: Called for name %s" name)
-  (let ((meta (company-coq-join-lines
-               (company-coq-documentation-header name) " ")))
+  (let* ((meta (company-coq-join-lines (company-coq-documentation-header name) " " 'string-trim))
+         (minibuf-w (window-body-width (minibuffer-window)))
+         (meta-trunc (if (> (length meta) minibuf-w)
+                         (concat (substring meta 0 (- minibuf-w 3)) "...") meta)))
     (company-coq-dbg "Meta: %s" meta)
-    meta))
+    meta-trunc))
 
 (defun company-coq-get-pg-buffer ()
   (get-buffer "*goals*"))
