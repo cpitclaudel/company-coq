@@ -1,6 +1,28 @@
 ;;; company-coq.el --- Company-based completion of Coq symbols
 
 ;;; Commentary:
+;;;
+;;; Sending commands to the prover when it's already busy breaks everything.
+;;; 'proof-shell-handle-delayed-output-hook is a good place to reload stuff,
+;;; except when an error occurs (in that case it runs before all output has been
+;;; processed.
+;;;
+;;; This problem is solved by refusing to communicate with the prover, unless it
+;;; is reported as available. When it isn't, the interaction is either
+;;; abandonned (documentation (and completion if the symbols aren't available
+;;; yet)) or delayed using an idle timer (reload; in fact, this one is always
+;;; wrapped in an idle timer). To prevent loops due to idle timers firing in
+;;; succession, reloads are only attempted once.
+;;;
+;;; The current implementation uses two hooks:
+;;;  * (add-hook 'proof-shell-insert-hook 'company-coq-maybe-proof-input-reload-symbols)
+;;;    This parses the input to see if it is might introduce new symbols (e.g. [Require ...])
+;;;  * (add-hook 'proof-shell-handle-delayed-output-hook 'company-coq-maybe-proof-output-reload-symbols)
+;;;    This parses the output to see if it suggests that new symbols have been introduced (e.g. [... defined])
+;;;
+;;; Since these two hooks are called into even for commands issued by our own
+;;; code, we only execute their body if we are not currently asking a question
+;;; to the prover (company-coq-asking-question).
 
 ;;; Code:
 
@@ -11,8 +33,8 @@
 (defvar company-coq-debug nil
   "Debug mode for company-coq.")
 
-(defvar company-coq-symbols-loading nil
-  "Indicates whether the list of symbols is currently being reloaded.")
+(defvar company-coq-asking-question nil
+  "Indicates whether a interaction has been initiated with the prover, to disable the input and output hooks.")
 
 (defvar company-coq-symbols-reload-needed nil
   "Indicates whether a reload might be needed. This variable is
@@ -59,7 +81,13 @@
     (apply 'message (concat "company-coq: " format) args)))
 
 (defun company-coq-ask-prover (question)
-  (proof-shell-invisible-cmd-get-result question))
+  (if (company-coq-prover-available)
+      (progn
+        (setq company-coq-asking-question t)
+        (unwind-protect
+            (proof-shell-invisible-cmd-get-result question)
+          (setq company-coq-asking-question nil)))
+    (company-coq-dbg "Prover not available; question discarded")))
 
 (defun company-coq-split-lines (str)
   (if str (split-string str "\n")))
@@ -86,7 +114,7 @@
   (and (boundp var) (equal (symbol-value var) symbol)))
 
 (defun company-coq-prover-available ()
-  (let ((available (and (fboundp 'proof-shell-available-p) (proof-shell-available-p))))
+  (let ((available (and (not company-coq-asking-question) (fboundp 'proof-shell-available-p) (proof-shell-available-p))))
     (when (not available) (company-coq-dbg "company-coq-prover-available: Prover not available"))
     available))
 
@@ -94,13 +122,13 @@
   "Load symbols by issuing command company-coq-all-symbols-cmd and parsing the results. Do not call if proof process is busy."
   (interactive)
   (with-temp-message "company-coq: Loading symbols..."
-  (let* ((name-regexp (concat "^" company-coq-name-regexp ":.*"))
-         (output (company-coq-ask-prover company-coq-all-symbols-cmd))
-         (lines (company-coq-split-lines output))
-         (filtered-lines (cl-remove-if-not (lambda (line) (string-match name-regexp line)) lines))
-         (names (mapcar (lambda (line) (replace-regexp-in-string name-regexp "\\1" line)) filtered-lines))
-         (names-sorted (sort names 'string<)))
-    (company-coq-dbg "Loaded %d symbols" (length names-sorted))
+    (let* ((name-regexp (concat "^" company-coq-name-regexp ":.*"))
+           (output (company-coq-ask-prover company-coq-all-symbols-cmd))
+           (lines (company-coq-split-lines output))
+           (filtered-lines (cl-remove-if-not (lambda (line) (string-match name-regexp line)) lines))
+           (names (mapcar (lambda (line) (replace-regexp-in-string name-regexp "\\1" line)) filtered-lines))
+           (names-sorted (sort names 'string<)))
+      (company-coq-dbg "Loaded %d symbols" (length names-sorted))
       names-sorted)))
 
 ;; TODO don't sort
@@ -108,21 +136,20 @@
 (defun company-coq-force-reload-symbols ()
   (interactive)
   (company-coq-dbg "company-coq-force-reload-symbols: Reloading symbols (forced)")
-  (when company-coq-symbols-loading
-    (company-coq-dbg "company-coq-force-reload-symbols: Reloading aborted; another reloading is already in process"))
-  (unless company-coq-symbols-loading
-    (setq company-coq-symbols-loading t)
-    (setq company-coq-symbols-reload-needed nil)
-    (unwind-protect
-        (setq company-coq-defined-symbols (company-coq-get-symbols))
-      (setq company-coq-symbols-loading nil))))
+  (unless (company-coq-prover-available)
+    (company-coq-dbg "company-coq-force-reload-symbols: Reloading aborted; proof process busy"))
+  (and (company-coq-prover-available)
+       (progn
+         (setq company-coq-symbols-reload-needed nil)
+         (setq company-coq-defined-symbols (company-coq-get-symbols)))))
 
 (defun company-coq-init-symbols ()
   (interactive)
   (company-coq-dbg "company-coq-init-symbols: Loading symbols (if never loaded)")
-  (when (not company-coq-defined-symbols)
-    (company-coq-dbg "company-coq-init-symbols: Symbols not loaded yet, reloading")
-    (company-coq-force-reload-symbols)))
+  (or company-coq-defined-symbols
+      (progn
+        (company-coq-dbg "company-coq-init-symbols: Symbols not loaded yet, reloading")
+        (company-coq-force-reload-symbols))))
 
 (defun company-coq-complete-symbol (prefix)
   "List elements of company-coq-defined-symbols starting with PREFIX"
@@ -141,7 +168,7 @@
 (defun company-coq-maybe-reload-symbols ()
   (company-coq-dbg "company-coq-maybe-reload-symbols: Reloading symbols (maybe): %s" company-coq-symbols-reload-needed)
   (when company-coq-symbols-reload-needed
-    (company-coq-force-reload-symbols)))
+    (run-with-idle-timer 0 nil 'company-coq-force-reload-symbols)))
 
 (defun company-coq-maybe-proof-output-reload-symbols ()
   "Updates company-coq-symbols-reload-needed if a proof just
@@ -149,27 +176,29 @@ completed or if output mentions new symbol, then calls
 company-coq-maybe-reload-symbols."
   (interactive)
   (company-coq-dbg "company-coq-maybe-proof-output-reload-symbols: Reloading symbols (maybe)")
-  (let ((is-end-of-def (company-coq-shell-output-is-end-of-def))
-        (is-end-of-proof (company-coq-shell-output-is-end-of-proof)))
-    (when is-end-of-proof (company-coq-dbg "company-coq-maybe-proof-output-reload-symbols: At end of proof"))
-    (when is-end-of-def (company-coq-dbg "company-coq-maybe-proof-output-reload-symbols: At end of definition"))
-    (when (or is-end-of-def is-end-of-proof)
-      (company-coq-dbg "company-coq-maybe-proof-output-reload-symbols: Setting company-coq-symbols-reload-needed")
-      (setq company-coq-symbols-reload-needed t))
-    (company-coq-maybe-reload-symbols)))
+  (unless company-coq-asking-question
+    (let ((is-end-of-def (company-coq-shell-output-is-end-of-def))
+          (is-end-of-proof (company-coq-shell-output-is-end-of-proof)))
+      (when is-end-of-proof (company-coq-dbg "company-coq-maybe-proof-output-reload-symbols: At end of proof"))
+      (when is-end-of-def (company-coq-dbg "company-coq-maybe-proof-output-reload-symbols: At end of definition"))
+      (when (or is-end-of-def is-end-of-proof)
+        (company-coq-dbg "company-coq-maybe-proof-output-reload-symbols: Setting company-coq-symbols-reload-needed")
+        (setq company-coq-symbols-reload-needed t))
+      (company-coq-maybe-reload-symbols))))
 
 (defun company-coq-maybe-proof-input-reload-symbols ()
   "Reload symbols if input mentions new symbols"
   (interactive)
   (company-coq-dbg "company-coq-maybe-proof-input-reload-symbols: Reloading symbols (maybe)")
-  (let ((is-backwards (company-coq-boundp-equal 'action 'proof-done-retracting))
-        (is-import (and (company-coq-boundp-equal 'action 'proof-done-advancing)
-                        (company-coq-boundp-string-match company-coq-input-reload-regexp 'string))))
-    (when is-backwards (company-coq-dbg "company-coq-maybe-proof-input-reload-symbols: Rewinding"))
-    (when is-import (company-coq-dbg "company-coq-maybe-proof-input-reload-symbols: New import"))
-    (when (or is-backwards is-import)
-      (company-coq-dbg "company-coq-maybe-proof-input-reload-symbols: Setting company-coq-symbols-reload-needed")
-      (setq company-coq-symbols-reload-needed t))))
+  (unless company-coq-asking-question
+    (let ((is-backwards (company-coq-boundp-equal 'action 'proof-done-retracting))
+          (is-import (and (company-coq-boundp-equal 'action 'proof-done-advancing)
+                          (company-coq-boundp-string-match company-coq-input-reload-regexp 'string))))
+      (when is-backwards (company-coq-dbg "company-coq-maybe-proof-input-reload-symbols: Rewinding"))
+      (when is-import (company-coq-dbg "company-coq-maybe-proof-input-reload-symbols: New import"))
+      (when (or is-backwards is-import)
+        (company-coq-dbg "company-coq-maybe-proof-input-reload-symbols: Setting company-coq-symbols-reload-needed")
+        (setq company-coq-symbols-reload-needed t)))))
 
 (defun company-coq-grab-symbol ()
   (when (or (looking-at "\\_>") (equal (point) (point-at-bol)))
@@ -268,8 +297,8 @@ company-coq-maybe-reload-symbols."
 (defun company-coq-candidates ()
   (interactive)
   (company-coq-dbg "company-coq-candidates: Called")
-  (company-coq-init-symbols)
-  (company-coq-complete-symbol (company-coq-prefix-symbol)))
+  (when (company-coq-init-symbols)
+    (company-coq-complete-symbol (company-coq-prefix-symbol))))
 
 (defun company-coq (command &optional arg &rest ignored)
   "A company-mode backend for known Coq symbols."
@@ -302,7 +331,6 @@ company-coq-maybe-reload-symbols."
     ))
 
 ;; TODO Support autocompletion of commands
-;; TODO Fix import of non-existent modules
 
 (provide 'company-coq)
 ;;; company-coq.el ends here
