@@ -30,6 +30,14 @@
 (defconst company-coq-def-cmd "Print %s"
   "Command used to retrieve the definition of a symbol.")
 
+(defconst company-coq-name-regexp-base "[a-zA-Z0-9_.]")
+
+(defconst company-coq-name-regexp (concat "\\(" company-coq-name-regexp-base "+\\)")
+  "Regexp used to find symbol names")
+
+(defconst company-coq-prefix-regexp (concat company-coq-name-regexp-base "*")
+  "Regexp used to find symbol prefixes")
+
 (defconst company-coq-undefined-regexp " not a defined object.$"
   "Regexp used to detect missing documentation (useful if database becomes outdated)")
 
@@ -56,8 +64,8 @@
 (defun company-coq-split-lines (str)
   (if str (split-string str "\n")))
 
-(defun company-coq-join-lines (lines sep)
-  (if lines (mapconcat 'identity lines sep)))
+(defun company-coq-join-lines (lines sep &optional trans)
+  (if lines (mapconcat (or trans 'identity) lines sep)))
 
 (defun company-coq-take-while-non-empty (lines)
   (if lines
@@ -85,7 +93,7 @@
 (defun company-coq-get-symbols ()
   "Load symbols by issuing command company-coq-all-symbols-cmd and parsing the results"
   (interactive)
-  (let* ((name-regexp "^\\([a-zA-Z0-9_\\.]+\\):.*")
+  (let* ((name-regexp (concat "^" company-coq-name-regexp ":.*"))
          (output (company-coq-ask-prover company-coq-all-symbols-cmd))
          (lines (company-coq-split-lines output))
          (filtered-lines (cl-remove-if-not (lambda (line) (string-match name-regexp line)) lines))
@@ -162,6 +170,12 @@ company-coq-maybe-reload-symbols."
       (company-coq-dbg "company-coq-maybe-proof-input-reload-symbols: Setting company-coq-symbols-reload-needed")
       (setq company-coq-symbols-reload-needed t))))
 
+(defun company-coq-grab-symbol ()
+  (when (or (looking-at "\\_>") (equal (point) (point-at-bol)))
+    (save-excursion ;; TODO could be optimized
+      (when (looking-back company-coq-prefix-regexp (point-at-bol) t)
+        (match-string 0))))) ;; Only match when either at the beginning of a line, or at end of symbol (according to syntax table)
+
 (defun company-coq-prefix-symbol ()
   (interactive)
   (company-coq-dbg "company-coq-prefix-symbol: prefix-symbol called")
@@ -170,7 +184,7 @@ company-coq-maybe-reload-symbols."
     (unless in-coq-mode (company-coq-dbg "company-coq-prefix-symbol: Not in Coq mode"))
     (unless in-scripting-mode (company-coq-dbg "company-coq-prefix-symbol: Not scripting"))
     (when (and in-coq-mode in-scripting-mode)
-      (let ((symbol (company-grab-symbol)))
+      (let ((symbol (company-coq-grab-symbol)))
         (company-coq-dbg "Found symbol %s" symbol)
         symbol))))
 
