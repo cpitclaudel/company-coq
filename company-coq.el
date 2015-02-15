@@ -201,10 +201,11 @@ company-coq-maybe-reload-symbols."
         (setq company-coq-symbols-reload-needed t)))))
 
 (defun company-coq-grab-symbol ()
-  (when (or (looking-at "\\_>") (equal (point) (point-at-bol)))
+  (if (looking-at "\\_>")
     (save-excursion ;; TODO could be optimized
       (when (looking-back company-coq-prefix-regexp (point-at-bol) t)
-        (match-string 0))))) ;; Only match when either at the beginning of a line, or at end of symbol (according to syntax table)
+          (match-string 0)))
+    (unless (and (char-after) (memq (char-syntax (char-after)) '(?w ?_))) "")))
 
 (defun company-coq-prefix-symbol ()
   (interactive)
