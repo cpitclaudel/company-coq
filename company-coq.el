@@ -213,31 +213,6 @@ company-coq-maybe-reload-symbols."
       (let ((window (get-buffer-window pg-buffer)))
         window))))
 
-;; (defvar company-coq-doc-buffer nil)
-;; (defvar company-coq-doc-window nil)
-;; (defvar company-coq-doc-window-dedication nil)
-;;
-;; (defun company-coq-restore-pg-buffer ()
-;;   (company-coq-dbg "company-coq-restore-pg-buffer: Called")
-;;   (when company-coq-doc-window
-;;     (let* ((current-buffer (window-buffer company-coq-doc-window))
-;;            (buffer-unchanged (eq current-buffer company-coq-doc-buffer)))
-;;       (when buffer-unchanged
-;;         (company-coq-dbg "company-coq-restore-pg-buffer: Not restoring; doc buffer still displayed"))
-;;       (unless (and buffer-unchanged company-coq-doc-buffer company-coq-doc-window)
-;;         (company-coq-dbg "company-coq-restore-pg-buffer: Restoring to %s" company-coq-doc-window-dedication)
-;;         (set-window-dedicated-p company-coq-doc-window nil)
-;;         ;; Probably a no-op; the pg buffer will be automatically restored
-;;         ;; (set-window-buffer company-coq-doc-window (company-coq-get-pg-buffer))
-;;         (set-window-dedicated-p company-coq-doc-window company-coq-doc-window-dedication)
-;;         (remove-hook 'buffer-list-update-hook 'company-coq-restore-pg-buffer)
-;;         (company-coq-save-pg-window-properties nil nil nil)))))
-;;
-;; (defun company-coq-save-pg-window-properties (window buffer was-dedicated-p)
-;;   (setq company-coq-doc-window window)
-;;   (setq company-coq-doc-buffer buffer)
-;;   (setq company-coq-doc-window-dedication was-dedicated-p))
-
 (defun company-coq-print-doc-in-buffer (doc window buffer)
   (let ((was-dedicated-p (window-dedicated-p window))
         (original-buffer (window-buffer window)))
