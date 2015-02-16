@@ -44,7 +44,10 @@
   "Keep track of defined symbols. Updated on save.")
 
 (defconst company-coq-all-symbols-cmd "SearchPattern _"
-  "COmmand used to list all symbols.")
+  "Command used to list all symbols.")
+
+(defconst company-coq-all-symbols-cmd-fast "SearchAny"
+  "Command used to list all symbols, using a modify version of Coq that accepts SearchAny.")
 
 (defconst company-coq-doc-cmd "About %s"
   "Command used to retrieve the documentation of a symbol.")
@@ -122,13 +125,26 @@
   "Load symbols by issuing command company-coq-all-symbols-cmd and parsing the results. Do not call if proof process is busy."
   (interactive)
   (with-temp-message "company-coq: Loading symbols..."
-    (let* ((name-regexp (concat "^" company-coq-name-regexp ":.*"))
+    (let* ((time (current-time))
+           (name-regexp (concat "^" company-coq-name-regexp ":.*"))
            (output (company-coq-ask-prover company-coq-all-symbols-cmd))
            (lines (company-coq-split-lines output))
            (filtered-lines (cl-remove-if-not (lambda (line) (string-match name-regexp line)) lines))
            (names (mapcar (lambda (line) (replace-regexp-in-string name-regexp "\\1" line)) filtered-lines))
            (names-sorted (sort names 'string<)))
-      (company-coq-dbg "Loaded %d symbols" (length names-sorted))
+      (message "Loaded %d symbols (%.03f seconds)" (length names-sorted) (float-time (time-since time)))
+      names-sorted)))
+
+(defun company-coq-get-symbols-fast ()
+  "Load symbols by issuing command company-coq-all-symbols-fast-cmd and parsing the results. Do not call if proof process is busy."
+  (interactive)
+  (with-temp-message "company-coq: Loading symbols..."
+    (let* ((time (current-time))
+           (output (company-coq-ask-prover company-coq-all-symbols-cmd-fast))
+           (lines (company-coq-split-lines output))
+           (names (cl-remove-if-not (lambda (line) (> (length line) 0)) lines))
+           (names-sorted (sort names 'string<)))
+      (message "Loaded %d symbols (%.03f seconds)" (length names-sorted) (float-time (time-since time)))
       names-sorted)))
 
 ;; TODO don't sort
@@ -141,7 +157,7 @@
   (and (company-coq-prover-available)
        (progn
          (setq company-coq-symbols-reload-needed nil)
-         (setq company-coq-defined-symbols (company-coq-get-symbols)))))
+         (setq company-coq-defined-symbols (company-coq-get-symbols-fast)))))
 
 (defun company-coq-init-symbols ()
   (interactive)
