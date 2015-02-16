@@ -43,22 +43,43 @@
 (defvar company-coq-defined-symbols nil
   "Keep track of defined symbols. Updated on save.")
 
-(defconst company-coq-all-symbols-cmd "SearchPattern _"
-  "Command used to list all symbols.")
+(defconst company-coq-name-regexp-base "[a-zA-Z0-9_.]")
 
-(defconst company-coq-all-symbols-cmd-fast "SearchAny"
-  "Command used to list all symbols, using a modify version of Coq that accepts SearchAny.")
+(defvar company-coq-fast nil
+  "Indicates whether we have access to a faster, patched REPL")
+
+(defconst company-coq-all-symbols-slow-regexp (concat "^\\(" company-coq-name-regexp-base "+\\):.*")
+  "Regexp used to filter out lines without symbols in output of SearchPattern")
+
+(defun company-coq-all-symbols-prelude ()
+  "Command to run before listing all symbols, using a patched version of Coq"
+  (when company-coq-fast "Set Search Minimal"))
+
+(defun company-coq-all-symbols-cmd ()
+  "Command used to list all symbols."
+  (if company-coq-fast "SearchAny" "SearchPattern _"))
+
+(defun company-coq-all-symbols-coda ()
+  "Command to run after listing all symbols, using a patched version of Coq"
+  (when company-coq-fast "Unset Search Minimal"))
+
+(defun company-coq-all-symbols-filter-line ()
+  "Lambda used to filter each output line"
+  (if company-coq-fast
+      (lambda (line) (> (length line) 0))
+    (lambda (line) (string-match company-coq-all-symbols-slow-regexp line))))
+
+(defun company-coq-all-symbols-extract-names ()
+  "Lambda used to extract names from the list of output lines"
+  (if company-coq-fast
+      'identity
+    (lambda (lines) (mapcar (lambda (line) (replace-regexp-in-string company-coq-all-symbols-slow-regexp "\\1" line)) lines))))
 
 (defconst company-coq-doc-cmd "About %s"
   "Command used to retrieve the documentation of a symbol.")
 
 (defconst company-coq-def-cmd "Print %s"
   "Command used to retrieve the definition of a symbol.")
-
-(defconst company-coq-name-regexp-base "[a-zA-Z0-9_.]")
-
-(defconst company-coq-name-regexp (concat "\\(" company-coq-name-regexp-base "+\\)")
-  "Regexp used to find symbol names")
 
 (defconst company-coq-prefix-regexp (concat company-coq-name-regexp-base "*")
   "Regexp used to find symbol prefixes")
@@ -84,13 +105,14 @@
     (apply 'message (concat "company-coq: " format) args)))
 
 (defun company-coq-ask-prover (question)
-  (if (company-coq-prover-available)
-      (progn
-        (setq company-coq-asking-question t)
-        (unwind-protect
-            (proof-shell-invisible-cmd-get-result question)
-          (setq company-coq-asking-question nil)))
-    (company-coq-dbg "Prover not available; question discarded")))
+  (when question
+    (if (company-coq-prover-available)
+        (progn
+          (setq company-coq-asking-question t)
+          (unwind-protect
+              (proof-shell-invisible-cmd-get-result question)
+            (setq company-coq-asking-question nil)))
+      (company-coq-dbg "Prover not available; question discarded"))))
 
 (defun company-coq-split-lines (str)
   (if str (split-string str "\n")))
@@ -122,32 +144,20 @@
     available))
 
 (defun company-coq-get-symbols ()
-  "Load symbols by issuing command company-coq-all-symbols-cmd and parsing the results. Do not call if proof process is busy."
-  (interactive)
-  (with-temp-message "company-coq: Loading symbols..."
-    (let* ((time (current-time))
-           (name-regexp (concat "^" company-coq-name-regexp ":.*"))
-           (output (company-coq-ask-prover company-coq-all-symbols-cmd))
-           (lines (company-coq-split-lines output))
-           (filtered-lines (cl-remove-if-not (lambda (line) (string-match name-regexp line)) lines))
-           (names (mapcar (lambda (line) (replace-regexp-in-string name-regexp "\\1" line)) filtered-lines))
-           (names-sorted (sort names 'string<)))
-      (message "Loaded %d symbols (%.03f seconds)" (length names-sorted) (float-time (time-since time)))
-      names-sorted)))
-
-(defun company-coq-get-symbols-fast ()
   "Load symbols by issuing command company-coq-all-symbols-fast-cmd and parsing the results. Do not call if proof process is busy."
   (interactive)
   (with-temp-message "company-coq: Loading symbols..."
-    (let* ((time (current-time))
-           (output (company-coq-ask-prover company-coq-all-symbols-cmd-fast))
-           (lines (company-coq-split-lines output))
-           (names (cl-remove-if-not (lambda (line) (> (length line) 0)) lines))
-           (names-sorted (sort names 'string<)))
-      (message "Loaded %d symbols (%.03f seconds)" (length names-sorted) (float-time (time-since time)))
-      names-sorted)))
-
-;; TODO don't sort
+    (let* ((time           (current-time))
+           (prelude-output (company-coq-ask-prover (company-coq-all-symbols-prelude)))
+           (output         (company-coq-ask-prover (company-coq-all-symbols-cmd)))
+           (coda-output    (company-coq-ask-prover (company-coq-all-symbols-coda)))
+           (lines          (company-coq-split-lines output))
+           (line-filter    (company-coq-all-symbols-filter-line))
+           (line-extractor (company-coq-all-symbols-extract-names))
+           (filtered-lines (cl-remove-if-not (lambda (line) (funcall line-filter line)) lines))
+           (names          (sort (funcall line-extractor filtered-lines) 'string<)))
+      (message "Loaded %d symbols (%.03f seconds)" (length names) (float-time (time-since time)))
+      names)))
 
 (defun company-coq-force-reload-symbols ()
   (interactive)
@@ -157,7 +167,7 @@
   (and (company-coq-prover-available)
        (progn
          (setq company-coq-symbols-reload-needed nil)
-         (setq company-coq-defined-symbols (company-coq-get-symbols-fast)))))
+         (setq company-coq-defined-symbols (company-coq-get-symbols)))))
 
 (defun company-coq-init-symbols ()
   (interactive)
