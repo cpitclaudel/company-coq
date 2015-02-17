@@ -41,7 +41,10 @@
   set from places where immediate reloading is impossible, for example in proof-shell-insert-hook")
 
 (defvar company-coq-defined-symbols nil
-  "Keep track of defined symbols. Updated on save.")
+  "Keep track of defined symbols.")
+
+(defvar  company-coq-known-keywords nil
+  "List of defined Coq syntax forms")
 
 (defconst company-coq-name-regexp-base "[a-zA-Z0-9_.]")
 
@@ -169,19 +172,58 @@
          (setq company-coq-symbols-reload-needed nil)
          (setq company-coq-defined-symbols (company-coq-get-symbols)))))
 
+(defun company-coq-init-db (db initfun)
+  (interactive)
+  (company-coq-dbg "company-coq-init-db: Loading %s (if nil; currently has %s elems)" db (length (symbol-value db)))
+  (or (symbol-value db)
+      (progn
+        (company-coq-dbg "company-coq-init-db: reloading")
+        (funcall initfun))))
+
 (defun company-coq-init-symbols ()
   (interactive)
   (company-coq-dbg "company-coq-init-symbols: Loading symbols (if never loaded)")
-  (or company-coq-defined-symbols
-      (progn
-        (company-coq-dbg "company-coq-init-symbols: Symbols not loaded yet, reloading")
-        (company-coq-force-reload-symbols))))
+  (company-coq-init-db 'company-coq-defined-symbols 'company-coq-force-reload-symbols))
+
+(defun company-coq-get-keywords-db ()
+  (let* ((db-symbols '(coq-tactics-db coq-solve-tactics-db coq-solve-cheat-tactics-db coq-tacticals-db coq-commands-db)))
+    (or (apply 'append (mapcar (lambda (x) (and (boundp x) (symbol-value x)))
+                               db-symbols))
+        (ignore (company-coq-dbg "company-coq-get-db: coq databases are nil or unbound")))))
+
+(defun company-coq-parse-keywords-db-entry (menuname abbrev insert &optional statech kwreg insert-fun hide)
+  (downcase menuname))
+
+(defun company-coq-get-annotated-keywords ()
+  (company-coq-dbg "company-coq-get-annotated-keywords: Called")
+  (mapcar (lambda (db-entry)
+            (apply 'company-coq-parse-keywords-db-entry db-entry))
+          (company-coq-get-keywords-db))) ;; TODO sort ;; TODO handle intros!
+
+(defun company-coq-force-reload-keywords ()
+  (company-coq-dbg "company-coq-force-reload-keywords: Called")
+  (setq company-coq-known-keywords (company-coq-get-annotated-keywords))
+  (company-coq-dbg "company-coq-force-reload-keywords: Loaded %s symbols" (length company-coq-known-keywords)))
+
+(defun company-coq-init-keywords ()
+  (interactive)
+  (company-coq-dbg "company-coq-init-keywords: Loading keywords (if never loaded)")
+  (company-coq-init-db 'company-coq-known-keywords 'company-coq-force-reload-keywords))
+
+(defun company-coq-complete-prefix (prefix completions)
+  "List elements of COMPLETIONS starting with PREFIX"
+  (company-coq-dbg "company-coq-complete-prefix: Completing for prefix %s (%s symbols)" prefix (length completions))
+  (all-completions prefix completions))
 
 (defun company-coq-complete-symbol (prefix)
   "List elements of company-coq-defined-symbols starting with PREFIX"
   (interactive)
-  (company-coq-dbg "company-coq-complete-symbol: Completing for prefix %s (%s symbols)" prefix (length company-coq-defined-symbols))
-  (all-completions prefix company-coq-defined-symbols))
+  (company-coq-complete-prefix prefix company-coq-defined-symbols))
+
+(defun company-coq-complete-keyword (prefix)
+  "List elements of company-coq-defined-symbols starting with PREFIX"
+  (interactive)
+  (company-coq-complete-prefix prefix company-coq-known-keywords))
 
 (defun company-coq-shell-output-is-end-of-def ()
   "Checks whether the output of the last command matches company-coq-output-reload-regexp"
@@ -226,24 +268,39 @@ company-coq-maybe-reload-symbols."
         (company-coq-dbg "company-coq-maybe-proof-input-reload-symbols: Setting company-coq-symbols-reload-needed")
         (setq company-coq-symbols-reload-needed t)))))
 
+(defun company-coq-in-coq-mode ()
+  (or (derived-mode-p 'coq-mode)
+      (ignore (company-coq-dbg "Not in Coq mode"))))
+
+(defun company-coq-in-scripting-mode ()
+  (or (and (boundp 'proof-script-buffer) proof-script-buffer)
+      (ignore (company-coq-dbg "Not in scripting mode"))))
+
 (defun company-coq-grab-symbol ()
   (if (looking-at "\\_>")
       (save-excursion ;; TODO could be optimized
         (when (looking-back company-coq-prefix-regexp (point-at-bol) t)
-          (match-string 0)))
+          (match-string-no-properties 0)))
     (unless (and (char-after) (memq (char-syntax (char-after)) '(?w ?_))) "")))
+
+(defun company-coq-grab-keyword ()
+  (company-grab-symbol)) ;; Works because '.' is not part of symbols in Coq mode. If that bug was fixed, then this should be swapped with
+
+(defun company-coq-prefix (conditions match-function)
+  (when conditions
+    (let ((prefix (funcall match-function)))
+      (company-coq-dbg "Found prefix %s" prefix)
+      prefix)))
 
 (defun company-coq-prefix-symbol ()
   (interactive)
   (company-coq-dbg "company-coq-prefix-symbol: prefix-symbol called")
-  (let ((in-coq-mode (derived-mode-p 'coq-mode))
-        (in-scripting-mode (and (boundp 'proof-script-buffer) proof-script-buffer)))
-    (unless in-coq-mode (company-coq-dbg "company-coq-prefix-symbol: Not in Coq mode"))
-    (unless in-scripting-mode (company-coq-dbg "company-coq-prefix-symbol: Not scripting"))
-    (when (and in-coq-mode in-scripting-mode)
-      (let ((symbol (company-coq-grab-symbol)))
-        (company-coq-dbg "Found symbol %s" symbol)
-        symbol))))
+  (company-coq-prefix (and (company-coq-in-coq-mode) (company-coq-in-scripting-mode)) 'company-coq-grab-symbol))
+
+(defun company-coq-prefix-keyword ()
+  (interactive)
+  (company-coq-dbg "company-coq-prefix-symbol: prefix-symbol called")
+  (company-coq-prefix (company-coq-in-coq-mode) 'company-coq-grab-symbol))
 
 (defun company-coq-documentation (name)
   (company-coq-dbg "company-coq-documentation: Called for name %s" name)
@@ -321,42 +378,45 @@ company-coq-maybe-reload-symbols."
              (doc-full (concat doc-tagline "\n" doc-underline "\n\n" doc company-coq-doc-def-sep def)))
         (company-coq-print-in-pg-buffer doc-full)))))
 
-(defun company-coq-candidates ()
+(defun company-coq-candidates-symbols ()
   (interactive)
-  (company-coq-dbg "company-coq-candidates: Called")
+  (company-coq-dbg "company-coq-symbols-candidates: Called")
   (when (company-coq-init-symbols)
     (company-coq-complete-symbol (company-coq-prefix-symbol))))
 
-(defun company-coq (command &optional arg &rest ignored)
+(defun company-coq-candidates-keywords ()
+  (interactive)
+  (company-coq-dbg "company-coq-symbols-candidates: Called")
+  (when (company-coq-init-keywords)
+    (company-coq-complete-keyword (company-coq-prefix-keyword))))
+
+(defun company-coq-symbols (command &optional arg &rest ignored)
   "A company-mode backend for known Coq symbols."
   (interactive (list 'interactive))
-  (company-coq-dbg "Coq backend called with command %s" command)
+  (company-coq-dbg "Coq symbols backend called with command %s" command)
   (pcase command
-    (`interactive (company-begin-backend 'coq-company-backend))
-    ;; init => Called once per buffer
-    ;; prefix => return the prefix at point
+    (`interactive (company-begin-backend 'company-coq-symbols))
     (`prefix (company-coq-prefix-symbol))
-    ;; candidates <prefix> => return candidates for this prefix
-    (`candidates (cons :async (lambda (callback) (funcall callback (company-coq-candidates)))))
-    ;; sorted => t if the list is already sorted
+    (`candidates (cons :async (lambda (callback) (funcall callback (company-coq-candidates-symbols)))))
     (`sorted t)
-    ;; duplicates => t if there could be duplicates
     (`duplicates nil)
-    ;; no-cache <prefix> => t if company shouldn't cache results
-    ;; meta <candidate> => short docstring for minibuffer
     (`meta (company-coq-meta arg))
-    ;; annotation <candidate> => short docstring for completion buffer
-    ;; (`annotation
-    ;; doc-buffer <candidate> => put doc buffer in `company-doc-buffer'
     (`doc-buffer (company-coq-doc-buffer arg))
-    ;; require-match => Never require a match, even if the user
-    ;; started to interact with company. See `company-require-match'.
-    (`require-match 'never)
-    ;; location <candidate> => (buffer . point) or (file . line-number)
-    ;; match <candidate> => for non-prefix based backends
-    ;; post-completion <candidate> => after insertion, for snippets
-    ))
+    (`require-match 'never)))
 
+(defun company-coq-keywords (command &optional arg &rest ignored)
+  "A company-mode backend for Coq keywords."
+  (interactive (list 'interactive))
+  (company-coq-dbg "Coq keywords backend called with command %s" command)
+  (pcase command
+    (`interactive (company-begin-backend 'company-coq-keywords))
+    (`prefix (company-coq-prefix-keyword))
+    (`candidates (cons :async (lambda (callback) (funcall callback (company-coq-candidates-keywords)))))
+    (`sorted nil)
+    (`duplicates nil)
+    ;; (`meta (company-coq-meta arg))
+    ;; (`doc-buffer (company-coq-doc-buffer arg))
+    (`require-match 'never)))
 ;; TODO Support autocompletion of commands
 
 (provide 'company-coq)
