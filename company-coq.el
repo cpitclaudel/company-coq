@@ -139,8 +139,8 @@
 (defun company-coq-take-while-non-empty (lines)
   (if lines
       (cl-loop for line in lines
-            while (not (string-equal line ""))
-            collect line)))
+               while (not (string-equal line ""))
+               collect line)))
 
 (defun company-coq-string-or-undefined (doc)
   "Returns DOC, unless DOC is a message saying that a symbol is undefined"
@@ -595,9 +595,9 @@ company-coq-maybe-reload-symbols."
       (`no-cache   t)
       (`candidates (cons :async
                          (lambda (callback)
-                           (funcall callback (print (apply #'company--multi-backend-adapter
-                                                           company-coq-backends
-                                                           'candidates arg more-args))))))
+                           (funcall callback (apply #'company--multi-backend-adapter
+                                                    company-coq-backends
+                                                    'candidates arg more-args)))))
       (_           (apply #'company--multi-backend-adapter
                           company-coq-backends
                           command arg more-args)))))
