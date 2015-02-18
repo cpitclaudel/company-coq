@@ -108,6 +108,13 @@
 (defconst company-coq-dabbrev-placeholders-regexp "#\\|@{\\([^}]+\\)}"
   "Used to match placeholders in dabbrev definitions")
 
+(when nil
+  (defvar company-coq-symbol-matching-scheme 'substring
+    "The strategy used to look for keywords")
+
+  (defun company-coq-symbol-matching-scheme-is-plain ()
+    (equal company-coq-symbol-matching-scheme 'plain)))
+
 (defun company-coq-dbg (format &rest args)
   "Print a message if company-coq-debug is non-nil"
   (when company-coq-debug
@@ -293,7 +300,7 @@ company-coq-maybe-reload-symbols."
     (unless (and (char-after) (memq (char-syntax (char-after)) '(?w ?_))) "")))
 
 (defun company-coq-grab-keyword ()
-  (company-grab-symbol)) ;; Works because '.' is not part of symbols in Coq mode. If that bug was fixed, then this should be swapped with
+  (company-grab-symbol)) ;; Works because '.' is not part of symbols in Coq mode. If that bug was fixed, then this should be swapped with company-coq-grab-symbol
 
 (defun company-coq-prefix (conditions match-function)
   (when conditions
@@ -309,7 +316,7 @@ company-coq-maybe-reload-symbols."
 (defun company-coq-prefix-keyword ()
   (interactive)
   (company-coq-dbg "company-coq-prefix-symbol: prefix-symbol called")
-  (company-coq-prefix (company-coq-in-coq-mode) 'company-coq-grab-symbol))
+  (company-coq-prefix (company-coq-in-coq-mode) 'company-coq-grab-keyword))
 
 (defun company-coq-documentation (name)
   (company-coq-dbg "company-coq-documentation: Called for name %s" name)
@@ -399,6 +406,19 @@ company-coq-maybe-reload-symbols."
   (when (company-coq-init-keywords)
     (company-coq-complete-keyword (company-coq-prefix-keyword))))
 
+(defun company-coq-match (completion)
+  (company-coq-dbg "company-coq-match: matching %s" completion)
+  (get-text-property 0 'match-end completion))
+  ;; (let ((prefix (company-coq-prefix-symbol)))
+    ;; (print prefix))
+    ;; (print (completion-pcm-all-completions prefix '(completion) nil (length prefix))))
+  ;; nil)
+  ;; (let* ((prefix          (company-coq-prefix-symbol))
+         ;; (completions     (completion-pcm-all-completions prefix '(completion) nil (length prefix)))
+         ;; (annotated-compl (car completions)))
+    ;; (company-coq-dbg "Annotated compl is %s / %s / %s / %s" prefix completion completions annotated-compl)
+    ;; (and annotated-compl (next-single-property-change 0 'font-lock-face annotated-compl))))
+
 (defun company-coq-dabbrev-to-yas-format-marker (match match-num)
   (string-match company-coq-dabbrev-placeholders-regexp match)
   (let* ((start      (match-beginning 1))
@@ -461,34 +481,93 @@ company-coq-maybe-reload-symbols."
 (defun company-coq-symbols (command &optional arg &rest ignored)
   "A company-mode backend for known Coq symbols."
   (interactive (list 'interactive))
-  (company-coq-dbg "Coq symbols backend called with command %s" command)
+  (company-coq-dbg "symbols backend: called with command %s" command)
   (pcase command
     (`interactive (company-begin-backend 'company-coq-symbols))
     (`prefix (company-coq-prefix-symbol))
-    (`candidates (cons :async (lambda (callback) (funcall callback (company-coq-candidates-symbols)))))
+    (`candidates (company-coq-candidates-symbols))
     (`sorted t)
     (`duplicates nil)
     (`ignore-case nil)
     (`meta (company-coq-meta arg))
+    (`no-cache t)
+    (`match (company-coq-match arg))
     (`doc-buffer (company-coq-doc-buffer arg))
     (`require-match 'never)))
 
 (defun company-coq-keywords (command &optional arg &rest ignored)
   "A company-mode backend for Coq keywords."
   (interactive (list 'interactive))
-  (company-coq-dbg "Coq keywords backend called with command %s" command)
+  (company-coq-dbg "keywords backend: called with command %s" command)
   (pcase command
     (`interactive (company-begin-backend 'company-coq-keywords))
     (`prefix (company-coq-prefix-keyword))
-    (`candidates (cons :async (lambda (callback) (funcall callback (company-coq-candidates-keywords)))))
-    (`sorted nil)
+    (`candidates (company-coq-candidates-keywords))
+    (`sorted t)
     (`duplicates nil)
     (`ignore-case nil)
+    (`no-cache t)
+    (`match (company-coq-match arg))
     (`post-completion (company-coq-post-completion-keyword arg))
-    ;; (`meta (company-coq-meta arg))
-    ;; (`doc-buffer (company-coq-doc-buffer arg))
     (`require-match 'never)))
-;; TODO Support autocompletion of commands
+
+(defvar company-coq-backends '(company-math-symbols-unicode company-coq-keywords company-coq-symbols)
+  ;;'((lambda (&rest args) (company-coq-async-wrapper #'company-math-symbols-unicode args)))
+  "List of backends to use")
+
+;; (defun company-coq-math-symbols-unicode (command &optional arg &rest ignored)
+;;   "Company backend for LaTeX mathematical symbols."
+;;   (interactive (list 'interactive))
+;;   (company-coq-dbg "math backend: called with command %s" command)
+;;   (cl-case command
+;;     (interactive (company-begin-backend 'company-math-symbols-unicode))
+;;     (prefix (progn
+;;               (message "getting prefix")
+;;               (print (company-math--prefix company-math-allow-unicode-symbols-in-faces
+;;                                            company-math-disallow-unicode-symbols-in-faces))))
+;;     (annotation (concat " " (get-text-property 0 :symbol arg)))
+;;     (no-cache t)
+;;     (match 0)
+;;     (candidates (cons :async
+;;                       (lambda (callback)
+;;                         (let ((comp (all-completions "gamm" company-math--symbols)))
+;;                           (message "offering completion %s" comp)
+;;                           (funcall callback comp)))))
+;;     (post-completion (company-math--substitute-unicode
+;;               (get-text-property 0 :symbol arg)))))
+
+;; (defun company-coq-math-symbols-unicode-async-wrapper (command &optional arg &rest more-args)
+;;   "For some reason, company-math-symbols-unicode doesn't work if not wrapped in async. This must appear at the end of the list of backends, too."
+;;   (interactive (list 'interactive))
+;;   (company-coq-dbg "math-symbols-unicode-async: called with command %s" command)
+;;   (pcase command
+;;     (`interactive (company-begin-backend 'company-coq-math-symbols-unicode-async-wrapper))
+;;     (`candidates (cons :async
+;;                        (lambda (callback) (funcall callback (company-math-symbols-unicode
+;;                                                              'candidates (company-math-symbols-unicode 'prefix))))))
+;;     (_           (apply #'company-math-symbols-unicode command arg more-args))))
+
+(defun company-coq (command &optional arg &rest more-args)
+  "A backend that mixes results from company-coq-symbols and company-coq-keywords."
+  (interactive (list 'interactive))
+  (company-coq-dbg "meta-backend: called with command %s" command)
+  (lexical-let ((arg arg) ;; Rebind to use in lambda
+                (more-args more-args))
+    (pcase command
+      (`interactive (company-begin-backend 'company-coq))
+      (`sorted     t)
+      (`duplicates nil)
+      (`no-cache   t)
+      (`candidates (cons :async
+                         (lambda (callback)
+                           (funcall callback (print (apply #'company--multi-backend-adapter
+                                                           company-coq-backends
+                                                           'candidates arg more-args))))))
+      (_           (apply #'company--multi-backend-adapter
+                          company-coq-backends
+                          command arg more-args)))))
+
+;; FIXME '.' in symbol name
 
 (provide 'company-coq)
 ;;; company-coq.el ends here
