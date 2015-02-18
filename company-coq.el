@@ -138,7 +138,7 @@
 
 (defun company-coq-take-while-non-empty (lines)
   (if lines
-      (loop for line in lines
+      (cl-loop for line in lines
             while (not (string-equal line ""))
             collect line)))
 
@@ -206,13 +206,13 @@
 
 (defun company-coq-parse-keywords-db-entry (menuname abbrev insert &optional statech kwreg insert-fun hide)
 ;;  (add-text-properties menuname 0 (length menuname) '(insert insert) menuname))
-  (propertize menuname 'insert insert))
+  (propertize menuname 'insert insert)) ;; TODO: Remove inter-word spaces
 
 (defun company-coq-get-annotated-keywords ()
   (company-coq-dbg "company-coq-get-annotated-keywords: Called")
   (mapcar (lambda (db-entry)
             (apply 'company-coq-parse-keywords-db-entry db-entry))
-          (company-coq-get-keywords-db))) ;; TODO sort ;; TODO handle intros!
+          (company-coq-get-keywords-db))) ;; TODO sort ;; TODO handle "intros!"
 
 (defun company-coq-force-reload-keywords ()
   (company-coq-dbg "company-coq-force-reload-keywords: Called")
@@ -224,17 +224,52 @@
   (company-coq-dbg "company-coq-init-keywords: Loading keywords (if never loaded)")
   (company-coq-init-db 'company-coq-known-keywords 'company-coq-force-reload-keywords))
 
-(defun company-coq-complete-prefix (prefix completions &optional override-ignore-case)
+(defun company-coq-string-lessp-foldcase (str1 str2)
+  (let ((mb1 (equal 0 (get-text-property 0 'match-beginning str1)))
+        (mb2 (equal 0 (get-text-property 0 'match-beginning str2))))
+    (or (and mb1 (not mb2))
+        (and (not mb2) (string-lessp (upcase str1) (upcase str2))))))
+
+(defun company-coq-make-proper-list (improper-list)
+  (let ((last-cell (last improper-list)))
+    (setcdr last-cell nil)
+    improper-list))
+
+(defun company-coq-propertize-match (match beginning end)
+  (company-coq-dbg "company-coq-propertize-match: %s %s %s" match beginning end)
+  (put-text-property 0 1 'match-beginning beginning match)
+  (put-text-property 0 1 'match-end end match)
+  match)
+
+(defun company-coq-complete-prefix-substring (prefix completions &optional ignore-case)
+  "List elements of COMPLETIONS containing with PREFIX"
+  (let ((completion-ignore-case ignore-case)
+        (case-fold-search       ignore-case)
+        (prefix-re              (regexp-quote prefix)))
+    (sort (cl-loop for completion in completions
+                   if (string-match prefix-re completion)
+                   collect (company-coq-propertize-match completion (match-beginning 0) (match-end 0)))
+          #'company-coq-string-lessp-foldcase)))
+
+(defun company-coq-complete-prefix-fuzzy (prefix completions &optional ignore-case)
+  "List elements of COMPLETIONS matching PREFIX"
+  (let ((completion-ignore-case ignore-case))
+    (company-coq-make-proper-list (completion-pcm-all-completions prefix completions nil (length prefix)))))
+
+(defun company-coq-complete-prefix (prefix completions &optional ignore-case)
   "List elements of COMPLETIONS starting with PREFIX"
   (company-coq-dbg "company-coq-complete-prefix: Completing for prefix %s (%s symbols)" prefix (length completions))
-  (let ((completion-ignore-case (or completion-ignore-case override-ignore-case)))
-    (all-completions prefix completions)))
-;;  (print (completion-pcm-all-completions prefix completions nil (length prefix)))
+  (let ((completion-ignore-case ignore-case)
+        (prefix-len             (length prefix)))
+    (sort (mapcar
+           (lambda (completion) (company-coq-propertize-match completion 0 prefix-len))
+           (all-completions prefix completions))
+          #'string<)))
 
 (defun company-coq-complete-symbol (prefix)
   "List elements of company-coq-defined-symbols starting with PREFIX"
   (interactive)
-  (company-coq-complete-prefix prefix company-coq-defined-symbols))
+  (company-coq-complete-prefix-substring prefix company-coq-defined-symbols))
 
 (defun company-coq-complete-keyword (prefix)
   "List elements of company-coq-defined-symbols starting with PREFIX"
