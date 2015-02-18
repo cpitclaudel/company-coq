@@ -102,6 +102,12 @@
 (defconst company-coq-doc-def-sep "\n---\n\n"
   "Separation line between the output of company-coq-doc-cmd and company-coq-def-cmd in the doc buffer.")
 
+(defvar company-coq-explicit-placeholders t
+  "Show holes using explicit placeholders")
+
+(defconst company-coq-dabbrev-placeholders-regexp "#\\|@{\\([^}]+\\)}"
+  "Used to match placeholders in dabbrev definitions")
+
 (defun company-coq-dbg (format &rest args)
   "Print a message if company-coq-debug is non-nil"
   (when company-coq-debug
@@ -192,7 +198,8 @@
         (ignore (company-coq-dbg "company-coq-get-db: coq databases are nil or unbound")))))
 
 (defun company-coq-parse-keywords-db-entry (menuname abbrev insert &optional statech kwreg insert-fun hide)
-  (downcase menuname))
+;;  (add-text-properties menuname 0 (length menuname) '(insert insert) menuname))
+  (propertize menuname 'insert insert))
 
 (defun company-coq-get-annotated-keywords ()
   (company-coq-dbg "company-coq-get-annotated-keywords: Called")
@@ -210,10 +217,12 @@
   (company-coq-dbg "company-coq-init-keywords: Loading keywords (if never loaded)")
   (company-coq-init-db 'company-coq-known-keywords 'company-coq-force-reload-keywords))
 
-(defun company-coq-complete-prefix (prefix completions)
+(defun company-coq-complete-prefix (prefix completions &optional override-ignore-case)
   "List elements of COMPLETIONS starting with PREFIX"
   (company-coq-dbg "company-coq-complete-prefix: Completing for prefix %s (%s symbols)" prefix (length completions))
-  (all-completions prefix completions))
+  (let ((completion-ignore-case (or completion-ignore-case override-ignore-case)))
+    (all-completions prefix completions)))
+;;  (print (completion-pcm-all-completions prefix completions nil (length prefix)))
 
 (defun company-coq-complete-symbol (prefix)
   "List elements of company-coq-defined-symbols starting with PREFIX"
@@ -390,6 +399,65 @@ company-coq-maybe-reload-symbols."
   (when (company-coq-init-keywords)
     (company-coq-complete-keyword (company-coq-prefix-keyword))))
 
+(defun company-coq-dabbrev-to-yas-format-marker (match match-num)
+  (string-match company-coq-dabbrev-placeholders-regexp match)
+  (let* ((start      (match-beginning 1))
+         (end        (match-end       1))
+         (identifier (or (and start end (substring match start end))
+                         (and company-coq-explicit-placeholders "_")))
+         (format-str (if identifier (concat  "${%d:" identifier "}") "$%d")))
+    (format format-str match-num)))
+
+(defun company-coq-dabbrev-to-yas (abbrev)
+  (interactive)
+  (company-coq-dbg "company-coq-dabbrev-to-yas: Transforming %s" abbrev)
+  (let* ((match-num        0)
+         (number-matches   (lambda (match)
+                             (setq match-num (+ match-num 1))
+                             (company-coq-dabbrev-to-yas-format-marker match match-num)))
+         (snippet          (replace-regexp-in-string company-coq-dabbrev-placeholders-regexp number-matches abbrev))
+         ;;(clean-snippet  (replace-regexp-in-string "[[:space:]]*\\'" "" snippet))
+         ;;(ends-with-dot  (string-match "\\.[[:space:]]*\\'" snippet))
+         (ends-with-space  (string-match "[^\\.][[:space:]]+\\'" snippet))
+         (suffix           (if (and ends-with-space (equal 0 match-num))
+                               (company-coq-dabbrev-to-yas-format-marker "#" 1) ""))
+         (final-snippet    (concat snippet suffix)))
+    (company-coq-dbg "company-coq-dabbrev-to-yas: transformed using suffix %s, to %s" suffix final-snippet)
+    final-snippet))
+;; TODO support other types of annotations
+;; TODO: fix rewrite-all
+
+(when nil
+  (defun company-coq-exit-snippet (char)
+    (company-coq-dbg "Exiting snippet (received %s)" char)
+    (let ((snippet (first (yas--snippets-at-point))))
+      (yas-exit-snippet snippet)))
+
+  (defmacro company-coq-register-snippet-terminator (char)
+    `(progn
+       (company-coq-dbg "registering %s as a snippet terminator" ,char)
+       (when (boundp 'yas-keymap)
+         ;;(make-local-variable 'yas-keymap)
+         (define-key yas-keymap (kbd ,char)
+           (lambda ()
+             (interactive)
+             (and (fboundp 'company-coq-exit-snippet)
+                  (company-coq-exit-snippet ,char))
+             (insert ,char)))))) ;; FIXME: Should call electric terminator instead of insert
+  )
+
+(defun company-coq-post-completion-keyword (kwd)
+  (let* ((found  (search-backward kwd))
+         (abbrev (get-text-property 0 'insert kwd)))
+    (when (and found abbrev)
+      (delete-region (match-beginning 0) (match-end 0))
+      ;; (when (boundp 'yas-keymap) ;; Make ; and . exit completion
+        ;; (company-coq-register-snippet-terminator ";")
+        ;; (company-coq-register-snippet-terminator "."))
+      (yas-expand-snippet (company-coq-dabbrev-to-yas abbrev)))))
+
+;; FIXME coq-symbols complete at end of full symbol
+
 (defun company-coq-symbols (command &optional arg &rest ignored)
   "A company-mode backend for known Coq symbols."
   (interactive (list 'interactive))
@@ -416,6 +484,7 @@ company-coq-maybe-reload-symbols."
     (`sorted nil)
     (`duplicates nil)
     (`ignore-case nil)
+    (`post-completion (company-coq-post-completion-keyword arg))
     ;; (`meta (company-coq-meta arg))
     ;; (`doc-buffer (company-coq-doc-buffer arg))
     (`require-match 'never)))
