@@ -30,8 +30,25 @@
 (require 'cl-lib)
 ;; (require 'proof-site)
 
-(defvar company-coq-debug nil
-  "Debug mode for company-coq.")
+(defgroup company-coq-opts nil
+  "Options for the Coq company mode"
+  :group 'company)
+
+(defcustom company-coq-debug nil
+  "Debug mode for company-coq."
+  :group 'company-coq-opts)
+
+(defcustom company-coq-fast nil
+  "Indicates whether we have access to a faster, patched REPL"
+  :group 'company-coq-opts)
+
+(defcustom company-coq-explicit-placeholders t
+  "Show holes using explicit placeholders"
+  :group 'company-coq-opts)
+
+(defcustom company-coq-backends '(company-math-symbols-unicode company-coq-keywords company-coq-symbols)
+  "List of backends to use, listed in the order in which you want the results displayed. Note that the first backend to return a prefix supersseds all the others; they all must work with the same prefix."
+  :group 'company-coq-opts)
 
 (defvar company-coq-asking-question nil
   "Indicates whether a interaction has been initiated with the prover, to disable the input and output hooks.")
@@ -47,9 +64,6 @@
   "List of defined Coq syntax forms")
 
 (defconst company-coq-name-regexp-base "[a-zA-Z0-9_.]")
-
-(defvar company-coq-fast nil
-  "Indicates whether we have access to a faster, patched REPL")
 
 (defconst company-coq-all-symbols-slow-regexp (concat "^\\(" company-coq-name-regexp-base "+\\):.*")
   "Regexp used to filter out lines without symbols in output of SearchPattern")
@@ -102,15 +116,13 @@
 (defconst company-coq-doc-def-sep "\n---\n\n"
   "Separation line between the output of company-coq-doc-cmd and company-coq-def-cmd in the doc buffer.")
 
-(defvar company-coq-explicit-placeholders t
-  "Show holes using explicit placeholders")
-
 (defconst company-coq-dabbrev-placeholders-regexp "#\\|@{\\([^}]+\\)}"
   "Used to match placeholders in dabbrev definitions")
 
 (when nil
-  (defvar company-coq-symbol-matching-scheme 'substring
-    "The strategy used to look for keywords")
+  (defcustom company-coq-symbol-matching-scheme 'substring
+    "The strategy used to look for keywords"
+    :group company-coq-opts)
 
   (defun company-coq-symbol-matching-scheme-is-plain ()
     (equal company-coq-symbol-matching-scheme 'plain)))
@@ -554,11 +566,6 @@ company-coq-maybe-reload-symbols."
     (`post-completion (company-coq-post-completion-keyword arg))
     (`require-match 'never)))
 
-
-;; Beware: the first backend that returns a non-nil prefix sets the prefix for all backends
-(defvar company-coq-backends '(company-math-symbols-unicode company-coq-keywords company-coq-symbols)
-  "List of backends to use")
-
 (defun company-coq-make-backends-alist ()
   (mapcar (lambda (backend) (cons backend ())) (append '(nil) company-coq-backends)))
 
@@ -599,6 +606,10 @@ company-coq-maybe-reload-symbols."
                             command arg more-args))))))
 
 ;; FIXME '.' in symbol name
+
+(defun company-coq-initialize ()
+  (add-to-list (make-local-variable 'company-backends) company-coq-backends)
+  (add-to-list (make-local-variable 'company-transformers) #'company-coq-sort-in-backends-order))
 
 (provide 'company-coq)
 ;;; company-coq.el ends here
