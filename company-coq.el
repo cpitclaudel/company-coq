@@ -550,26 +550,45 @@ company-coq-maybe-reload-symbols."
   ;;'((lambda (&rest args) (company-coq-async-wrapper #'company-math-symbols-unicode args)))
   "List of backends to use")
 
+(defun company-coq-make-backends-alist ()
+  (mapcar (lambda (backend) (cons backend ())) (append '(nil) company-coq-backends)))
 
-(defun company-coq (command &optional arg &rest more-args)
-  "A backend that mixes results from company-coq-symbols and company-coq-keywords."
-  (interactive (list 'interactive))
-  (company-coq-dbg "meta-backend: called with command %s" command)
-  (lexical-let ((arg arg) ;; Rebind to use in lambda
-                (more-args more-args))
-    (pcase command
-      (`interactive (company-begin-backend 'company-coq))
-      (`sorted     t)
-      (`duplicates nil)
-      (`no-cache   t)
-      (`candidates (cons :async
-                         (lambda (callback)
-                           (funcall callback (apply #'company--multi-backend-adapter
-                                                    company-coq-backends
-                                                    'candidates arg more-args)))))
-      (_           (apply #'company--multi-backend-adapter
-                          company-coq-backends
-                          command arg more-args)))))
+(defun company-coq-push-to-backend-alist (candidate backends-alist)
+  (let* ((company-tag   (get-text-property 0 'company-backend candidate))
+         (tag-container (or (assq company-tag backends-alist)
+                            (assq nil         backends-alist))))
+    ;; (message "Pushing %s to %s" candidate tag-container)
+    (push candidate (cdr tag-container))))
+
+(defun company-coq-sort-in-backends-order (candidates)
+  (let ((backends-alist (company-coq-make-backends-alist)))
+    (mapc (lambda (candidate) ;; Partition the candidates by backend
+            (company-coq-push-to-backend-alist candidate backends-alist))
+          candidates)
+    (apply #'append (mapcar (lambda (pair) ;; Sort the results of each backends, and concat all
+                              (sort (cdr pair) #'company-coq-string-lessp-foldcase))
+                            backends-alist))))
+
+(when nil
+  (defun company-coq (command &optional arg &rest more-args)
+    "A backend that mixes results from company-coq-symbols and company-coq-keywords."
+    (interactive (list 'interactive))
+    (company-coq-dbg "meta-backend: called with command %s" command)
+    (lexical-let ((arg arg) ;; Rebind to use in lambda
+                  (more-args more-args))
+      (pcase command
+        (`interactive (company-begin-backend 'company-coq))
+        (`sorted     t)
+        (`duplicates nil)
+        (`no-cache   t)
+        (`candidates (cons :async
+                           (lambda (callback)
+                             (funcall callback (apply #'company--multi-backend-adapter
+                                                      company-coq-backends
+                                                      'candidates arg more-args)))))
+        (_           (apply #'company--multi-backend-adapter
+                            company-coq-backends
+                            command arg more-args))))))
 
 ;; FIXME '.' in symbol name
 
