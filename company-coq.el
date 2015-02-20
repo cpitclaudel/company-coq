@@ -419,6 +419,13 @@ company-coq-maybe-reload-symbols."
         (company-coq-dbg "company-coq-print-in-pg-buffer: Buffer *goals* not found"))
       doc-buffer)))
 
+(defun company-coq-annotation-keywords (candidate)
+  (let* ((snippet   (company-coq-get-snippet candidate))
+         (num-holes (and snippet (get-text-property 0 'num-holes snippet))))
+    (if (and (numberp num-holes) (> num-holes 0))
+        (format "<kwd+%d>" num-holes)
+      "<kwd>")))
+
 (defun company-coq-doc-buffer (name)
   (company-coq-dbg "company-coq-doc-buffer: Called for name %s" name)
   (let ((doc (company-coq-documentation name))
@@ -475,8 +482,10 @@ company-coq-maybe-reload-symbols."
          ;;(ends-with-dot  (string-match "\\.[[:space:]]*\\'" snippet))
          (ends-with-space  (string-match "[^\\.][[:space:]]+\\'" snippet))
          (suffix           (if (and ends-with-space (equal 0 match-num))
-                               (company-coq-dabbrev-to-yas-format-marker "#" 1) ""))
+                               (progn (setq match-num (+ match-num 1))
+                                      (company-coq-dabbrev-to-yas-format-marker "#" match-num)) ""))
          (final-snippet    (concat snippet suffix)))
+    (put-text-property 0 (length final-snippet) 'num-holes match-num final-snippet)
     (company-coq-dbg "company-coq-dabbrev-to-yas: transformed using suffix %s, to %s" suffix final-snippet)
     final-snippet))
 ;; TODO support other types of annotations
@@ -501,15 +510,19 @@ company-coq-maybe-reload-symbols."
              (insert ,char)))))) ;; FIXME: Should call electric terminator instead of insert
   )
 
+(defun company-coq-get-snippet (candidate)
+  (let* ((abbrev  (get-text-property 0 'insert candidate))
+         (snippet (and abbrev (company-coq-dabbrev-to-yas abbrev))))
+    snippet))
+
 (defun company-coq-post-completion-keyword (kwd)
-  (let* ((found  (search-backward kwd))
-         (abbrev (get-text-property 0 'insert kwd)))
-    (when (and found abbrev)
-      (delete-region (match-beginning 0) (match-end 0))
-      ;; (when (boundp 'yas-keymap) ;; Make ; and . exit completion
-        ;; (company-coq-register-snippet-terminator ";")
-        ;; (company-coq-register-snippet-terminator "."))
-      (yas-expand-snippet (company-coq-dabbrev-to-yas abbrev)))))
+  (let* ((found   (search-backward kwd))
+         (start   (match-beginning 0))
+         (end     (match-end 0))
+         (snippet (company-coq-get-snippet kwd)))
+    (when (and found start end snippet)
+      ;; (delete-region start end) ;;FIXME Check
+      (yas-expand-snippet snippet start end))))
 
 ;; FIXME coq-symbols complete at end of full symbol
 
@@ -527,6 +540,7 @@ company-coq-maybe-reload-symbols."
     (`meta (company-coq-meta arg))
     (`no-cache t)
     (`match (company-coq-match arg))
+    (`annotation "<symb>")
     (`doc-buffer (company-coq-doc-buffer arg))
     (`require-match 'never)))
 
@@ -543,11 +557,11 @@ company-coq-maybe-reload-symbols."
     (`ignore-case nil)
     (`no-cache t)
     (`match (company-coq-match arg))
+    (`annotation (company-coq-annotation-keywords arg))
     (`post-completion (company-coq-post-completion-keyword arg))
     (`require-match 'never)))
 
 (defvar company-coq-backends '(company-math-symbols-unicode company-coq-keywords company-coq-symbols)
-  ;;'((lambda (&rest args) (company-coq-async-wrapper #'company-math-symbols-unicode args)))
   "List of backends to use")
 
 (defun company-coq-make-backends-alist ()
