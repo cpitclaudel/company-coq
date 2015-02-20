@@ -228,7 +228,7 @@
   (let ((mb1 (equal 0 (get-text-property 0 'match-beginning str1)))
         (mb2 (equal 0 (get-text-property 0 'match-beginning str2))))
     (or (and mb1 (not mb2))
-        (and (not mb2) (string-lessp (upcase str1) (upcase str2))))))
+        (and (equal mb1 mb2) (string-lessp (upcase str1) (upcase str2))))))
 
 (defun company-coq-make-proper-list (improper-list)
   (let ((last-cell (last improper-list)))
