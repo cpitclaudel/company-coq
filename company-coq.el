@@ -237,8 +237,8 @@
 
 (defun company-coq-propertize-match (match beginning end)
   (company-coq-dbg "company-coq-propertize-match: %s %s %s" match beginning end)
-  (put-text-property 0 1 'match-beginning beginning match)
-  (put-text-property 0 1 'match-end end match)
+  (put-text-property 0 (length match) 'match-beginning beginning match)
+  (put-text-property 0 (length match) 'match-end end match)
   match)
 
 (defun company-coq-complete-prefix-substring (prefix completions &optional ignore-case)
