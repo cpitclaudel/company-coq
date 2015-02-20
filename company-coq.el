@@ -550,37 +550,6 @@ company-coq-maybe-reload-symbols."
   ;;'((lambda (&rest args) (company-coq-async-wrapper #'company-math-symbols-unicode args)))
   "List of backends to use")
 
-;; (defun company-coq-math-symbols-unicode (command &optional arg &rest ignored)
-;;   "Company backend for LaTeX mathematical symbols."
-;;   (interactive (list 'interactive))
-;;   (company-coq-dbg "math backend: called with command %s" command)
-;;   (cl-case command
-;;     (interactive (company-begin-backend 'company-math-symbols-unicode))
-;;     (prefix (progn
-;;               (message "getting prefix")
-;;               (print (company-math--prefix company-math-allow-unicode-symbols-in-faces
-;;                                            company-math-disallow-unicode-symbols-in-faces))))
-;;     (annotation (concat " " (get-text-property 0 :symbol arg)))
-;;     (no-cache t)
-;;     (match 0)
-;;     (candidates (cons :async
-;;                       (lambda (callback)
-;;                         (let ((comp (all-completions "gamm" company-math--symbols)))
-;;                           (message "offering completion %s" comp)
-;;                           (funcall callback comp)))))
-;;     (post-completion (company-math--substitute-unicode
-;;               (get-text-property 0 :symbol arg)))))
-
-;; (defun company-coq-math-symbols-unicode-async-wrapper (command &optional arg &rest more-args)
-;;   "For some reason, company-math-symbols-unicode doesn't work if not wrapped in async. This must appear at the end of the list of backends, too."
-;;   (interactive (list 'interactive))
-;;   (company-coq-dbg "math-symbols-unicode-async: called with command %s" command)
-;;   (pcase command
-;;     (`interactive (company-begin-backend 'company-coq-math-symbols-unicode-async-wrapper))
-;;     (`candidates (cons :async
-;;                        (lambda (callback) (funcall callback (company-math-symbols-unicode
-;;                                                              'candidates (company-math-symbols-unicode 'prefix))))))
-;;     (_           (apply #'company-math-symbols-unicode command arg more-args))))
 
 (defun company-coq (command &optional arg &rest more-args)
   "A backend that mixes results from company-coq-symbols and company-coq-keywords."
