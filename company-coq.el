@@ -520,7 +520,7 @@ company-coq-maybe-reload-symbols."
   (pcase command
     (`interactive (company-begin-backend 'company-coq-symbols))
     (`prefix (company-coq-prefix-symbol))
-    (`candidates (company-coq-candidates-symbols))
+    (`candidates (cons :async (lambda (callback) (funcall callback (company-coq-candidates-symbols)))))
     (`sorted t)
     (`duplicates nil)
     (`ignore-case nil)
