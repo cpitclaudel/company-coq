@@ -1,0 +1,10 @@
+;;; company-coq-abbrev.el --- Auto-extracted abbrevs
+
+;;; Commentary:
+
+;;; Code:
+
+$CODE$
+
+(provide 'company-coq-abbrev)
+;;; company-coq-abbrev.el ends here

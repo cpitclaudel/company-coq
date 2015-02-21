@@ -28,6 +28,8 @@
 
 (require 'company)
 (require 'cl-lib)
+(require 'company-coq-abbrev)
+(require 'company-coq-abbrev-tactics)
 ;; (require 'proof-site)
 
 (defgroup company-coq-opts nil
@@ -216,15 +218,46 @@
                                db-symbols))
         (ignore (company-coq-dbg "company-coq-get-db: coq databases are nil or unbound")))))
 
+(defun company-coq-normalize-abbrev (kwd)
+  (downcase (replace-regexp-in-string (concat " *\\(" company-coq-dabbrev-placeholders-regexp "\\) *") "#" kwd)))
+
 (defun company-coq-parse-keywords-db-entry (menuname abbrev insert &optional statech kwreg insert-fun hide)
-;;  (add-text-properties menuname 0 (length menuname) '(insert insert) menuname))
-  (propertize menuname 'insert insert)) ;; TODO: Remove inter-word spaces
+  (when insert
+    (propertize menuname 'insert insert 'stripped (company-coq-normalize-abbrev insert)))) ;; TODO: Remove inter-word spaces
+
+(defun company-coq-parse-auto-db-entry (abbrev)
+  (propertize abbrev 'insert abbrev 'stripped (company-coq-normalize-abbrev abbrev)))
+
+(defun company-coq-abbrev-equal (a1 a2)
+  (equal (company-coq-read-normalized-abbrev a1)
+         (company-coq-read-normalized-abbrev a2)))
+
+(defun company-coq-read-normalized-abbrev (kwd)
+  (get-text-property 0 'stripped kwd))
+
+(defun company-coq-union-sort (test comp key &rest lists)
+  (let ((merged  (cl-stable-sort (apply #'nconc lists) comp :key key))
+        (deduped nil)
+        (prev    nil))
+    (while merged
+      (let ((top (pop merged)))
+        (unless (and prev (funcall test top prev))
+          (push top deduped)
+          (setq prev top))))
+    (reverse deduped)))
 
 (defun company-coq-get-annotated-keywords ()
   (company-coq-dbg "company-coq-get-annotated-keywords: Called")
-  (mapcar (lambda (db-entry)
-            (apply 'company-coq-parse-keywords-db-entry db-entry))
-          (company-coq-get-keywords-db))) ;; TODO sort ;; TODO handle "intros!"
+  (let ((pg-keywords   (remove nil
+                               (mapcar (lambda (db-entry)
+                                         (apply 'company-coq-parse-keywords-db-entry db-entry))
+                                       (company-coq-get-keywords-db))))
+        (auto-keywords (mapcar #'company-coq-parse-auto-db-entry
+                               company-coq-auto-extracted-vernacs))
+        (auto-tactics  (mapcar #'company-coq-parse-auto-db-entry
+                               company-coq-auto-extracted-tactics))) ;; TODO
+    (company-coq-union-sort #'company-coq-abbrev-equal #'string-lessp #'company-coq-read-normalized-abbrev
+                            auto-tactics auto-keywords pg-keywords)))
 
 (defun company-coq-force-reload-keywords ()
   (company-coq-dbg "company-coq-force-reload-keywords: Called")

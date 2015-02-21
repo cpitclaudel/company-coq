@@ -1,0 +1,10 @@
+;;; company-coq-abbrev-tactics.el --- Auto-extracted tactics
+
+;;; Commentary:
+
+;;; Code:
+
+$CODE$
+
+(provide 'company-coq-abbrev-tactics)
+;;; company-coq-abbrev-tactics.el ends here
