@@ -327,31 +327,24 @@ company-coq-maybe-reload-symbols."
   (or (and (boundp 'proof-script-buffer) proof-script-buffer)
       (ignore (company-coq-dbg "Not in scripting mode"))))
 
-(defun company-coq-grab-symbol ()
-  (if (looking-at "\\_>")
-      (save-excursion ;; TODO could be optimized
-        (when (looking-back company-coq-prefix-regexp (point-at-bol) t)
-          (match-string-no-properties 0)))
-    (unless (and (char-after) (memq (char-syntax (char-after)) '(?w ?_))) "")))
-
-(defun company-coq-grab-keyword ()
-  (company-grab-symbol)) ;; Works because '.' is not part of symbols in Coq mode. If that bug was fixed, then this should be swapped with company-coq-grab-symbol
-
-(defun company-coq-prefix (conditions match-function)
-  (when conditions
-    (let ((prefix (funcall match-function)))
-      (company-coq-dbg "Found prefix %s" prefix)
-      prefix)))
+(defun company-coq-grab-prefix ()
+  ;; Only one grab function; otherwise the first backend in the list of backend shadows the others
+  (unless (and (char-after) (memq (char-syntax (char-after)) '(?w ?_)))
+    (save-excursion ;; TODO could be optimized
+      (when (looking-back company-coq-prefix-regexp (point-at-bol) t)
+        (match-string-no-properties 0)))))
 
 (defun company-coq-prefix-symbol ()
   (interactive)
   (company-coq-dbg "company-coq-prefix-symbol: prefix-symbol called")
-  (company-coq-prefix (and (company-coq-in-coq-mode) (company-coq-in-scripting-mode)) 'company-coq-grab-symbol))
+  (when (and (company-coq-in-coq-mode) (company-coq-in-scripting-mode))
+    (company-coq-grab-prefix)))
 
 (defun company-coq-prefix-keyword ()
   (interactive)
   (company-coq-dbg "company-coq-prefix-symbol: prefix-symbol called")
-  (company-coq-prefix (company-coq-in-coq-mode) 'company-coq-grab-keyword))
+  (when (company-coq-in-coq-mode)
+    (company-coq-grab-prefix)))
 
 (defun company-coq-documentation (name)
   (company-coq-dbg "company-coq-documentation: Called for name %s" name)
@@ -561,6 +554,8 @@ company-coq-maybe-reload-symbols."
     (`post-completion (company-coq-post-completion-keyword arg))
     (`require-match 'never)))
 
+
+;; Beware: the first backend that returns a non-nil prefix sets the prefix for all backends
 (defvar company-coq-backends '(company-math-symbols-unicode company-coq-keywords company-coq-symbols)
   "List of backends to use")
 
@@ -571,7 +566,6 @@ company-coq-maybe-reload-symbols."
   (let* ((company-tag   (get-text-property 0 'company-backend candidate))
          (tag-container (or (assq company-tag backends-alist)
                             (assq nil         backends-alist))))
-    ;; (message "Pushing %s to %s" candidate tag-container)
     (push candidate (cdr tag-container))))
 
 (defun company-coq-sort-in-backends-order (candidates)
