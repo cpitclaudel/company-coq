@@ -1,106 +1,821 @@
-;;; company-coq-abbrev.el --- Auto-extracted abbrevs
+;;; company-coq-abbrev.el --- Auto-generated from RefMan
 
 ;;; Commentary:
 
 ;;; Code:
 
-(defconst company-coq-auto-extracted-vernacs
-  '("About @{qualid}."
-    "Abstraction #."
-    "Add LoadPath @{str} as @{dirpath}."
-    "Add LoadPath @{str}."
-    "Add ML Path @{str}."
-    "Add Rec LoadPath @{str} as @{dirpath}."
-    "Add Rec LoadPath @{str}."
-    "Add Rec ML Path @{str}."
-    "Back @{n}."
-    "Back."
-    "BackTo @{num}."
-    "Backtrack @{num} @{num} @{num}."
-    "Cd @{str}."
-    "Cd."
-    "Check @{term}."
-    "Compute @{term}."
-    "Declare ML Module @{str}."
-    "Declare Reduction @{ident} := @{convtactic}."
-    "Drop."
-    "Eval @{convtactic} in @{term}."
-    "Extraction @{term}."
-    "Global Set @{flag}."
-    "Global Set @{option} @{value}."
-    "Global Unset @{flag}."
-    "Inspect @{num}."
-    "Load @{ident}."
-    "Load @{str}."
-    "Load Verbose @{ident}."
-    "Local Declare ML Module @{str}."
-    "Local Set @{flag}."
-    "Local Set @{option} @{value}."
-    "Local Unset @{flag}."
-    "Locate @{qualid}."
-    "Locate File @{str}."
-    "Locate Library @{dirpath}."
-    "Opaque @{qualid}."
-    "Print @{qualid}."
-    "Print All."
-    "Print Assumptions @{qualid}."
-    "Print Libraries."
-    "Print LoadPath @{dirpath}."
-    "Print LoadPath."
-    "Print ML Modules."
-    "Print ML Path @{str}."
-    "Print Proof @{qualid}."
-    "Print Section @{ident}."
-    "Print Term @{qualid}."
-    "Print."
-    "Pwd."
-    "Quit."
-    "Recursive Extraction @{qualid}."
-    "Remove LoadPath @{str}."
-    "Require @{qualid}."
-    "Require Export @{qualid}."
-    "Require Import @{qualid}."
-    "Reset @{ident}."
-    "Reset Initial."
-    "Restore State @{ident}."
-    "Restore State @{str}."
-    "Search @{term} outside @{module}."
-    "Search @{term}."
-    "SearchAbout #."
-    "SearchAbout @{qualid}."
-    "SearchAbout @{str}%@{delimkey}."
-    "SearchAbout @{str}."
-    "SearchAbout @{termpattern}."
-    "SearchPattern @{term} inside."
-    "SearchPattern @{term} outside @{module}."
-    "SearchPattern @{term}."
-    "SearchRewrite @{term} inside."
-    "SearchRewrite @{term} outside @{module}."
-    "SearchRewrite @{term}."
-    "Set @{flag}."
-    "Set @{option} @{value}."
-    "Set Printing Depth @{integer}."
-    "Set Printing Width @{integer}."
-    "Set Silent."
-    "Set Virtual Machine."
-    "Set."
-    "Test @{flag}."
-    "Test @{option}."
-    "Test Default Timeout."
-    "Test Printing Depth."
-    "Test Printing Width."
-    "Test Virtual Machine."
-    "Time @{command}."
-    "Timeout @{int} @{command}."
-    "Transparent @{qualid}."
-    "Unset @{flag}."
-    "Unset Default Timeout."
-    "Unset Printing Depth."
-    "Unset Printing Width."
-    "Unset Silent."
-    "Unset Virtual Machine."
-    "Write State @{ident}."
-    "Write State @{str}."))
+(defconst company-coq-abbrevs-RefMan-int
+  (list 
+    ))
+
+(defconst company-coq-abbrevs-RefMan-pre
+  (list 
+    ))
+
+(defconst company-coq-abbrevs-RefMan-gal
+  (list 
+    ))
+
+(defconst company-coq-abbrevs-RefMan-ext
+  (list 
+    '("Add Printing Constructor @{ident}." . ("16" . 2))
+    '("Add Printing If @{ident}." . ("1c" . 17))
+    '("Add Printing Let @{ident}." . ("1c" . 13))
+    '("Add Printing Record @{ident}." . ("16" . 1))
+    '("Arguments @{qualid} : clear implicits" . ("21" . 22))
+    '("Arguments @{qualid} : default implicits" . ("22" . 23))
+    '("Arguments @{qualid} @{name} : rename" . ("29" . 30))
+    '("Arguments @{qualid} @{possiblybracketedident}" . ("21" . 21))
+    '("Canonical Structure @{qualid}." . ("2e" . 38))
+    '("Coercion @{qualid} : @{class} >-> @{class}." . ("2h" . 45))
+    '("Generalizable All Variables." . ("2g" . 40))
+    '("Generalizable No Variables." . ("2g" . 41))
+    '("Generalizable Variable @{ident}." . ("2g" . 42))
+    '("Generalizable Variables @{ident}." . ("2g" . 43))
+    '("Global Generalizable" . ("2g" . 44))
+    '("Implicit Types @{ident} : @{type}" . ("2f" . 39))
+    '("Print Implicit @{qualid}." . ("2a" . 31))
+    '("Print Sorted Universes \"@{str}\"." . ("2j" . 51))
+    '("Print Sorted Universes." . ("2j" . 50))
+    '("Print Table Printing If." . ("1c" . 20))
+    '("Print Table Printing Let." . ("1c" . 16))
+    '("Print Universes \"@{str}\"." . ("2j" . 51))
+    '("Print Universes." . ("2j" . 50))
+    '("Remove Printing If @{ident}." . ("1c" . 18))
+    '("Remove Printing Let @{ident}." . ("1c" . 14))
+    '("Set Contextual Implicit." . ("25" . 27))
+    '("Set Implicit Arguments." . ("23" . 24))
+    '("Set Maximal Implicit Insertion." . ("27" . 29))
+    '("Set Parsing Explicit." . ("2d" . 36))
+    '("Set Printing All." . ("2i" . 46))
+    '("Set Printing Existential Instances" . ("2l" . 52))
+    '("Set Printing Implicit Defensive." . ("2b" . 35))
+    '("Set Printing Implicit." . ("2b" . 32))
+    '("Set Printing Matching." . ("1c" . 4))
+    '("Set Printing Projections." . ("16" . 3))
+    '("Set Printing Synth." . ("1c" . 10))
+    '("Set Printing Universes" . ("2j" . 48))
+    '("Set Printing Wildcard." . ("1c" . 7))
+    '("Set Reversible Pattern Implicit." . ("26" . 28))
+    '("Set Strongly Strict Implicit." . ("24" . 26))
+    '("Test Contextual Implicit." . ("25" . 27))
+    '("Test Implicit Arguments." . ("23" . 24))
+    '("Test Maximal Implicit Insertion." . ("27" . 29))
+    '("Test Parsing Explicit." . ("2d" . 36))
+    '("Test Printing All." . ("2i" . 46))
+    '("Test Printing Existential Instances" . ("2l" . 52))
+    '("Test Printing If for @{ident}." . ("1c" . 19))
+    '("Test Printing Implicit Defensive." . ("2b" . 35))
+    '("Test Printing Implicit." . ("2b" . 32))
+    '("Test Printing Let for @{ident}." . ("1c" . 15))
+    '("Test Printing Matching." . ("1c" . 4))
+    '("Test Printing Projections." . ("16" . 3))
+    '("Test Printing Synth." . ("1c" . 10))
+    '("Test Printing Universes" . ("2j" . 48))
+    '("Test Printing Wildcard." . ("1c" . 7))
+    '("Test Reversible Pattern Implicit." . ("26" . 28))
+    '("Test Strongly Strict Implicit." . ("24" . 26))
+    '("Unset Contextual Implicit." . ("25" . 27))
+    '("Unset Implicit Arguments." . ("23" . 24))
+    '("Unset Maximal Implicit Insertion." . ("27" . 29))
+    '("Unset Parsing Explicit." . ("2d" . 36))
+    '("Unset Printing All." . ("2i" . 46))
+    '("Unset Printing Existential Instances" . ("2l" . 52))
+    '("Unset Printing Existential Instances." . ("2l" . 53))
+    '("Unset Printing Implicit Defensive." . ("2b" . 34))
+    '("Unset Printing Implicit." . ("2b" . 32))
+    '("Unset Printing Matching." . ("1c" . 4))
+    '("Unset Printing Projections." . ("16" . 3))
+    '("Unset Printing Records." . ("16" . 0))
+    '("Unset Printing Synth." . ("1c" . 10))
+    '("Unset Printing Universes" . ("2j" . 48))
+    '("Unset Printing Universes." . ("2j" . 49))
+    '("Unset Printing Wildcard." . ("1c" . 7))
+    '("Unset Reversible Pattern Implicit." . ("26" . 28))
+    '("Unset Strict Implicit." . ("24" . 25))
+    '("Unset Strongly Strict Implicit." . ("24" . 26))))
+
+(defconst company-coq-abbrevs-RefMan-lib
+  (list 
+    '("discrR" . ("3a" . 54))
+    '("split_Rabs" . ("3a" . 55))
+    '("split_Rmult" . ("3a" . 56))))
+
+(defconst company-coq-abbrevs-RefMan-cic
+  (list 
+    ))
+
+(defconst company-coq-abbrevs-RefMan-modr
+  (list 
+    ))
+
+(defconst company-coq-abbrevs-RefMan-oth
+  (list 
+    '("About @{qualid}." . ("43" . 59))
+    '("Add LoadPath \"@{str}\" as @{dirpath}." . ("4z" . 131))
+    '("Add LoadPath \"@{str}\"." . ("4z" . 132))
+    '("Add ML Path \"@{str}\"." . ("53" . 138))
+    '("Add Rec LoadPath \"@{str}\" as @{dirpath}." . ("50" . 133))
+    '("Add Rec LoadPath \"@{str}\"." . ("50" . 134))
+    '("Add Rec ML Path \"@{str}\"." . ("54" . 139))
+    '("Add Search Blacklist \"@{str}\"" . ("4n" . 110))
+    '("Back @{n}." . ("5a" . 145))
+    '("Back." . ("5a" . 144))
+    '("BackTo @{num}." . ("5b" . 146))
+    '("Backtrack @{num} @{num} @{num}." . ("5b" . 147))
+    '("Cd \"@{str}\"." . ("4y" . 129))
+    '("Cd." . ("4y" . 130))
+    '("Check @{term}." . ("4f" . 79))
+    '("Compute @{term}." . ("4h" . 82))
+    '("Declare ML Module \"@{str&}\"." . ("4u" . 125))
+    '("Declare Reduction @{ident} := @{convtactic}." . ("5y" . 169))
+    '("Drop." . ("5e" . 149))
+    '("Eval @{convtactic} in @{term}." . ("4g" . 81))
+    '("Extraction @{term}." . ("4i" . 83))
+    '("Global" . ("63" . 174))
+    '("Global Opaque @{qualid+}" . ("5u" . 164))
+    '("Global Set @{flag}." . ("46" . 65))
+    '("Global Set @{option} @{value}." . ("49" . 72))
+    '("Global Unset @{flag}." . ("47" . 68))
+    '("Global Unset @{option}." . ("4a" . 75))
+    '("Inspect @{num}." . ("44" . 61))
+    '("Load @{ident}." . ("4q" . 116))
+    '("Load \"@{str}\"." . ("4q" . 117))
+    '("Load Verbose @{ident}." . ("4q" . 118))
+    '("Load Verbose \"@{str}\"" . ("4q" . 119))
+    '("Local" . ("63" . 173))
+    '("Local Declare ML Module \"@{str&}\"." . ("4u" . 126))
+    '("Local Set @{flag}." . ("46" . 64))
+    '("Local Set @{option} @{value}." . ("49" . 71))
+    '("Local Unset @{flag}." . ("47" . 67))
+    '("Local Unset @{option}." . ("4a" . 74))
+    '("Locate @{qualid}." . ("4o" . 112))
+    '("Locate File \"@{str}\"." . ("56" . 141))
+    '("Locate Library @{dirpath}." . ("57" . 142))
+    '("Locate Ltac @{qualid}." . ("4o" . 115))
+    '("Locate Module @{qualid}." . ("4o" . 114))
+    '("Locate Term @{qualid}." . ("4o" . 113))
+    '("Opaque @{qualid+}." . ("5u" . 163))
+    '("Print @{qualid}." . ("43" . 57))
+    '("Print All Dependencies @{qualid}." . ("4j" . 88))
+    '("Print All." . ("44" . 60))
+    '("Print Assumptions @{qualid}." . ("4j" . 85))
+    '("Print Libraries." . ("4t" . 124))
+    '("Print LoadPath @{dirpath}." . ("52" . 137))
+    '("Print LoadPath." . ("52" . 136))
+    '("Print ML Modules." . ("4v" . 127))
+    '("Print ML Path \"@{str}\"." . ("55" . 140))
+    '("Print Opaque Dependencies @{qualid}." . ("4j" . 86))
+    '("Print Options." . ("4d" . 77))
+    '("Print Section @{ident}." . ("44" . 62))
+    '("Print Strategies" . ("5x" . 168))
+    '("Print Strategy @{qualid}" . ("5x" . 167))
+    '("Print Tables" . ("4d" . 78))
+    '("Print Term @{qualid}." . ("43" . 58))
+    '("Print Transparent Dependencies @{qualid}." . ("4j" . 87))
+    '("Pwd." . ("4x" . 128))
+    '("Quit." . ("5d" . 148))
+    '("Recursive Extraction @{qualid+}." . ("4i" . 84))
+    '("Remove LoadPath \"@{str}\"." . ("51" . 135))
+    '("Remove Search Blacklist \"@{str}\"" . ("4n" . 111))
+    '("Require @{qualid}." . ("4s" . 120))
+    '("Require Export @{qualid}." . ("4s" . 122))
+    '("Require Import @{qualid}." . ("4s" . 121))
+    '("Reset @{ident}." . ("59" . 143))
+    '("Search -@{termpatternorstr}." . ("4k" . 93))
+    '("Search @{qualid}." . ("4k" . 89))
+    '("Search @{termpatternorstr} inside @{module+}." . ("4k" . 94))
+    '("Search @{termpatternorstr} outside @{module+}." . ("4k" . 95))
+    '("Search @{termpatternorstr}." . ("4k" . 93))
+    '("Search @{termpattern}." . ("4k" . 92))
+    '("Search \"@{str}\"%@{delimkey}." . ("4k" . 91))
+    '("Search \"@{str}\"." . ("4k" . 90))
+    '("SearchAbout @{qualid}" . ("4k" . 97))
+    '("SearchHead @{term} inside @{module+}." . ("4l" . 99))
+    '("SearchHead @{term} outside @{module+}." . ("4l" . 100))
+    '("SearchHead @{term}." . ("4l" . 98))
+    '("SearchPattern @{term} inside @{module+}." . ("4m" . 103))
+    '("SearchPattern @{term} outside @{module+}." . ("4m" . 104))
+    '("SearchPattern @{term}." . ("4m" . 102))
+    '("SearchRewrite @{term} inside @{module+}." . ("4n" . 107))
+    '("SearchRewrite @{term} outside @{module+}." . ("4n" . 108))
+    '("SearchRewrite @{term}." . ("4n" . 106))
+    '("Set @{flag}." . ("46" . 63))
+    '("Set @{option} @{value}." . ("49" . 70))
+    '("Set Default Timeout @{int}." . ("5h" . 152))
+    '("Set Printing Depth @{integer}." . ("5q" . 160))
+    '("Set Printing Width @{integer}." . ("5n" . 157))
+    '("Set Silent." . ("5l" . 155))
+    '("Set Virtual Machine" . ("5z" . 170))
+    '("Strategy @{level} [@{qualid+}]." . ("5w" . 166))
+    '("Test @{flag}." . ("48" . 69))
+    '("Test @{option}." . ("4b" . 76))
+    '("Test Default Timeout." . ("5h" . 152))
+    '("Test Printing Depth." . ("5q" . 160))
+    '("Test Printing Width." . ("5n" . 157))
+    '("Test Silent." . ("5l" . 155))
+    '("Test Virtual Machine" . ("5z" . 170))
+    '("Time @{command}." . ("5f" . 150))
+    '("Timeout @{int} @{command}." . ("5g" . 151))
+    '("Transparent @{qualid+}." . ("5v" . 165))
+    '("Unset @{flag}." . ("47" . 66))
+    '("Unset @{option}." . ("4a" . 73))
+    '("Unset Default Timeout." . ("5h" . 152))
+    '("Unset Printing Depth." . ("5q" . 160))
+    '("Unset Printing Width." . ("5n" . 157))
+    '("Unset Silent." . ("5l" . 155))
+    '("Unset Virtual Machine" . ("5z" . 170))))
+
+(defconst company-coq-abbrevs-RefMan-pro
+  (list 
+    ))
+
+(defconst company-coq-abbrevs-RefMan-tac
+  (list 
+    '("absurd @{term}" . ("7q" . 286))
+    '("admit" . ("7p" . 285))
+    '("apply @{term+}" . ("76" . 185))
+    '("apply @{term}" . ("76" . 182))
+    '("apply @{term} in @{ident}" . ("77" . 189))
+    '("apply @{term} in @{ident} as @{intropattern}" . ("77" . 196))
+    '("apply @{term} with (@{vref&} := @{term&})" . ("76" . 184))
+    '("apply @{term} with @{bindinglist} in @{ident}" . ("77" . 191))
+    '("apply @{term} with @{bindinglist} in @{ident} as @{intropattern}" . ("77" . 193))
+    '("apply @{term} with @{term+}" . ("76" . 183))
+    '("assert (@{ident} : @{form})" . ("7k" . 257))
+    '("assert (@{ident} := @{term})" . ("7k" . 262))
+    '("assert @{form}" . ("7k" . 258))
+    '("assert @{form} as @{intropattern}" . ("7k" . 260))
+    '("assert @{form} as @{intropattern} by @{tac}" . ("7k" . 261))
+    '("assert @{form} by @{tac}" . ("7k" . 259))
+    '("assumption" . ("74" . 179))
+    '("auto" . ("8m" . 454))
+    '("auto @{num}" . ("8m" . 455))
+    '("auto using @{lemma+}" . ("8m" . 458))
+    '("auto using @{lemma+} with @{ident+}" . ("8m" . 459))
+    '("auto with *" . ("8m" . 457))
+    '("auto with @{ident+}" . ("8m" . 456))
+    '("autorewrite with @{ident+}" . ("8p" . 467))
+    '("autorewrite with @{ident+} in @{clause}" . ("8p" . 471))
+    '("autorewrite with @{ident+} in @{qualid}" . ("8p" . 469))
+    '("autorewrite with @{ident+} in @{qualid} using @{tac}" . ("8p" . 470))
+    '("autorewrite with @{ident+} using @{tac}" . ("8p" . 468))
+    '("autounfold with *" . ("8o" . 466))
+    '("autounfold with @{ident+}" . ("8o" . 464))
+    '("autounfold with @{ident+} in @{clause}" . ("8o" . 465))
+    '("btauto" . ("9r" . 539))
+    '("case @{term}" . ("7v" . 303))
+    '("case @{term} with @{bindinglist}" . ("7v" . 304))
+    '("case_eq @{term}" . ("7v" . 309))
+    '("cbn" . ("8g" . 430))
+    '("cbn -[@{qualid+}]" . ("8g" . 433))
+    '("cbn [@{qualid+}]" . ("8g" . 432))
+    '("cbv" . ("8d" . 418))
+    '("cbv -[@{qualid+}]" . ("8d" . 423))
+    '("cbv @{flag+}" . ("8d" . 414))
+    '("cbv [@{qualid+}]" . ("8d" . 421))
+    '("change @{term}" . ("8b" . 408))
+    '("change @{term} at @{num+} with @{term}" . ("8b" . 410))
+    '("change @{term} at @{num+} with @{term} in @{ident}" . ("8b" . 413))
+    '("change @{term} in @{ident}" . ("8b" . 411))
+    '("change @{term} with @{term}" . ("8b" . 409))
+    '("change @{term} with @{term} in @{ident}" . ("8b" . 412))
+    '("classical_left" . ("9p" . 537))
+    '("classical_right" . ("9p" . 538))
+    '("clear" . ("7d" . 232))
+    '("clear -@{ident+}" . ("7d" . 231))
+    '("clear @{ident+}" . ("7d" . 229))
+    '("clear @{ident}" . ("7d" . 228))
+    '("clear dependent @{ident}" . ("7d" . 233))
+    '("clearbody @{ident}" . ("7d" . 230))
+    '("cofix @{ident}" . ("85" . 379))
+    '("cofix @{ident} with (@{ident&} @{binder&} : @{type&})" . ("85" . 380))
+    '("compare @{term} @{term}" . ("9i" . 523))
+    '("compute" . ("8d" . 416))
+    '("compute -[@{qualid+}]" . ("8d" . 422))
+    '("compute [@{qualid+}]" . ("8d" . 420))
+    '("congruence" . ("94" . 508))
+    '("congruence @{n}" . ("94" . 509))
+    '("congruence with @{term+}" . ("94" . 510))
+    '("constr_eq @{term} @{term}" . ("96" . 511))
+    '("constructor" . ("78" . 198))
+    '("constructor @{num}" . ("78" . 197))
+    '("constructor @{num} with" . ("78" . 199))
+    '("Constructors @{ident+}" . ("8s" . 480))
+    '("contradict @{ident}" . ("7s" . 289))
+    '("contradiction" . ("7r" . 287))
+    '("contradiction @{ident}" . ("7r" . 288))
+    '("Create HintDb @{ident} [discriminated]" . ("8s" . 472))
+    '("cut @{form}" . ("7k" . 270))
+    '("cutrewrite -> (@{term} = @{term})" . ("88" . 400))
+    '("cutrewrite <- (@{term} = @{term})" . ("88" . 399))
+    '("cycle @{num}" . ("9x" . 547))
+    '("decide equality" . ("9h" . 522))
+    '("Declare Implicit Tactic @{tac}" . ("8y" . 498))
+    '("Declare Right Step @{term}." . ("8a" . 407))
+    '("decompose [@{qualid+}] @{term}" . ("7i" . 254))
+    '("decompose record @{term}" . ("7i" . 256))
+    '("decompose sum @{term}" . ("7i" . 255))
+    '("dependent destruction @{ident}" . ("7y" . 335))
+    '("dependent induction @{ident}" . ("7y" . 333))
+    '("dependent induction @{ident} generalizing @{ident+}" . ("7y" . 334))
+    '("dependent inversion @{ident}" . ("83" . 364))
+    '("dependent inversion @{ident} as @{intropattern}" . ("83" . 365))
+    '("dependent inversion @{ident} as @{intropattern} with @{term}" . ("83" . 369))
+    '("dependent inversion @{ident} with @{term}" . ("83" . 368))
+    '("dependent inversion_clear @{ident}" . ("83" . 366))
+    '("dependent inversion_clear @{ident} as @{intropattern}" . ("83" . 367))
+    '("dependent inversion_clear @{ident} as @{intropattern} with @{term}" . ("83" . 372))
+    '("dependent inversion_clear @{ident} with @{term}" . ("83" . 371))
+    '("dependent rewrite -> @{ident}" . ("9k" . 530))
+    '("dependent rewrite <- @{ident}" . ("9k" . 531))
+    '("destruct @{term+}" . ("7v" . 292))
+    '("destruct @{term}" . ("7v" . 291))
+    '("destruct @{term} as @{disjconjintropattern}" . ("7v" . 293))
+    '("destruct @{term} eqn:@{namingintropattern}" . ("7v" . 294))
+    '("destruct @{term} in @{occgoalset}" . ("7v" . 299))
+    '("destruct @{term} using @{term}" . ("7v" . 297))
+    '("destruct @{term} using @{term} with @{bindinglist}" . ("7v" . 298))
+    '("destruct @{term} with @{bindinglist}" . ("7v" . 295))
+    '("destruct @{term} with @{bindinglist} as @{disjconjintropattern} eqn:@{namingintropattern} using @{term} with @{bindinglist} in @{occgoalset}" . ("7v" . 300))
+    '("destruct! @{ident}" . ("7v" . 302))
+    '("discriminate" . ("80" . 343))
+    '("discriminate @{num}" . ("80" . 339))
+    '("discriminate @{term}" . ("80" . 338))
+    '("discriminate @{term} with @{bindinglist}" . ("80" . 340))
+    '("double induction @{ident} @{ident}" . ("7x" . 331))
+    '("double induction @{num} @{num}" . ("7x" . 332))
+    '("eapply @{term}" . ("76" . 186))
+    '("eapply @{term} with @{bindinglist} in @{ident}" . ("77" . 192))
+    '("eapply @{term} with @{bindinglist} in @{ident} as @{intropattern}" . ("77" . 194))
+    '("eassumption" . ("74" . 180))
+    '("eauto" . ("8n" . 463))
+    '("ecase @{term}" . ("7v" . 305))
+    '("ecase @{term} with @{bindinglist}" . ("7v" . 306))
+    '("econstructor" . ("78" . 208))
+    '("edestruct @{term}" . ("7v" . 296))
+    '("edestruct @{term} with @{bindinglist} as @{disjconjintropattern} eqn:@{namingintropattern} using @{term} with @{bindinglist} in @{occgoalset}" . ("7v" . 301))
+    '("ediscriminate @{num}" . ("80" . 341))
+    '("ediscriminate @{term}" . ("80" . 342))
+    '("ediscriminate @{term} with @{bindinglist}" . ("80" . 342))
+    '("eelim @{term}" . ("7w" . 323))
+    '("eelim @{term} with @{bindinglist} using @{term} with @{bindinglist}" . ("7w" . 327))
+    '("eexact @{term}" . ("73" . 178))
+    '("eexists" . ("78" . 209))
+    '("einduction @{term}" . ("7w" . 313))
+    '("einduction @{term} with @{bindinglist} as @{disjconjintropattern} using @{term} with @{bindinglist} in @{occgoalset}" . ("7w" . 319))
+    '("einjection @{num}" . ("82" . 347))
+    '("einjection @{num} as @{intropattern+}" . ("82" . 354))
+    '("einjection @{term}" . ("82" . 348))
+    '("einjection @{term} as @{intropattern}" . ("82" . 353))
+    '("einjection @{term} with @{bindinglist}" . ("82" . 348))
+    '("einjection @{term} with @{bindinglist} as @{intropattern}" . ("82" . 353))
+    '("einjection as @{intropattern+}" . ("82" . 355))
+    '("eleft" . ("78" . 211))
+    '("elim @{term}" . ("7w" . 321))
+    '("elim @{term} using @{term}" . ("7w" . 324))
+    '("elim @{term} using @{term} with @{bindinglist}" . ("7w" . 325))
+    '("elim @{term} with @{bindinglist}" . ("7w" . 322))
+    '("elim @{term} with @{bindinglist} using @{term} with @{bindinglist}" . ("7w" . 326))
+    '("elimtype @{form}" . ("7w" . 328))
+    '("enough (@{ident} : @{form})" . ("7k" . 264))
+    '("enough (@{ident} : @{form}) by @{tac}" . ("7k" . 267))
+    '("enough @{form}" . ("7k" . 265))
+    '("enough @{form} as @{intropattern}" . ("7k" . 266))
+    '("enough @{form} as @{intropattern} by @{tac}" . ("7k" . 269))
+    '("enough @{form} by @{tac}" . ("7k" . 268))
+    '("erewrite @{term}" . ("87" . 388))
+    '("eright" . ("78" . 212))
+    '("esimplify_eq @{num}" . ("9j" . 527))
+    '("esimplify_eq @{term}" . ("9j" . 528))
+    '("esimplify_eq @{term} with @{bindinglist}" . ("9j" . 528))
+    '("esplit" . ("78" . 210))
+    '("evar (@{ident} : @{term})" . ("7n" . 279))
+    '("exact @{term}" . ("73" . 177))
+    '("exfalso" . ("7t" . 290))
+    '("exists @{bindinglist}" . ("78" . 201))
+    '("f_equal" . ("9c" . 517))
+    '("field" . ("9u" . 543))
+    '("field_simplify @{term+}" . ("9u" . 544))
+    '("field_simplify_eq" . ("9u" . 545))
+    '("firstorder" . ("93" . 503))
+    '("firstorder @{tac}" . ("93" . 504))
+    '("firstorder using @{qualid+}" . ("93" . 506))
+    '("firstorder using @{qualid+} with @{ident+}" . ("93" . 507))
+    '("firstorder with @{ident+}" . ("93" . 505))
+    '("fix @{ident} @{num}" . ("84" . 377))
+    '("fix @{ident} @{num} with (@{ident&} @{binder&} : @{type&})" . ("84" . 378))
+    '("fix @{ident} @{num} with (@{ident&} @{binder&} { struct @{ident&} } : @{type&})" . ("84" . 378))
+    '("fold" . ("8i" . 447))
+    '("fold @{term}" . ("8i" . 446))
+    '("fourier" . ("9v" . 546))
+    '("functional induction (@{qualid} @{term+})" . ("7z" . 336))
+    '("functional induction (@{qualid} @{term+}) as @{disjconjintropattern} using @{term} with @{bindinglist}" . ("7z" . 337))
+    '("functional inversion @{ident}" . ("9m" . 532))
+    '("functional inversion @{ident} @{qualid}" . ("9m" . 534))
+    '("functional inversion @{num}" . ("9m" . 533))
+    '("generalize @{term&} at @{num+&} as @{ident&}" . ("7m" . 277))
+    '("generalize @{term+}" . ("7m" . 274))
+    '("generalize @{term}" . ("7m" . 273))
+    '("generalize @{term} as @{ident}" . ("7m" . 276))
+    '("generalize @{term} at @{num+}" . ("7m" . 275))
+    '("generalize dependent @{term}" . ("7m" . 278))
+    '("give_up" . ("a2" . 552))
+    '("has_evar @{term}" . ("99" . 515))
+    '("Hint @{hintdef}" . ("8s" . 474))
+    '("Hint @{hintdef} : @{ident+}" . ("8s" . 473))
+    '("Hint Local @{hintdef}" . ("8s" . 484))
+    '("Hint Local @{hintdef} : @{ident+}" . ("8s" . 483))
+    '("Hint Rewrite -> @{term+} : @{ident+}" . ("8w" . 491))
+    '("Hint Rewrite <- @{term+} : @{ident+}" . ("8w" . 492))
+    '("Hint Rewrite @{term+} : @{ident+}" . ("8w" . 490))
+    '("Hint Rewrite @{term+} using @{tac} : @{ident+}" . ("8w" . 493))
+    '("hnf" . ("8f" . 429))
+    '("Immediate @{term+}" . ("8s" . 479))
+    '("induction @{term+} using @{qualid}" . ("7w" . 316))
+    '("induction @{term}" . ("7w" . 310))
+    '("induction @{term} as @{disjconjintropattern}" . ("7w" . 311))
+    '("induction @{term} in @{occgoalset}" . ("7w" . 317))
+    '("induction @{term} using @{term}" . ("7w" . 314))
+    '("induction @{term} using @{term} with @{bindinglist}" . ("7w" . 315))
+    '("induction @{term} with @{bindinglist}" . ("7w" . 312))
+    '("induction @{term} with @{bindinglist} as @{disjconjintropattern} using @{term} with @{bindinglist} in @{occgoalset}" . ("7w" . 318))
+    '("induction! @{ident}" . ("7w" . 320))
+    '("injection" . ("82" . 349))
+    '("injection @{num}" . ("82" . 345))
+    '("injection @{num} as @{intropattern+}" . ("82" . 351))
+    '("injection @{term}" . ("82" . 344))
+    '("injection @{term} as @{intropattern}" . ("82" . 350))
+    '("injection @{term} with @{bindinglist}" . ("82" . 346))
+    '("injection @{term} with @{bindinglist} as @{intropattern}" . ("82" . 350))
+    '("injection as @{intropattern+}" . ("82" . 352))
+    '("instantiate" . ("7o" . 284))
+    '("instantiate (@{num} := @{term})" . ("7o" . 280))
+    '("instantiate (@{num} := @{term}) in (Type of @{ident})" . ("7o" . 283))
+    '("instantiate (@{num} := @{term}) in (Value of @{ident})" . ("7o" . 282))
+    '("instantiate (@{num} := @{term}) in @{ident}" . ("7o" . 281))
+    '("intro" . ("7a" . 213))
+    '("intro @{ident}" . ("7a" . 215))
+    '("intro @{ident} after @{ident}" . ("7a" . 223))
+    '("intro @{ident} at bottom" . ("7a" . 226))
+    '("intro @{ident} at top" . ("7a" . 225))
+    '("intro @{ident} before @{ident}" . ("7a" . 224))
+    '("intro after @{ident}" . ("7a" . 219))
+    '("intro at bottom" . ("7a" . 222))
+    '("intro at top" . ("7a" . 221))
+    '("intro before @{ident}" . ("7a" . 220))
+    '("intros" . ("7a" . 214))
+    '("intros @{ident+}" . ("7a" . 216))
+    '("intros @{intropattern+}" . ("7c" . 227))
+    '("intros until @{ident}" . ("7a" . 217))
+    '("intros until @{num}" . ("7a" . 218))
+    '("intuition" . ("91" . 501))
+    '("intuition @{tac}" . ("91" . 500))
+    '("inversion @{ident}" . ("83" . 356))
+    '("inversion @{ident} as @{intropattern}" . ("83" . 359))
+    '("inversion @{ident} as @{intropattern} in @{ident+}" . ("83" . 362))
+    '("inversion @{ident} in @{ident+}" . ("83" . 361))
+    '("inversion @{ident} using @{ident}" . ("83" . 375))
+    '("inversion @{ident} using @{ident} in @{ident+}" . ("83" . 376))
+    '("inversion @{num}" . ("83" . 357))
+    '("inversion @{num} as @{intropattern}" . ("83" . 360))
+    '("inversion_clear @{ident}" . ("83" . 358))
+    '("inversion_clear @{ident} in @{ident+}" . ("83" . 363))
+    '("is_evar @{term}" . ("98" . 514))
+    '("is_var @{term}" . ("9a" . 516))
+    '("lapply @{term}" . ("76" . 188))
+    '("lazy" . ("8d" . 419))
+    '("lazy -[@{qualid+}]" . ("8d" . 425))
+    '("lazy @{flag+}" . ("8d" . 415))
+    '("lazy [@{qualid+}]" . ("8d" . 424))
+    '("left" . ("78" . 203))
+    '("left with @{bindinglist}" . ("78" . 205))
+    '("Local Hint @{hintdef}" . ("8s" . 476))
+    '("Local Hint @{hintdef} : @{ident+}" . ("8s" . 475))
+    '("move @{ident} after @{ident}" . ("7f" . 236))
+    '("move @{ident} at bottom" . ("7f" . 239))
+    '("move @{ident} at top" . ("7f" . 238))
+    '("move @{ident} before @{ident}" . ("7f" . 237))
+    '("native_compute" . ("8d" . 427))
+    '("omega" . ("9s" . 540))
+    '("pattern" . ("8j" . 453))
+    '("pattern @{term&} at @{num+&}" . ("8j" . 452))
+    '("pattern @{term+}" . ("8j" . 451))
+    '("pattern @{term}" . ("8j" . 448))
+    '("pattern @{term} at -@{num+}" . ("8j" . 450))
+    '("pattern @{term} at @{num+}" . ("8j" . 449))
+    '("pose (@{ident} := @{term})" . ("7h" . 251))
+    '("pose (@{ident} @{binder} := @{term})" . ("7h" . 252))
+    '("pose @{term}" . ("7h" . 253))
+    '("pose proof @{term} as @{intropattern}" . ("7k" . 263))
+    '("Print Hint" . ("8v" . 486))
+    '("Print Hint *" . ("8v" . 488))
+    '("Print Hint @{ident}" . ("8v" . 487))
+    '("Print HintDb @{ident}" . ("8v" . 489))
+    '("Print Rewrite HintDb @{ident}" . ("8w" . 494))
+    '("Proof using @{ident+} with @{tac}" . ("8y" . 497))
+    '("Proof with @{tac}" . ("8y" . 495))
+    '("Proof with @{tac} using @{ident+}" . ("8y" . 496))
+    '("quote @{ident}" . ("9n" . 535))
+    '("quote @{ident} [@{ident+}]" . ("9n" . 536))
+    '("red" . ("8e" . 428))
+    '("refine @{term}" . ("75" . 181))
+    '("reflexivity" . ("9d" . 518))
+    '("remember @{term} as @{ident}" . ("7h" . 248))
+    '("remember @{term} as @{ident} eqn:@{ident}" . ("7h" . 249))
+    '("remember @{term} as @{ident} in @{occgoalset}" . ("7h" . 250))
+    '("Remove Hints @{term+} : @{ident+}" . ("8u" . 485))
+    '("rename @{ident&} into @{ident&}" . ("7g" . 241))
+    '("rename @{ident} into @{ident}" . ("7g" . 240))
+    '("replace -> @{term}" . ("88" . 392))
+    '("replace -> @{term} in @{clause}" . ("88" . 397))
+    '("replace <- @{term}" . ("88" . 393))
+    '("replace <- @{term} in @{clause}" . ("88" . 398))
+    '("replace @{term}" . ("88" . 391))
+    '("replace @{term} in @{clause}" . ("88" . 396))
+    '("replace @{term} with @{term}" . ("88" . 389))
+    '("replace @{term} with @{term} by @{tac}" . ("88" . 390))
+    '("replace @{term} with @{term} in @{clause}" . ("88" . 394))
+    '("replace @{term} with @{term} in @{clause} by @{tac}" . ("88" . 395))
+    '("Resolve @{term+}" . ("8s" . 478))
+    '("Resolve @{term}" . ("8s" . 477))
+    '("revert @{ident+}" . ("7e" . 234))
+    '("revert dependent @{ident}" . ("7e" . 235))
+    '("revgoals" . ("9z" . 549))
+    '("rewrite -> @{term}" . ("87" . 382))
+    '("rewrite <- @{term}" . ("87" . 383))
+    '("rewrite @{term+}" . ("87" . 387))
+    '("rewrite @{term}" . ("87" . 381))
+    '("rewrite @{term} at @{occlist}" . ("87" . 385))
+    '("rewrite @{term} by @{tac}" . ("87" . 386))
+    '("rewrite @{term} in @{clause}" . ("87" . 384))
+    '("right" . ("78" . 204))
+    '("right with @{bindinglist}" . ("78" . 206))
+    '("ring" . ("9t" . 541))
+    '("ring_simplify @{term+}" . ("9t" . 542))
+    '("rtauto" . ("92" . 502))
+    '("set (@{ident} := @{term})" . ("7h" . 242))
+    '("set (@{ident} := @{term}) in @{occgoalset}" . ("7h" . 243))
+    '("set (@{ident} @{binder} := @{term})" . ("7h" . 244))
+    '("set (@{ident} @{binder} := @{term}) in @{occgoalset}" . ("7h" . 246))
+    '("set @{term}" . ("7h" . 245))
+    '("set @{term} in @{occgoalset}" . ("7h" . 247))
+    '("Set Default Goal Selector @{selector}." . ("6y" . 175))
+    '("shelve" . ("a0" . 550))
+    '("simpl" . ("8g" . 431))
+    '("simpl @{pattern}" . ("8g" . 434))
+    '("simpl @{pattern} at @{num+}" . ("8g" . 435))
+    '("simpl @{qstring}" . ("8g" . 437))
+    '("simpl @{qstring} at @{num+}" . ("8g" . 439))
+    '("simpl @{qualid}" . ("8g" . 436))
+    '("simpl @{qualid} at @{num+}" . ("8g" . 438))
+    '("simple apply @{term}" . ("76" . 187))
+    '("simple apply @{term} in @{ident}" . ("77" . 195))
+    '("simple apply @{term} in @{ident} as @{intropattern}" . ("77" . 196))
+    '("simple apply @{term} with @{bindinglist} in @{ident}" . ("77" . 196))
+    '("simple apply @{term} with @{bindinglist} in @{ident} as @{intropattern}" . ("77" . 196))
+    '("simple destruct @{ident}" . ("7v" . 307))
+    '("simple destruct @{num}" . ("7v" . 308))
+    '("simple induction @{ident}" . ("7w" . 329))
+    '("simple induction @{num}" . ("7w" . 330))
+    '("simple inversion @{ident}" . ("83" . 373))
+    '("simple inversion @{ident} as @{intropattern}" . ("83" . 374))
+    '("simplify_eq" . ("9j" . 526))
+    '("simplify_eq @{num}" . ("9j" . 525))
+    '("simplify_eq @{term}" . ("9j" . 524))
+    '("specialize (@{ident} @{term+})" . ("7k" . 271))
+    '("specialize @{ident} with @{bindinglist}" . ("7k" . 272))
+    '("split" . ("78" . 200))
+    '("split with @{bindinglist}" . ("78" . 207))
+    '("stepl @{term}" . ("8a" . 403))
+    '("stepl @{term} by @{tac}" . ("8a" . 404))
+    '("stepr @{term}" . ("8a" . 405))
+    '("stepr @{term} by @{tac}" . ("8a" . 406))
+    '("subst @{ident+}" . ("89" . 402))
+    '("subst @{ident}" . ("89" . 401))
+    '("swap @{num} @{num}" . ("9y" . 548))
+    '("symmetry" . ("9e" . 519))
+    '("symmetry in @{ident}" . ("9e" . 520))
+    '("tauto" . ("90" . 499))
+    '("Test Default Goal Selector." . ("6y" . 175))
+    '("transitivity @{term}" . ("9f" . 521))
+    '("trivial" . ("8m" . 460))
+    '("trivial with *" . ("8m" . 462))
+    '("trivial with @{ident+}" . ("8m" . 461))
+    '("Unfold @{ident+}" . ("8s" . 481))
+    '("unfold @{qstring}" . ("8h" . 443))
+    '("unfold @{qstring}%@{delimkey}" . ("8h" . 444))
+    '("unfold @{qualid&} at @{num+&}" . ("8h" . 442))
+    '("unfold @{qualid+}" . ("8h" . 441))
+    '("unfold @{qualidorstring&} at @{num+&}" . ("8h" . 445))
+    '("unfold @{qualid}" . ("8h" . 440))
+    '("unify @{term} @{term}" . ("97" . 512))
+    '("unify @{term} @{term} with @{ident}" . ("97" . 513))
+    '("Unset Default Goal Selector." . ("6y" . 175))
+    '("Unshelve" . ("a1" . 551))
+    '("vm_compute" . ("8d" . 426))))
+
+(defconst company-coq-abbrevs-RefMan-ltac
+  (list 
+    ))
+
+(defconst company-coq-abbrevs-RefMan-tacex
+  (list 
+    ))
+
+(defconst company-coq-abbrevs-RefMan-decl
+  (list 
+    ))
+
+(defconst company-coq-abbrevs-RefMan-syn
+  (list 
+    '("Arguments @{qualid} : clear scopes" . ("by" . 561))
+    '("Arguments @{qualid} @{name}%@{scope}" . ("by" . 560))
+    '("Bind Scope @{scope} with @{qualid}" . ("by" . 564))
+    '("bool_scope" . ("c0" . 575))
+    '("char_scope" . ("c0" . 579))
+    '("Close Scope" . ("bx" . 555))
+    '("core_scope" . ("c0" . 577))
+    '("Global Arguments @{qualid} @{name}%@{scope}" . ("by" . 562))
+    '("Global Close Scope" . ("bx" . 559))
+    '("Global Open Scope" . ("bx" . 558))
+    '("list_scope" . ("c0" . 576))
+    '("Local Arguments @{qualid} @{name}%@{scope}" . ("by" . 563))
+    '("Local Close Scope" . ("bx" . 557))
+    '("Local Open Scope" . ("bx" . 556))
+    '("N_scope" . ("c0" . 569))
+    '("nat_scope" . ("c0" . 568))
+    '("Open Scope" . ("bx" . 554))
+    '("positive_scope" . ("c0" . 571))
+    '("Print Grammar pattern." . ("bl" . 553))
+    '("Print Grammar tactic." . ("c3" . 586))
+    '("Print Scope @{scope}" . ("c0" . 566))
+    '("Print Scopes" . ("c0" . 565))
+    '("Print Visibility" . ("c1" . 580))
+    '("Print Visibility @{scope}" . ("c1" . 581))
+    '("Q_scope" . ("c0" . 572))
+    '("Qc_scope" . ("c0" . 573))
+    '("real_scope" . ("c0" . 574))
+    '("string_scope" . ("c0" . 578))
+    '("type_scope" . ("c0" . 567))
+    '("Z_scope" . ("c0" . 570))))
+
+(defconst company-coq-abbrevs-RefMan-sch
+  (list 
+    ))
+
+(defconst company-coq-abbrevs-RefMan-com
+  (list 
+    ))
+
+(defconst company-coq-abbrevs-RefMan-uti
+  (list 
+    ))
+
+(defconst company-coq-abbrevs-RefMan-ide
+  (list 
+    ))
+
+(defconst company-coq-abbrevs-AddRefMan-pre
+  (list 
+    ))
+
+(defconst company-coq-abbrevs-Cases
+  (list 
+    ))
+
+(defconst company-coq-abbrevs-Coercion
+  (list 
+    ))
+
+(defconst company-coq-abbrevs-CanonicalStructures
+  (list 
+    ))
+
+(defconst company-coq-abbrevs-Classes
+  (list 
+    ))
+
+(defconst company-coq-abbrevs-Omega
+  (list 
+    ))
+
+(defconst company-coq-abbrevs-Micromega
+  (list 
+    '("lia" . ("fg" . 589))
+    '("lra" . ("fc" . 588))
+    '("nia" . ("fj" . 590))
+    '("psatz" . ("f9" . 587))))
+
+(defconst company-coq-abbrevs-Extraction
+  (list 
+    '("Extract Constant @{qualid} => \"@{str}\"." . ("fq" . 613))
+    '("Extract Constant @{qualid} \"@{str&}\" => \"@{str}\"." . ("fq" . 615))
+    '("Extract Inductive @{qualid} => \"@{str}\" [\"@{str&}\"] @{optstring}." . ("fq" . 616))
+    '("Extract Inlined Constant @{qualid} => \"@{str}\"." . ("fq" . 614))
+    '("Extraction @{qualid}." . ("fl" . 591))
+    '("Extraction \"@{file}\" @{qualid+}." . ("fl" . 593))
+    '("Extraction Blacklist @{ident+}." . ("fr" . 617))
+    '("Extraction Implicit @{qualid} [@{ident+}]." . ("fp" . 612))
+    '("Extraction Inline @{qualid+}." . ("fo" . 608))
+    '("Extraction Language Haskell." . ("fn" . 598))
+    '("Extraction Language Ocaml." . ("fn" . 597))
+    '("Extraction Language Scheme." . ("fn" . 599))
+    '("Extraction Library @{ident}." . ("fl" . 594))
+    '("Extraction NoInline @{qualid+}." . ("fo" . 609))
+    '("Print Extraction Blacklist." . ("fr" . 618))
+    '("Print Extraction Inline." . ("fo" . 610))
+    '("Recursive Extraction @{qualid+}." . ("fl" . 592))
+    '("Recursive Extraction Library @{ident}." . ("fl" . 595))
+    '("Reset Extraction Blacklist." . ("fr" . 619))
+    '("Reset Extraction Inline." . ("fo" . 611))
+    '("Separate Extraction @{qualid+}." . ("fl" . 596))
+    '("Set Extraction AutoInline." . ("fo" . 606))
+    '("Set Extraction Conservative Types." . ("fo" . 602))
+    '("Set Extraction KeepSingleton." . ("fo" . 604))
+    '("Set Extraction Optimize." . ("fo" . 600))
+    '("Test Extraction AutoInline." . ("fo" . 606))
+    '("Test Extraction Conservative Types." . ("fo" . 602))
+    '("Test Extraction KeepSingleton." . ("fo" . 604))
+    '("Test Extraction Optimize." . ("fo" . 600))
+    '("Unset Extraction AutoInline." . ("fo" . 606))
+    '("Unset Extraction Conservative Types." . ("fo" . 602))
+    '("Unset Extraction KeepSingleton." . ("fo" . 604))
+    '("Unset Extraction Optimize." . ("fo" . 600))))
+
+(defconst company-coq-abbrevs-Program
+  (list 
+    ))
+
+(defconst company-coq-abbrevs-Polynom
+  (list 
+    '("field" . ("ge" . 625))
+    '("field [@{term+}]" . ("ge" . 626))
+    '("field_simplify" . ("ge" . 627))
+    '("field_simplify [@{term+}]" . ("ge" . 628))
+    '("field_simplify [@{term+}] @{term+}" . ("ge" . 629))
+    '("field_simplify [@{term+}] @{term+} in @{hyp}" . ("ge" . 632))
+    '("field_simplify [@{term+}] in @{hyp}" . ("ge" . 631))
+    '("field_simplify in @{hyp}" . ("ge" . 630))
+    '("field_simplify_eq" . ("ge" . 633))
+    '("field_simplify_eq [@{term+}]" . ("ge" . 634))
+    '("field_simplify_eq [@{term+}] in @{hyp}" . ("ge" . 636))
+    '("field_simplify_eq in @{hyp}" . ("ge" . 635))
+    '("ring" . ("gb" . 620))
+    '("ring [@{term+}]" . ("gb" . 622))
+    '("ring_simplify" . ("gb" . 621))
+    '("ring_simplify [@{term+}] in @{ident}" . ("gb" . 623))))
+
+(defconst company-coq-abbrevs-Nsatz
+  (list 
+    '("nsatz" . ("gk" . 638))
+    '("nsatz with radicalmax := @{num}%N strategy := @{num}%Z parameters := @{listofvars} variables := @{listofvars}" . ("gk" . 639))))
+
+(defconst company-coq-abbrevs-Setoid
+  (list 
+    '("Print Instances @{$$(yas-choose-value '(\"Reflexive\" \"Symmetric\" \"Transitive\" \"Equivalence\" \"PreOrder\" \"PER\" \"Proper\")) }" . ("gx" . 649))
+    '("rewrite_strat @{s}" . ("h5" . 650))
+    '("rewrite_strat @{s} in @{ident}" . ("h5" . 650))
+    '("setoid_reflexivity" . ("gw" . 640))
+    '("setoid_replace @{term} with @{term}" . ("gw" . 647))
+    '("setoid_replace @{term} with @{term} by @{tactic}" . ("gw" . 648))
+    '("setoid_replace @{term} with @{term} in @{ident}" . ("gw" . 648))
+    '("setoid_replace @{term} with @{term} in @{ident} by @{tactic}" . ("gw" . 648))
+    '("setoid_replace @{term} with @{term} in @{ident} using relation @{term}" . ("gw" . 648))
+    '("setoid_replace @{term} with @{term} in @{ident} using relation @{term} by @{tactic}" . ("gw" . 648))
+    '("setoid_replace @{term} with @{term} using relation @{term}" . ("gw" . 648))
+    '("setoid_replace @{term} with @{term} using relation @{term} by @{tactic}" . ("gw" . 648))
+    '("setoid_rewrite <- @{term}" . ("gw" . 644))
+    '("setoid_rewrite <- @{term} at @{occs}" . ("gw" . 645))
+    '("setoid_rewrite <- @{term} at @{occs} in @{ident}" . ("gw" . 645))
+    '("setoid_rewrite <- @{term} in @{ident}" . ("gw" . 644))
+    '("setoid_rewrite @{orientation} @{term}" . ("gw" . 646))
+    '("setoid_rewrite @{orientation} @{term} at @{occs}" . ("gw" . 646))
+    '("setoid_rewrite @{orientation} @{term} at @{occs} in @{ident}" . ("gw" . 646))
+    '("setoid_rewrite @{orientation} @{term} in @{ident}" . ("gw" . 646))
+    '("setoid_rewrite @{term}" . ("gw" . 643))
+    '("setoid_rewrite @{term} in @{ident}" . ("gw" . 643))
+    '("setoid_symmetry" . ("gw" . 641))
+    '("setoid_symmetry in @{ident}" . ("gw" . 641))
+    '("setoid_transitivity" . ("gw" . 642))))
+
+(defconst company-coq-abbrevs-AsyncProofs
+  (list 
+    '("Set Suggest Proof Using" . ("h7" . 651))
+    '("Test Suggest Proof Using" . ("h7" . 651))
+    '("Unset Suggest Proof Using" . ("h7" . 651))))
+
+(defconst company-coq-abbrevs-Universes
+  (list 
+    ))
+
+(defconst company-coq-abbrevs-Misc
+  (list 
+    ))
+
+(defconst company-coq-abbrevs-all
+  (list 
+    company-coq-abbrevs-RefMan-int company-coq-abbrevs-RefMan-pre company-coq-abbrevs-RefMan-gal company-coq-abbrevs-RefMan-ext company-coq-abbrevs-RefMan-lib company-coq-abbrevs-RefMan-cic company-coq-abbrevs-RefMan-modr company-coq-abbrevs-RefMan-oth company-coq-abbrevs-RefMan-pro company-coq-abbrevs-RefMan-tac company-coq-abbrevs-RefMan-ltac company-coq-abbrevs-RefMan-tacex company-coq-abbrevs-RefMan-decl company-coq-abbrevs-RefMan-syn company-coq-abbrevs-RefMan-sch company-coq-abbrevs-RefMan-com company-coq-abbrevs-RefMan-uti company-coq-abbrevs-RefMan-ide company-coq-abbrevs-AddRefMan-pre company-coq-abbrevs-Cases company-coq-abbrevs-Coercion company-coq-abbrevs-CanonicalStructures company-coq-abbrevs-Classes company-coq-abbrevs-Omega company-coq-abbrevs-Micromega company-coq-abbrevs-Extraction company-coq-abbrevs-Program company-coq-abbrevs-Polynom company-coq-abbrevs-Nsatz company-coq-abbrevs-Setoid company-coq-abbrevs-AsyncProofs company-coq-abbrevs-Universes company-coq-abbrevs-Misc))
 
 (provide 'company-coq-abbrev)
 ;;; company-coq-abbrev.el ends here

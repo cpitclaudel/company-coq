@@ -1,10 +1,12 @@
-;;; company-coq-abbrev.el --- Auto-extracted abbrevs
+;;; company-coq-abbrev.el --- Auto-generated from RefMan
 
 ;;; Commentary:
 
 ;;; Code:
 
-$CODE$
+$ABBREVS$
+
+$SHORTLIST$
 
 (provide 'company-coq-abbrev)
 ;;; company-coq-abbrev.el ends here
