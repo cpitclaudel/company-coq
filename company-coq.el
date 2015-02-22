@@ -29,7 +29,6 @@
 (require 'company)
 (require 'cl-lib)
 (require 'company-coq-abbrev)
-(require 'company-coq-abbrev-tactics)
 ;; (require 'proof-site)
 
 (defgroup company-coq-opts nil
@@ -120,6 +119,9 @@
 
 (defconst company-coq-dabbrev-placeholders-regexp "#\\|@{\\([^}]+\\)}"
   "Used to match placeholders in dabbrev definitions")
+
+(defconst script-full-path load-file-name
+  "Full path of this script")
 
 (when nil
   (defcustom company-coq-symbol-matching-scheme 'substring
@@ -212,11 +214,11 @@
   (company-coq-dbg "company-coq-init-symbols: Loading symbols (if never loaded)")
   (company-coq-init-db 'company-coq-defined-symbols 'company-coq-force-reload-symbols))
 
-(defun company-coq-get-keywords-db ()
-  (let* ((db-symbols '(coq-tactics-db coq-solve-tactics-db coq-solve-cheat-tactics-db coq-tacticals-db coq-commands-db)))
-    (or (apply 'append (mapcar (lambda (x) (and (boundp x) (symbol-value x)))
-                               db-symbols))
-        (ignore (company-coq-dbg "company-coq-get-db: coq databases are nil or unbound")))))
+(defun company-coq-get-pg-keywords-db ()
+  (append coq-tactics-db coq-solve-tactics-db coq-solve-cheat-tactics-db coq-tacticals-db coq-commands-db))
+
+(defun company-coq-get-own-keywords-db ()
+  (apply #'append company-coq-abbrevs-all))
 
 (defun company-coq-normalize-abbrev (kwd)
   (downcase
@@ -228,8 +230,13 @@
   (when insert
     (propertize menuname 'insert insert 'stripped (company-coq-normalize-abbrev insert)))) ;; TODO: Remove inter-word spaces
 
-(defun company-coq-parse-auto-db-entry (abbrev)
-  (propertize abbrev 'insert abbrev 'stripped (company-coq-normalize-abbrev abbrev)))
+(defun company-coq-parse-own-db-entry (abbrev-and-anchor)
+  (let ((abbrev (car abbrev-and-anchor))
+        (anchor (cdr abbrev-and-anchor)))
+    (propertize abbrev
+                'anchor anchor
+                'insert abbrev
+                'stripped (company-coq-normalize-abbrev abbrev))))
 
 (defun company-coq-abbrev-equal (a1 a2)
   (equal (company-coq-read-normalized-abbrev a1)
@@ -251,16 +258,11 @@
 
 (defun company-coq-get-annotated-keywords ()
   (company-coq-dbg "company-coq-get-annotated-keywords: Called")
-  (let ((pg-keywords   (remove nil
-                               (mapcar (lambda (db-entry)
-                                         (apply 'company-coq-parse-keywords-db-entry db-entry))
-                                       (company-coq-get-keywords-db))))
-        (auto-keywords (mapcar #'company-coq-parse-auto-db-entry
-                               company-coq-auto-extracted-vernacs))
-        (auto-tactics  (mapcar #'company-coq-parse-auto-db-entry
-                               company-coq-auto-extracted-tactics))) ;; TODO
+  (let ((pg-keywords  (remove nil (mapcar (lambda (db-entry) (apply 'company-coq-parse-keywords-db-entry db-entry))
+                                           (company-coq-get-pg-keywords-db))))
+        (own-keywords (mapcar #'company-coq-parse-own-db-entry (company-coq-get-own-keywords-db))))
     (company-coq-union-sort #'company-coq-abbrev-equal #'string-lessp #'company-coq-read-normalized-abbrev
-                            auto-tactics auto-keywords pg-keywords)))
+                            own-keywords pg-keywords)))
 
 (defun company-coq-force-reload-keywords ()
   (company-coq-dbg "company-coq-force-reload-keywords: Called")
@@ -435,30 +437,23 @@ company-coq-maybe-reload-symbols."
       (let ((window (get-buffer-window pg-buffer)))
         window))))
 
-(defun company-coq-print-doc-in-buffer (doc window buffer)
-  (let ((was-dedicated-p (window-dedicated-p window))
-        (original-buffer (window-buffer window)))
-    (company-coq-dbg "company-coq-print-in-buffer: Called, window dedication is %s" was-dedicated-p)
-    (with-current-buffer buffer
+(defun company-coq-prepare-buffer-in-pg-window ()
+  (company-coq-dbg "company-prepare-buffer-in-pg-window: Called")
+  (let ((window (company-coq-get-pg-window))
+        (doc-buffer (get-buffer-create "*company-documentation*")))
+    (unless window
+      (company-coq-dbg "company-coq-print-in-pg-buffer: Buffer *goals* not found"))
+    (when window
+      ;; Disable dedication; in general, the *goal* buffer isn't dedicated, and if
+      ;; it is it's not worth restoring
+      (set-window-dedicated-p window nil)
+      (set-window-buffer window doc-buffer))
+    (with-current-buffer doc-buffer
       (let ((inhibit-read-only t))
-        (erase-buffer)
-        (insert doc)
-        (coq-response-mode)
-        (goto-char (point-min))))
-    ;; Disable dedication; in general, the *goal* buffer isn't dedicated, and if
-    ;; it is it's not worth restoring
-    (set-window-dedicated-p window nil)
-    (set-window-buffer window buffer)))
-
-(defun company-coq-print-in-pg-buffer (doc)
-  (company-coq-dbg "company-print-in-pg-buffer: Called (%s)" (equal doc nil))
-  (when doc
-    (let ((window (company-coq-get-pg-window))
-          (doc-buffer (get-buffer-create "*company-documentation*")))
-      (if window
-          (company-coq-print-doc-in-buffer doc window doc-buffer)
-        (company-coq-dbg "company-coq-print-in-pg-buffer: Buffer *goals* not found"))
-      doc-buffer)))
+        ;; TODO got to target
+        (remove-overlays)
+        (erase-buffer)))
+      doc-buffer))
 
 (defun company-coq-annotation-keywords (candidate)
   (let* ((snippet   (company-coq-get-snippet candidate))
@@ -467,15 +462,36 @@ company-coq-maybe-reload-symbols."
         (format "<kwd+%d>" num-holes)
       "<kwd>")))
 
-(defun company-coq-doc-buffer (name)
-  (company-coq-dbg "company-coq-doc-buffer: Called for name %s" name)
+(defun company-coq-doc-buffer-symbols (name)
+  (company-coq-dbg "company-coq-doc-buffer-symbols: Called for name %s" name)
   (let ((doc (company-coq-documentation name))
         (def (company-coq-join-lines (company-coq-definition-header name) "\n")))
     (when (and doc def)
       (let* ((doc-tagline (format company-coq-doc-tagline name))
              (doc-underline (make-string (length doc-tagline) ?=))
              (doc-full (concat doc-tagline "\n" doc-underline "\n\n" doc company-coq-doc-def-sep def)))
-        (company-coq-print-in-pg-buffer doc-full)))))
+        (with-current-buffer (company-coq-prepare-buffer-in-pg-window)
+          (let ((inhibit-read-only t))
+            (insert doc-full)
+            (coq-response-mode)
+            (goto-char (point-min)))
+          (current-buffer))))))
+
+(defun company-coq-doc-buffer-keywords (name)
+  (when (fboundp 'libxml-parse-html-region)
+    (company-coq-dbg "company-coq-doc-buffer-keywords: Called for name %s" name)
+    (let* ((anchor         (get-text-property 0 'anchor name))
+           (target         (and anchor (concat "#" (int-to-string (cdr anchor)))))
+           (doc-short-path (and anchor (concat (car anchor) ".html")))
+           (doc-full-path  (and doc-short-path
+                                (concat (file-name-directory script-full-path) "refman/" doc-short-path))))
+      (when doc-full-path
+        (with-current-buffer (company-coq-prepare-buffer-in-pg-window)
+          (let ((doc (with-temp-buffer
+                       (insert-file-contents doc-full-path)
+                       (libxml-parse-html-region (point-min) (point-max)))))
+            (shr-insert-document doc))
+          (current-buffer))))))
 
 (defun company-coq-candidates-symbols ()
   (interactive)
@@ -492,39 +508,27 @@ company-coq-maybe-reload-symbols."
 (defun company-coq-match (completion)
   (company-coq-dbg "company-coq-match: matching %s" completion)
   (get-text-property 0 'match-end completion))
-  ;; (let ((prefix (company-coq-prefix-symbol)))
-    ;; (print prefix))
-    ;; (print (completion-pcm-all-completions prefix '(completion) nil (length prefix))))
-  ;; nil)
-  ;; (let* ((prefix          (company-coq-prefix-symbol))
-         ;; (completions     (completion-pcm-all-completions prefix '(completion) nil (length prefix)))
-         ;; (annotated-compl (car completions)))
-    ;; (company-coq-dbg "Annotated compl is %s / %s / %s / %s" prefix completion completions annotated-compl)
-    ;; (and annotated-compl (next-single-property-change 0 'font-lock-face annotated-compl))))
 
-(defun company-coq-dabbrev-to-yas-format-marker (match match-num)
+(defun company-coq-dabbrev-to-yas-format-marker (match regexp)
   (string-match company-coq-dabbrev-placeholders-regexp match)
   (let* ((start      (match-beginning 1))
          (end        (match-end       1))
          (identifier (or (and start end (substring match start end))
-                         (and company-coq-explicit-placeholders "_")))
-         (format-str (if identifier (concat  "${%d:" identifier "}") "$%d")))
-    (format format-str match-num)))
+                         (and company-coq-explicit-placeholders "_") "")))
+    (concat  "${" identifier "}")))
 
 (defun company-coq-dabbrev-to-yas (abbrev)
   (interactive)
   (company-coq-dbg "company-coq-dabbrev-to-yas: Transforming %s" abbrev)
   (let* ((match-num        0)
-         (number-matches   (lambda (match)
-                             (setq match-num (+ match-num 1))
-                             (company-coq-dabbrev-to-yas-format-marker match match-num)))
-         (snippet          (replace-regexp-in-string company-coq-dabbrev-placeholders-regexp number-matches abbrev))
-         ;;(clean-snippet  (replace-regexp-in-string "[[:space:]]*\\'" "" snippet))
-         ;;(ends-with-dot  (string-match "\\.[[:space:]]*\\'" snippet))
-         (ends-with-space  (string-match "[^\\.][[:space:]]+\\'" snippet))
-         (suffix           (if (and ends-with-space (equal 0 match-num))
-                               (progn (setq match-num (+ match-num 1))
-                                      (company-coq-dabbrev-to-yas-format-marker "#" match-num)) ""))
+         (number-matches    (lambda (match)
+                              (setq match-num (+ match-num 1))
+                              (company-coq-dabbrev-to-yas-format-marker match company-coq-dabbrev-placeholders-regexp)))
+         (snippet           (replace-regexp-in-string company-coq-dabbrev-placeholders-regexp number-matches abbrev))
+         (ends-with-space   (string-match "[^\\.][[:space:]]+\\'" snippet))
+         (suffix            (if (and ends-with-space (equal 0 match-num))
+                                (progn (setq match-num (+ match-num 1))
+                                       (company-coq-dabbrev-to-yas-format-marker "#" match-num)) ""))
          (final-snippet    (concat snippet suffix)))
     (put-text-property 0 (length final-snippet) 'num-holes match-num final-snippet)
     (company-coq-dbg "company-coq-dabbrev-to-yas: transformed using suffix %s, to %s" suffix final-snippet)
@@ -582,7 +586,7 @@ company-coq-maybe-reload-symbols."
     (`no-cache t)
     (`match (company-coq-match arg))
     (`annotation "<symb>")
-    (`doc-buffer (company-coq-doc-buffer arg))
+    (`doc-buffer (company-coq-doc-buffer-symbols arg))
     (`require-match 'never)))
 
 (defun company-coq-keywords (command &optional arg &rest ignored)
@@ -600,6 +604,7 @@ company-coq-maybe-reload-symbols."
     (`match (company-coq-match arg))
     (`annotation (company-coq-annotation-keywords arg))
     (`post-completion (company-coq-post-completion-keyword arg))
+    (`doc-buffer (company-coq-doc-buffer-keywords arg))
     (`require-match 'never)))
 
 (defun company-coq-make-backends-alist ()
