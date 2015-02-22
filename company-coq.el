@@ -219,7 +219,10 @@
         (ignore (company-coq-dbg "company-coq-get-db: coq databases are nil or unbound")))))
 
 (defun company-coq-normalize-abbrev (kwd)
-  (downcase (replace-regexp-in-string (concat " *\\(" company-coq-dabbrev-placeholders-regexp "\\) *") "#" kwd)))
+  (downcase
+   (string-trim
+    (replace-regexp-in-string
+     (concat " *\\(" company-coq-dabbrev-placeholders-regexp "\\) *") "#" kwd))))
 
 (defun company-coq-parse-keywords-db-entry (menuname abbrev insert &optional statech kwreg insert-fun hide)
   (when insert
