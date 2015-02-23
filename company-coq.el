@@ -123,6 +123,11 @@
 (defconst script-full-path load-file-name
   "Full path of this script")
 
+(defface doc-header-face
+  '((t :inherit default :height 1.5))
+  "Face used to highlight the target line in the docs"
+  :group 'defaut)
+
 (when nil
   (defcustom company-coq-symbol-matching-scheme 'substring
     "The strategy used to look for keywords"
@@ -450,7 +455,6 @@ company-coq-maybe-reload-symbols."
       (set-window-buffer window doc-buffer))
     (with-current-buffer doc-buffer
       (let ((inhibit-read-only t))
-        ;; TODO got to target
         (remove-overlays)
         (erase-buffer)))
       doc-buffer))
@@ -481,8 +485,8 @@ company-coq-maybe-reload-symbols."
   (when (fboundp 'libxml-parse-html-region)
     (company-coq-dbg "company-coq-doc-buffer-keywords: Called for name %s" name)
     (let* ((anchor         (get-text-property 0 'anchor name))
-           (target         (and anchor (concat "#" (int-to-string (cdr anchor)))))
-           (doc-short-path (and anchor (concat (car anchor) ".html")))
+           (shr-target-id  (and anchor (concat "hevea_quickhelp" (int-to-string (cdr anchor)))))
+           (doc-short-path (and anchor (concat (car anchor) ".html.gz")))
            (doc-full-path  (and doc-short-path
                                 (concat (file-name-directory script-full-path) "refman/" doc-short-path))))
       (when doc-full-path
@@ -490,7 +494,17 @@ company-coq-maybe-reload-symbols."
           (let ((doc (with-temp-buffer
                        (insert-file-contents doc-full-path)
                        (libxml-parse-html-region (point-min) (point-max)))))
-            (shr-insert-document doc))
+            (shr-insert-document doc) ;; This sets the 'shr-target-id property upon finding the shr-target-id anchor
+            (let ((target-point (next-single-property-change (point-min) 'shr-target-id)))
+              (goto-char (or target-point (point-min)))
+              (when target-point
+                ;; Company-mode returns to the beginning of the buffer, so centering doesn't work.
+                ;; Instead, just truncate everything.
+                (save-excursion
+                  (forward-line 0)
+                  (delete-region (point-min) (point))
+                  (let ((overlay (make-overlay (point-at-bol) (point-at-eol))))
+                    (overlay-put overlay 'face 'doc-header-face))))))
           (current-buffer))))))
 
 (defun company-coq-candidates-symbols ()
