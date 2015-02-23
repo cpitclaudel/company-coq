@@ -7,6 +7,7 @@ from pyparsing import nestedExpr, ParseResults, ParseException
 
 # The whole process:
 # * Add the relevant \tacticdef, \vernacdef, \scopedef to the latex source
+# * Move RefMan-mod to its own section, instead of being embedded in the middle of RefMan-ext
 # * Call make doc-html
 # * Call python3 ~/.emacs.d/lisp/own/company-coq/html-minify.py *.html from the
 #   doc/refman/html folder
@@ -113,7 +114,7 @@ ACTIONS = {'tt':          behead,
            'nelistnosep': behead,
            'tacticdef':   behead}
 
-QUICK_HELP_FILE = "/build/coq/doc/refman/html/min/quick-help.html"
+QUICK_HELP_FILE = "./refman/quick-help.html"
 BASE_PATH = "/build/coq/doc/refman/{}.tex"
 TEMPLATE = './company-coq-abbrev.el.template'
 OUTPUT = './company-coq-abbrev.el'
@@ -121,11 +122,11 @@ BASE_NAME = 'company-coq-abbrevs-{}'
 DEFCONST = '(defconst {}\n  (list \n    {}))'
 
 ALL_NAMES = ["RefMan-int", "RefMan-pre", "RefMan-gal", "RefMan-ext",
-             "RefMan-lib", "RefMan-cic", "RefMan-modr", "RefMan-oth",
-             "RefMan-pro", "RefMan-tac", "RefMan-ltac", "RefMan-tacex",
-             "RefMan-decl", "RefMan-syn", "RefMan-sch", "RefMan-com",
-             "RefMan-uti", "RefMan-ide", "AddRefMan-pre", "Cases", "Coercion",
-             "CanonicalStructures", "Classes", "Omega", "Micromega",
+             "RefMan-mod", "RefMan-lib", "RefMan-cic", "RefMan-modr",
+             "RefMan-oth", "RefMan-pro", "RefMan-tac", "RefMan-ltac",
+             "RefMan-tacex", "RefMan-decl", "RefMan-syn", "RefMan-sch",
+             "RefMan-com", "RefMan-uti", "RefMan-ide", "AddRefMan-pre", "Cases",
+             "Coercion", "CanonicalStructures", "Classes", "Omega", "Micromega",
              "Extraction", "Program", "Polynom", "Nsatz", "Setoid",
              "AsyncProofs", "Universes", "Misc"]
 
