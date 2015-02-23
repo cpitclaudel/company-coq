@@ -461,10 +461,11 @@ company-coq-maybe-reload-symbols."
 
 (defun company-coq-annotation-keywords (candidate)
   (let* ((snippet   (company-coq-get-snippet candidate))
-         (num-holes (and snippet (get-text-property 0 'num-holes snippet))))
+         (num-holes (and snippet (get-text-property 0 'num-holes snippet)))
+         (suffix    (if (get-text-property 0 'anchor candidate) "d" "")))
     (if (and (numberp num-holes) (> num-holes 0))
-        (format "<kwd+%d>" num-holes)
-      "<kwd>")))
+        (format "<kwd+%d%s>" num-holes suffix)
+      (format "<kwd%s>" suffix))))
 
 (defun company-coq-doc-buffer-symbols (name)
   (company-coq-dbg "company-coq-doc-buffer-symbols: Called for name %s" name)
@@ -491,7 +492,8 @@ company-coq-maybe-reload-symbols."
                                 (concat (file-name-directory script-full-path) "refman/" doc-short-path))))
       (when doc-full-path
         (with-current-buffer (company-coq-prepare-buffer-in-pg-window)
-          (let ((doc (with-temp-buffer
+          (let ((inhibit-read-only t)
+                (doc (with-temp-buffer
                        (insert-file-contents doc-full-path)
                        (libxml-parse-html-region (point-min) (point-max)))))
             (shr-insert-document doc) ;; This sets the 'shr-target-id property upon finding the shr-target-id anchor
