@@ -21,8 +21,6 @@ def rename_sub(match):
     num = int(match.groups(1)[0])
     return b36(num) + ".html"
 
-MIN_DIR = "min"
-
 def compress_attributes(soup):
     for span in soup.find_all('span'):
         style = span['style']
@@ -41,7 +39,7 @@ def compress_attributes(soup):
             continue
         span.attrs = {}
 
-def fixup(path):
+def fixup(path, outdir):
     if path.endswith(".min.html"):
         return
 
@@ -51,28 +49,19 @@ def fixup(path):
     compress_attributes(soup)
 
     _, fname = split(path)
-    html_out = join(MIN_DIR, RENAME_RE.sub(rename_sub, fname))
+    html_out = join(outdir, RENAME_RE.sub(rename_sub, fname))
 
     with open(html_out, mode='w') as html_output:
         html_output.write(RENAME_RE.sub(rename_sub, str(soup)))
 
-    # if RENAME_RE.match(fname):
-    #     min_out = html_out + ".min"
-    #     with open(min_out, mode='wb') as min_output:
-    #         call(["html-minifier", "--remove-comments", "--collapse-whitespace",
-    #               "--remove-attribute-quotes", "--collapse-boolean-attributes",
-    #               "--remove-redundant-attributes", "--use-short-doctype",
-    #               "--remove-optional-tags", "--remove-empty-elements", html_out], stdout=min_output)
-    #     rename(min_out, html_out)
+def main(paths, outdir):
+    try:
+        mkdir(outdir)
+    except OSError as exception:
+        if exception.errno != errno.EEXIST:
+            raise
 
-def main(paths):
     for path in paths:
-        fixup(path)
+        fixup(path, outdir)
 
-try:
-    mkdir(MIN_DIR)
-except OSError as exception:
-    if exception.errno != errno.EEXIST:
-        raise
-
-main(sys.argv[1:]) #["/build/coq/doc/refman/html/Reference-Manual142.html"]) #sys.argv[1:])
+main(sys.argv[2:], sys.argv[1])
