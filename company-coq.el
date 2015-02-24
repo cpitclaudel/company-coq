@@ -64,7 +64,7 @@
 (defvar  company-coq-known-keywords nil
   "List of defined Coq syntax forms")
 
-(defconst company-coq-name-regexp-base "[a-zA-Z0-9_.]")
+(defconst company-coq-name-regexp-base "[a-zA-Z0-9_.!]") ;; '!' included so that patterns like [intros!] still work
 
 (defconst company-coq-all-symbols-slow-regexp (concat "^\\(" company-coq-name-regexp-base "+\\):.*")
   "Regexp used to filter out lines without symbols in output of SearchPattern")
@@ -244,10 +244,11 @@
      kwd))))
 
 (defun company-coq-parse-keywords-db-entry (menuname abbrev insert &optional statech kwreg insert-fun hide)
-  (when insert
-    (propertize menuname
+  (when (or insert insert-fun)
+    (propertize (if insert-fun menuname insert)
                 'source 'pg
                 'insert insert
+                'insert-fun insert-fun
                 'stripped (company-coq-normalize-abbrev insert)))) ;; TODO: Remove inter-word spaces
 
 (defun company-coq-parse-own-db-entry (abbrev-and-anchor)
@@ -283,7 +284,6 @@
     (cl-loop for abbrev in (apply #'append lists)
              if (not (get-text-property 0 'dup abbrev))
              collect abbrev)))
-;; TODO: resort
 
 (defun company-coq-number (ls)
   (let ((num 0))
@@ -515,10 +515,10 @@ company-coq-maybe-reload-symbols."
 (defun company-coq-annotation-keywords (candidate)
   (let* ((snippet   (company-coq-get-snippet candidate))
          (num-holes (and snippet (get-text-property 0 'num-holes snippet)))
-         (suffix    (if (get-text-property 0 'anchor candidate) " d" "")))
+         (prefix    (if (get-text-property 0 'anchor candidate) "… " "")))
     (if (and (numberp num-holes) (> num-holes 0))
-        (format "<kwd+%d>%s" num-holes suffix)
-      (format "<kwd>%s" suffix))))
+        (format "%s<kwd (%d)>" prefix num-holes)
+      (format "%s<kwd>" prefix))))
 
 (defun company-coq-doc-buffer-symbols (name)
   (company-coq-dbg "company-coq-doc-buffer-symbols: Called for name %s" name)
@@ -622,8 +622,6 @@ company-coq-maybe-reload-symbols."
     (put-text-property 0 (length final-snippet) 'num-holes match-num final-snippet)
     (company-coq-dbg "company-coq-dabbrev-to-yas: transformed using suffix %s, to %s" suffix final-snippet)
     final-snippet))
-;; TODO support other types of annotations
-;; TODO: fix rewrite-all
 
 (when nil
   (defun company-coq-exit-snippet (char)
@@ -655,8 +653,12 @@ company-coq-maybe-reload-symbols."
          (end     (match-end 0))
          (snippet (company-coq-get-snippet kwd)))
     (when (and found start end snippet)
-      ;; (delete-region start end) ;;FIXME Check
-      (yas-expand-snippet snippet start end))))
+      (let ((insert-fun (get-text-property 0 'insert-fun kwd)))
+        (if insert-fun
+            (progn
+              (delete-region start end)
+              (funcall insert-fun))
+          (yas-expand-snippet snippet start end))))))
 
 ;; FIXME coq-symbols complete at end of full symbol
 
@@ -711,12 +713,12 @@ company-coq-maybe-reload-symbols."
   (let ((backends-alist (company-coq-make-backends-alist)))
     (mapc (lambda (candidate) ;; Partition the candidates by backend
             (company-coq-push-to-backend-alist candidate backends-alist))
-          candidates) ;; TODO Backend dependent sorting
+          candidates)
     (apply #'append
            (mapcar (lambda (pair) ;; Sort the results of each backends, and concat all
                      (cl-stable-sort (cdr pair) (or (and (car pair) (funcall (car pair) 'comparison-fun))
                                                     #'company-coq-string-lessp-foldcase)))
-                   backends-alist)))) ;TODO sort by num
+                   backends-alist))))
 
 (when nil
   (defun company-coq (command &optional arg &rest more-args)
