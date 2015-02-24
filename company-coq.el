@@ -26,10 +26,14 @@
 
 ;;; Code:
 
+(require 'shr)
 (require 'company)
+(require 'company-math)
 (require 'cl-lib)
+(require 'yasnippet)
+
+(require 'proof-site)
 (require 'company-coq-abbrev)
-;; (require 'proof-site)
 
 (defgroup company-coq-opts nil
   "Options for the Coq company mode"
@@ -37,6 +41,10 @@
 
 (defcustom company-coq-debug nil
   "Debug mode for company-coq."
+  :group 'company-coq-opts)
+
+(defcustom company-coq-autocomplete-symbols nil
+  "Autocomplete theorem names by periodically querying coq about defined identifiers. This is an experimental feature. It requires a patched version of Coq to work properly; it will be very slow otherwise."
   :group 'company-coq-opts)
 
 (defcustom company-coq-fast nil
@@ -730,11 +738,30 @@ company-coq-maybe-reload-symbols."
                                                     #'company-coq-string-lessp-foldcase)))
                    backends-alist))))
 
+(defun company-coq-init-symbols-completion ()
+  (when company-coq-autocomplete-symbols
+      ;; PG hooks
+      (add-hook 'proof-shell-insert-hook 'company-coq-maybe-proof-input-reload-symbols)
+      (add-hook 'proof-shell-handle-delayed-output-hook 'company-coq-maybe-proof-output-reload-symbols)
+      ;; General save hook
+      (add-hook 'after-save-hook 'company-coq-maybe-reload-symbols nil t)
+      ;; Company backend
+      (add-to-list 'company-coq-backends #'company-coq-symbols t)
+      (when (not company-coq-fast)
+        (warning "Symbols autocompletion is an experimental
+        feature. Performance won't be good unless you use a
+        patched coqtop. If you do, set company-coq-fast to
+        true."))))
 
 (defun company-coq-initialize ()
+  (if (not (derived-mode-p major-mode 'coq-mode))
+      (error "Please enable coq-mode before starting company-coq")
    (company-coq-init-keywords)
+    (company-coq-init-symbols-completion)
    (add-to-list (make-local-variable 'company-backends) company-coq-backends)
-   (add-to-list (make-local-variable 'company-transformers) #'company-coq-sort-in-backends-order))
+    (add-to-list (make-local-variable 'company-transformers) #'company-coq-sort-in-backends-order)))
+
+;; TODO add a binding to look up the word at point
 
 (provide 'company-coq)
 ;;; company-coq.el ends here
