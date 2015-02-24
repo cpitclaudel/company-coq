@@ -11,11 +11,8 @@ clean: cleangz
 cleangz:
 	rm -f refman/*.gz
 
-view:
-	gnome-open /build/coq/doc/refman/html/Reference-Manual.html
-
 test:
-	emacs ~/.emacs.d/lisp/own/company-coq/large-coq-imports.v
+	emacs -mm large-coq-imports.v
 
 ack:
-	cd ~/.emacs.d/lisp/own/company-coq/refman/ && ack "heveal_quickhelp.*" -o | cut -c -80
+	cd ~/.emacs.d/lisp/own/company-coq/refman/ && ack "hevea_quickhelp.*" -o | cut -c -80
