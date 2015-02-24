@@ -477,14 +477,21 @@ company-coq-maybe-reload-symbols."
   (company-coq-get-header
    (company-coq-definition name)))
 
-(defun company-coq-meta (name)
-  (company-coq-dbg "company-coq-meta: Called for name %s" name)
+(defun company-coq-meta-symbol (name)
+  (company-coq-dbg "company-coq-meta-symbol: Called for name %s" name)
   (let* ((meta (company-coq-join-lines (company-coq-documentation-header name) " " 'string-trim))
          (minibuf-w (window-body-width (minibuffer-window)))
          (meta-trunc (if (> (length meta) minibuf-w)
                          (concat (substring meta 0 (- minibuf-w 3)) "...") meta)))
     (company-coq-dbg "Meta: %s" meta)
     meta-trunc))
+
+(defun company-coq-meta-keyword (name)
+  (company-coq-dbg "company-coq-meta-keyword: Called for name %s" name)
+  (and (company-coq-get-anchor name)
+       (format "%s: Quick docs; %s: Full documentation"
+               (where-is-internal #'company-show-doc-buffer)
+               (where-is-internal #'company-show-location)))) ;;TODO
 
 (defun company-coq-get-pg-buffer ()
   (get-buffer "*goals*"))
@@ -512,10 +519,13 @@ company-coq-maybe-reload-symbols."
         (erase-buffer)))
       doc-buffer))
 
+(defun company-coq-get-anchor (kwd)
+  (get-text-property 0 'anchor kwd))
+
 (defun company-coq-annotation-keywords (candidate)
   (let* ((snippet   (company-coq-get-snippet candidate))
          (num-holes (and snippet (get-text-property 0 'num-holes snippet)))
-         (prefix    (if (get-text-property 0 'anchor candidate) "… " "")))
+         (prefix    (if (company-coq-get-anchor candidate) "… " "")))
     (if (and (numberp num-holes) (> num-holes 0))
         (format "%s<kwd (%d)>" prefix num-holes)
       (format "%s<kwd>" prefix))))
@@ -541,10 +551,10 @@ company-coq-maybe-reload-symbols."
 (defun company-coq-shr-tag-i (cont)
   (shr-fontize-cont cont 'company-coq-doc-i-face))
 
-(defun company-coq-doc-buffer-keywords (name)
+(defun company-coq-doc-buffer-keywords (name &optional truncate)
   (when (fboundp 'libxml-parse-html-region)
     (company-coq-dbg "company-coq-doc-buffer-keywords: Called for name %s" name)
-    (let* ((anchor         (get-text-property 0 'anchor name))
+    (let* ((anchor         (company-coq-get-anchor name))
            (shr-target-id  (and anchor (concat "hevea_quickhelp" (int-to-string (cdr anchor)))))
            (doc-short-path (and anchor (concat (car anchor) ".html.gz")))
            (doc-full-path  (and doc-short-path
@@ -569,8 +579,9 @@ company-coq-maybe-reload-symbols."
                 ;; Company-mode returns to the beginning of the buffer, so centering vertically doesn't work.
                 ;; Instead, just truncate everything.
                 (save-excursion
-                  (forward-line 0)
-                  (delete-region (point-min) (point))
+                  (when truncate
+                    (forward-line 0)
+                    (delete-region (point-min) (point)))
                   ;; The font is scaled, so horizontally centering doesn't work
                   ;; (let* ((window (get-buffer-window (current-buffer)))
                   ;;        (fill-column (or (and window (window-width window)) fill-column)))
@@ -579,8 +590,8 @@ company-coq-maybe-reload-symbols."
                   (let ((overlay (make-overlay (point-at-bol) (+ 1 (point-at-eol)))))
                     ;; +1 to cover the full line
                     (overlay-put overlay 'face 'company-coq-doc-header-face))
-                  (upcase-region (point-at-bol) (point-at-eol))))))
-          (current-buffer))))))
+                  (upcase-region (point-at-bol) (point-at-eol))))
+              (cons (current-buffer) (or target-point (point-min))))))))))
 
 (defun company-coq-candidates-symbols ()
   (interactive)
@@ -673,7 +684,7 @@ company-coq-maybe-reload-symbols."
     (`sorted t)
     (`duplicates nil)
     (`ignore-case nil)
-    (`meta (company-coq-meta arg))
+    (`meta (company-coq-meta-symbol arg))
     (`no-cache t)
     (`match (company-coq-match arg))
     (`annotation "<symb>")
@@ -692,11 +703,13 @@ company-coq-maybe-reload-symbols."
     (`sorted t)
     (`duplicates nil)
     (`ignore-case nil)
+    (`meta (company-coq-meta-keyword arg))
     (`no-cache t)
     (`match (company-coq-match arg))
     (`annotation (company-coq-annotation-keywords arg))
     (`post-completion (company-coq-post-completion-keyword arg))
-    (`doc-buffer (company-coq-doc-buffer-keywords arg))
+    (`doc-buffer (car (company-coq-doc-buffer-keywords arg t)))
+    (`location (company-coq-doc-buffer-keywords arg nil)) ;; TODO
     (`comparison-fun #'company-coq-string-lessp-keywords)
     (`require-match 'never)))
 
