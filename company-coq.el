@@ -524,6 +524,11 @@ company-coq-maybe-reload-symbols."
         (erase-buffer)))
       doc-buffer))
 
+(defun company-coq-make-title-line ()
+  (let ((overlay (make-overlay (point-at-bol) (+ 1 (point-at-eol))))) ;; +1 to cover the full line
+    (overlay-put overlay 'face 'company-coq-doc-header-face))
+  (upcase-region (point-at-bol) (point-at-eol)))
+
 (defun company-coq-get-anchor (kwd)
   (get-text-property 0 'anchor kwd))
 
@@ -540,14 +545,15 @@ company-coq-maybe-reload-symbols."
   (let ((doc (company-coq-documentation name))
         (def (company-coq-join-lines (company-coq-definition-header name) "\n")))
     (when (and doc def)
-      (let* ((doc-tagline (format company-coq-doc-tagline name))
-             (doc-underline (make-string (length doc-tagline) ?=))
-             (doc-full (concat doc-tagline "\n" doc-underline "\n\n" doc company-coq-doc-def-sep def)))
+      (let* ((fontized-name (propertize name 'font-lock-face 'company-coq-doc-i-face))
+             (doc-tagline (format company-coq-doc-tagline fontized-name))
+             (doc-full (concat doc-tagline "\n\n" doc company-coq-doc-def-sep def)))
         (with-current-buffer (company-coq-prepare-buffer-in-pg-window)
           (let ((inhibit-read-only t))
             (insert doc-full)
             (coq-response-mode)
-            (goto-char (point-min)))
+            (goto-char (point-min))
+            (company-coq-make-title-line))
           (current-buffer))))))
 
 (defun company-coq-shr-tag-tt (cont)
@@ -556,9 +562,37 @@ company-coq-maybe-reload-symbols."
 (defun company-coq-shr-tag-i (cont)
   (shr-fontize-cont cont 'company-coq-doc-i-face))
 
+(defun company-coq-doc-keywords-prettify-title (target-point truncate)
+              (goto-char (or target-point (point-min)))
+              (when target-point
+                ;; Remove the star ("*") added by shr
+                (delete-char 1)
+                (save-excursion
+                  (when truncate
+        ;; Company-mode returns to the beginning of the buffer, so centering vertically doesn't work.
+        ;; Instead, just truncate everything.
+                    (forward-line 0)
+                    (delete-region (point-min) (point)))
+                  ;; The font is scaled, so horizontally centering doesn't work
+      (company-coq-make-title-line))))
+
+(defun company-coq-doc-keywords-put-html (html-full-path truncate)
+  (let ((inhibit-read-only t)
+        (doc (with-temp-buffer
+               (insert-file-contents html-full-path)
+               (libxml-parse-html-region (point-min) (point-max))))
+        (shr-width nil)
+        (after-change-functions nil)
+        (shr-external-rendering-functions '((tt . company-coq-shr-tag-tt)
+                                            (i  . company-coq-shr-tag-i))))
+    (display-buffer (current-buffer) t)
+    (shr-insert-document doc) ;; This sets the 'shr-target-id property upon finding the shr-target-id anchor
+    (company-coq-doc-keywords-prettify-title (next-single-property-change (point-min) 'shr-target-id) truncate)))
+
 (defun company-coq-doc-buffer-keywords (name &optional truncate)
+  (interactive)
+  (company-coq-dbg "company-coq-doc-buffer-keywords: Called for %s" name)
   (when (fboundp 'libxml-parse-html-region)
-    (company-coq-dbg "company-coq-doc-buffer-keywords: Called for name %s" name)
     (let* ((anchor         (company-coq-get-anchor name))
            (shr-target-id  (and anchor (concat "hevea_quickhelp" (int-to-string (cdr anchor)))))
            (doc-short-path (and anchor (concat (car anchor) ".html.gz")))
@@ -566,37 +600,8 @@ company-coq-maybe-reload-symbols."
                                 (concat (file-name-directory script-full-path) "refman/" doc-short-path))))
       (when doc-full-path
         (with-current-buffer (company-coq-prepare-buffer-in-pg-window)
-          (let ((inhibit-read-only t)
-                (doc (with-temp-buffer
-                       (insert-file-contents doc-full-path)
-                       (libxml-parse-html-region (point-min) (point-max))))
-                (shr-width nil)
-                (after-change-functions nil)
-                (shr-external-rendering-functions '((tt . company-coq-shr-tag-tt)
-                                                    (i  . company-coq-shr-tag-i))))
-            (display-buffer (current-buffer) t)
-            (shr-insert-document doc) ;; This sets the 'shr-target-id property upon finding the shr-target-id anchor
-            (let ((target-point (next-single-property-change (point-min) 'shr-target-id)))
-              (goto-char (or target-point (point-min)))
-              (when target-point
-                ;; Remove the star ("*") added by shr
-                (delete-char 1)
-                ;; Company-mode returns to the beginning of the buffer, so centering vertically doesn't work.
-                ;; Instead, just truncate everything.
-                (save-excursion
-                  (when truncate
-                    (forward-line 0)
-                    (delete-region (point-min) (point)))
-                  ;; The font is scaled, so horizontally centering doesn't work
-                  ;; (let* ((window (get-buffer-window (current-buffer)))
-                  ;;        (fill-column (or (and window (window-width window)) fill-column)))
-                  ;;   (message "Fill is %d" fill-column)
-                  ;;   (center-line))
-                  (let ((overlay (make-overlay (point-at-bol) (+ 1 (point-at-eol)))))
-                    ;; +1 to cover the full line
-                    (overlay-put overlay 'face 'company-coq-doc-header-face))
-                  (upcase-region (point-at-bol) (point-at-eol))))
-              (cons (current-buffer) (or target-point (point-min))))))))))
+          (company-coq-doc-keywords-put-html doc-full-path truncate)
+          (cons (current-buffer) (point)))))))
 
 (defun company-coq-candidates-symbols ()
   (interactive)
