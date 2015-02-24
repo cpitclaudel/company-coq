@@ -123,9 +123,19 @@
 (defconst script-full-path load-file-name
   "Full path of this script")
 
-(defface doc-header-face
-  '((t :inherit default :height 1.5))
+(defface company-coq-doc-header-face
+  '((t :italic nil :inherit highlight :height 1.2))
   "Face used to highlight the target line in the docs"
+  :group 'defaut)
+
+(defface company-coq-doc-tt-face
+  '((t :inherit font-lock-keyword-face :weight bold))
+  "Face used to highliasdght the target line in the docs"
+  :group 'defaut)
+
+(defface company-coq-doc-i-face
+  '((t :inherit font-lock-variable-name-face :weight bold :slant italic))
+  "Face used to highlightdsa the target line in the docs"
   :group 'defaut)
 
 (when nil
@@ -482,6 +492,12 @@ company-coq-maybe-reload-symbols."
             (goto-char (point-min)))
           (current-buffer))))))
 
+(defun company-coq-shr-tag-tt (cont)
+  (shr-fontize-cont cont 'company-coq-doc-tt-face))
+
+(defun company-coq-shr-tag-i (cont)
+  (shr-fontize-cont cont 'company-coq-doc-i-face))
+
 (defun company-coq-doc-buffer-keywords (name)
   (when (fboundp 'libxml-parse-html-region)
     (company-coq-dbg "company-coq-doc-buffer-keywords: Called for name %s" name)
@@ -495,18 +511,32 @@ company-coq-maybe-reload-symbols."
           (let ((inhibit-read-only t)
                 (doc (with-temp-buffer
                        (insert-file-contents doc-full-path)
-                       (libxml-parse-html-region (point-min) (point-max)))))
+                       (libxml-parse-html-region (point-min) (point-max))))
+                (shr-width nil)
+                (after-change-functions nil)
+                (shr-external-rendering-functions '((tt . company-coq-shr-tag-tt)
+                                                    (i  . company-coq-shr-tag-i))))
+            (display-buffer (current-buffer) t)
             (shr-insert-document doc) ;; This sets the 'shr-target-id property upon finding the shr-target-id anchor
             (let ((target-point (next-single-property-change (point-min) 'shr-target-id)))
               (goto-char (or target-point (point-min)))
               (when target-point
-                ;; Company-mode returns to the beginning of the buffer, so centering doesn't work.
+                ;; Remove the star ("*") added by shr
+                (delete-char 1)
+                ;; Company-mode returns to the beginning of the buffer, so centering vertically doesn't work.
                 ;; Instead, just truncate everything.
                 (save-excursion
                   (forward-line 0)
                   (delete-region (point-min) (point))
-                  (let ((overlay (make-overlay (point-at-bol) (point-at-eol))))
-                    (overlay-put overlay 'face 'doc-header-face))))))
+                  ;; The font is scaled, so horizontally centering doesn't work
+                  ;; (let* ((window (get-buffer-window (current-buffer)))
+                  ;;        (fill-column (or (and window (window-width window)) fill-column)))
+                  ;;   (message "Fill is %d" fill-column)
+                  ;;   (center-line))
+                  (let ((overlay (make-overlay (point-at-bol) (+ 1 (point-at-eol)))))
+                    ;; +1 to cover the full line
+                    (overlay-put overlay 'face 'company-coq-doc-header-face))
+                  (upcase-region (point-at-bol) (point-at-eol))))))
           (current-buffer))))))
 
 (defun company-coq-candidates-symbols ()

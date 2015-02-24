@@ -39,6 +39,17 @@ def compress_attributes(soup):
             continue
         span.attrs = {}
 
+    for i in soup.find_all('i'):
+        right = i.next_sibling
+        if right and right.name == 'sub':
+            for child in right.children:
+                if child.name != 'i':
+                    child.wrap(soup.new_tag('i'))
+
+    # for tt in soup.find_all('tt'):
+    #     for ti in tt.find_all('i'):
+    #         ti.name = 'ti'
+
 def fixup(path, outdir):
     if path.endswith(".min.html"):
         return
