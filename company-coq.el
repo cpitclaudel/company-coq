@@ -237,47 +237,70 @@
 
 (defun company-coq-normalize-abbrev (kwd)
   (downcase
-   (string-trim
+   (replace-regexp-in-string
+    "[ \\.]+\\'" ""
     (replace-regexp-in-string
-     (concat " *\\(" company-coq-dabbrev-placeholders-regexp "\\) *") "#" kwd))))
+     (concat " *\\(" company-coq-dabbrev-placeholders-regexp "\\) *") "#"
+     kwd))))
 
 (defun company-coq-parse-keywords-db-entry (menuname abbrev insert &optional statech kwreg insert-fun hide)
   (when insert
-    (propertize menuname 'insert insert 'stripped (company-coq-normalize-abbrev insert)))) ;; TODO: Remove inter-word spaces
+    (propertize menuname
+                'source 'pg
+                'insert insert
+                'stripped (company-coq-normalize-abbrev insert)))) ;; TODO: Remove inter-word spaces
 
 (defun company-coq-parse-own-db-entry (abbrev-and-anchor)
   (let ((abbrev (car abbrev-and-anchor))
         (anchor (cdr abbrev-and-anchor)))
     (propertize abbrev
+                'source 'own
                 'anchor anchor
                 'insert abbrev
                 'stripped (company-coq-normalize-abbrev abbrev))))
 
 (defun company-coq-abbrev-equal (a1 a2)
-  (equal (company-coq-read-normalized-abbrev a1)
-         (company-coq-read-normalized-abbrev a2)))
+  (and (equal (company-coq-read-normalized-abbrev a1)
+              (company-coq-read-normalized-abbrev a2))
+       (not (equal (company-coq-read-abbrev-source a1)
+                   (company-coq-read-abbrev-source a2)))))
 
 (defun company-coq-read-normalized-abbrev (kwd)
   (get-text-property 0 'stripped kwd))
 
-(defun company-coq-union-sort (test comp key &rest lists)
-  (let ((merged  (cl-stable-sort (apply #'nconc lists) comp :key key))
-        (deduped nil)
+(defun company-coq-read-abbrev-source (kwd)
+  (get-text-property 0 'source kwd))
+
+(defun company-coq-union-nosort (test comp key &rest lists)
+  (let ((merged  (cl-stable-sort (apply #'append lists) comp :key key))
         (prev    nil))
     (while merged
       (let ((top (pop merged)))
-        (unless (and prev (funcall test top prev))
-          (push top deduped)
-          (setq prev top))))
-    (reverse deduped)))
+        (when (and prev (funcall test top prev))
+          (message "Discarding %s" top)
+          (put-text-property 0 (length top) 'dup t top))
+        (setq prev top)))
+    (cl-loop for abbrev in (apply #'append lists)
+             if (not (get-text-property 0 'dup abbrev))
+             collect abbrev)))
+;; TODO: resort
+
+(defun company-coq-number (ls)
+  (let ((num 0))
+    (mapc (lambda (x)
+            (put-text-property 0 (length x) 'num num x)
+            (setq num (+ 1 num)))
+          ls)))
 
 (defun company-coq-get-annotated-keywords ()
   (company-coq-dbg "company-coq-get-annotated-keywords: Called")
   (let ((pg-keywords  (remove nil (mapcar (lambda (db-entry) (apply 'company-coq-parse-keywords-db-entry db-entry))
                                            (company-coq-get-pg-keywords-db))))
-        (own-keywords (mapcar #'company-coq-parse-own-db-entry (company-coq-get-own-keywords-db))))
-    (company-coq-union-sort #'company-coq-abbrev-equal #'string-lessp #'company-coq-read-normalized-abbrev
-                            own-keywords pg-keywords)))
+        (own-keywords (company-coq-number
+                       (mapcar #'company-coq-parse-own-db-entry (company-coq-get-own-keywords-db)))))
+     (company-coq-union-nosort
+      #'company-coq-abbrev-equal #'string-lessp #'company-coq-read-normalized-abbrev
+      own-keywords pg-keywords)))
 
 (defun company-coq-force-reload-keywords ()
   (company-coq-dbg "company-coq-force-reload-keywords: Called")
@@ -289,11 +312,33 @@
   (company-coq-dbg "company-coq-init-keywords: Loading keywords (if never loaded)")
   (company-coq-init-db 'company-coq-known-keywords 'company-coq-force-reload-keywords))
 
+(defun company-coq-is-lower (str)
+  (let ((case-fold-search nil))
+    (string-match-p "\\`[[:lower:]]" str)))
+
 (defun company-coq-string-lessp-foldcase (str1 str2)
+  (string-lessp (upcase str1) (upcase str2)))
+
+(defun company-coq-string-lessp-symbols (str1 str2)
   (let ((mb1 (equal 0 (get-text-property 0 'match-beginning str1)))
         (mb2 (equal 0 (get-text-property 0 'match-beginning str2))))
     (or (and mb1 (not mb2))
-        (and (equal mb1 mb2) (string-lessp (upcase str1) (upcase str2))))))
+        (and (equal mb1 mb2)
+             (company-coq-string-lessp-foldcase str1 str2)))))
+
+(defun company-coq-string-lessp-keywords (str1 str2)
+  (let ((mb1 (equal 0 (get-text-property 0 'match-beginning str1)))
+        (mb2 (equal 0 (get-text-property 0 'match-beginning str2)))
+        (id1 (get-text-property 0 'num str1))
+        (id2 (get-text-property 0 'num str2))
+        (l1 (company-coq-is-lower str1))
+        (l2 (company-coq-is-lower str2)))
+    (or (and      l1  (not l2))
+        (and (not l1) (not l2) (company-coq-string-lessp-foldcase str1 str2))
+        (and      l1       l2  (or (and id1 (not id2))
+                                   (and id1 id2 (< id1 id2))
+                                   (and (equal id1 id2)
+                                        (company-coq-string-lessp-foldcase str1 str2)))))))
 
 (defun company-coq-make-proper-list (improper-list)
   (let ((last-cell (last improper-list)))
@@ -311,10 +356,9 @@
   (let ((completion-ignore-case ignore-case)
         (case-fold-search       ignore-case)
         (prefix-re              (regexp-quote prefix)))
-    (sort (cl-loop for completion in completions
-                   if (string-match prefix-re completion)
-                   collect (company-coq-propertize-match completion (match-beginning 0) (match-end 0)))
-          #'company-coq-string-lessp-foldcase)))
+    (cl-loop for completion in completions
+             if (string-match prefix-re completion)
+             collect (company-coq-propertize-match completion (match-beginning 0) (match-end 0)))))
 
 (defun company-coq-complete-prefix-fuzzy (prefix completions &optional ignore-case)
   "List elements of COMPLETIONS matching PREFIX"
@@ -326,13 +370,12 @@
   (company-coq-dbg "company-coq-complete-prefix: Completing for prefix %s (%s symbols)" prefix (length completions))
   (let ((completion-ignore-case ignore-case)
         (prefix-len             (length prefix)))
-    (sort (mapcar
-           (lambda (completion) (company-coq-propertize-match completion 0 prefix-len))
-           (all-completions prefix completions))
-          #'string<)))
+    (mapcar
+     (lambda (completion) (company-coq-propertize-match completion 0 prefix-len))
+     (all-completions prefix completions))))
 
 (defun company-coq-complete-symbol (prefix)
-  "List elements of company-coq-defined-symbols starting with PREFIX"
+  "List elements of company-coq-defined-symbols containing PREFIX"
   (interactive)
   (company-coq-complete-prefix-substring prefix company-coq-defined-symbols))
 
@@ -472,10 +515,10 @@ company-coq-maybe-reload-symbols."
 (defun company-coq-annotation-keywords (candidate)
   (let* ((snippet   (company-coq-get-snippet candidate))
          (num-holes (and snippet (get-text-property 0 'num-holes snippet)))
-         (suffix    (if (get-text-property 0 'anchor candidate) "d" "")))
+         (suffix    (if (get-text-property 0 'anchor candidate) " d" "")))
     (if (and (numberp num-holes) (> num-holes 0))
-        (format "<kwd+%d%s>" num-holes suffix)
-      (format "<kwd%s>" suffix))))
+        (format "<kwd+%d>%s" num-holes suffix)
+      (format "<kwd>%s" suffix))))
 
 (defun company-coq-doc-buffer-symbols (name)
   (company-coq-dbg "company-coq-doc-buffer-symbols: Called for name %s" name)
@@ -633,6 +676,7 @@ company-coq-maybe-reload-symbols."
     (`match (company-coq-match arg))
     (`annotation "<symb>")
     (`doc-buffer (company-coq-doc-buffer-symbols arg))
+    (`comparison-fun #'company-coq-string-lessp-symbols)
     (`require-match 'never)))
 
 (defun company-coq-keywords (command &optional arg &rest ignored)
@@ -651,6 +695,7 @@ company-coq-maybe-reload-symbols."
     (`annotation (company-coq-annotation-keywords arg))
     (`post-completion (company-coq-post-completion-keyword arg))
     (`doc-buffer (company-coq-doc-buffer-keywords arg))
+    (`comparison-fun #'company-coq-string-lessp-keywords)
     (`require-match 'never)))
 
 (defun company-coq-make-backends-alist ()
@@ -666,10 +711,12 @@ company-coq-maybe-reload-symbols."
   (let ((backends-alist (company-coq-make-backends-alist)))
     (mapc (lambda (candidate) ;; Partition the candidates by backend
             (company-coq-push-to-backend-alist candidate backends-alist))
-          candidates)
-    (apply #'append (mapcar (lambda (pair) ;; Sort the results of each backends, and concat all
-                              (sort (cdr pair) #'company-coq-string-lessp-foldcase))
-                            backends-alist))))
+          candidates) ;; TODO Backend dependent sorting
+    (apply #'append
+           (mapcar (lambda (pair) ;; Sort the results of each backends, and concat all
+                     (cl-stable-sort (cdr pair) (or (and (car pair) (funcall (car pair) 'comparison-fun))
+                                                    #'company-coq-string-lessp-foldcase)))
+                   backends-alist)))) ;TODO sort by num
 
 (when nil
   (defun company-coq (command &optional arg &rest more-args)
@@ -692,11 +739,10 @@ company-coq-maybe-reload-symbols."
                             company-coq-backends
                             command arg more-args))))))
 
-;; FIXME '.' in symbol name
-
 (defun company-coq-initialize ()
-  (add-to-list (make-local-variable 'company-backends) company-coq-backends)
-  (add-to-list (make-local-variable 'company-transformers) #'company-coq-sort-in-backends-order))
+   (company-coq-init-keywords)
+   (add-to-list (make-local-variable 'company-backends) company-coq-backends)
+   (add-to-list (make-local-variable 'company-transformers) #'company-coq-sort-in-backends-order))
 
 (provide 'company-coq)
 ;;; company-coq.el ends here

@@ -333,13 +333,19 @@ def tactic_to_abbrevs(pos, num, tactic):
         print("{}: `{}...`".format(pos, tactic[:min(len(tactic), 40)].replace('\n', '')))
         return ()
 
+def normalize_abbrev(abbr):
+    if abbr == None:
+        return None
+    else:
+        return abbr.lower().rstrip('.')
+
 def sort_uniq(abbrevs):
-    abbrevs = sorted(abbrevs, key = lambda x: (x[1].lower(), x[0]))
+    abbrevs = sorted(abbrevs, key = lambda x: (normalize_abbrev(x[1]), x[0]), reverse = True)
 
     prev = None
     dedup = []
     for pos, abbrev in abbrevs:
-        if abbrev == prev:
+        if normalize_abbrev(abbrev) == normalize_abbrev(prev):
             continue
         dedup.append((pos, abbrev))
         prev = abbrev
@@ -383,6 +389,7 @@ def main():
             doc = source.read()
             start_num, abbrevs = extract_abbrevs(doc, start_num)
             annotated = annotate(abbrevs, annotations)
+            annotated.sort(key = lambda x: (x[1], len(x[0]), x[0])) # Sort in original order
             abbrevs_by_chapter[name] = annotated
         print("{} entries found".format(len(abbrevs)))
 
