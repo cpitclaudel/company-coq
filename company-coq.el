@@ -47,8 +47,8 @@
   "Show holes using explicit placeholders"
   :group 'company-coq-opts)
 
-(defcustom company-coq-backends '(company-math-symbols-unicode company-coq-keywords company-coq-symbols)
-  "List of backends to use, listed in the order in which you want the results displayed. Note that the first backend to return a prefix supersseds all the others; they all must work with the same prefix."
+(defcustom company-coq-backends '(company-math-symbols-unicode company-coq-keywords)
+  "List of backends to use, listed in the order in which you want the results displayed. Note that the first backend to return a prefix superseeds all the others; they all must work with the same prefix."
   :group 'company-coq-opts)
 
 (defvar company-coq-asking-question nil
