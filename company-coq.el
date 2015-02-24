@@ -111,7 +111,7 @@
 (defconst company-coq-input-reload-regexp "\\(Require\\)\\|\\(Import\\)"
   "Regexp used to detect signs that new definitions will be added to the context")
 
-(defconst company-coq-doc-tagline "DOCUMENTATION FOR SYMBOL '%s'"
+(defconst company-coq-doc-tagline "Documentation for symbol %s"
   "Format string for the header of the documentation buffer")
 
 (defconst company-coq-doc-def-sep "\n---\n\n"
@@ -124,18 +124,18 @@
   "Full path of this script")
 
 (defface company-coq-doc-header-face
-  '((t :italic nil :inherit highlight :height 1.2))
+  '((t :inherit highlight :height 1.2))
   "Face used to highlight the target line in the docs"
   :group 'defaut)
 
 (defface company-coq-doc-tt-face
   '((t :inherit font-lock-keyword-face :weight bold))
-  "Face used to highliasdght the target line in the docs"
+  "Face used to highlight the keywords in the docs"
   :group 'defaut)
 
 (defface company-coq-doc-i-face
   '((t :inherit font-lock-variable-name-face :weight bold :slant italic))
-  "Face used to highlightdsa the target line in the docs"
+  "Face used to highlight the symbol names in the docs"
   :group 'defaut)
 
 (when nil
@@ -278,7 +278,6 @@
     (while merged
       (let ((top (pop merged)))
         (when (and prev (funcall test top prev))
-          (message "Discarding %s" top)
           (put-text-property 0 (length top) 'dup t top))
         (setq prev top)))
     (cl-loop for abbrev in (apply #'append lists)
@@ -489,9 +488,7 @@ company-coq-maybe-reload-symbols."
 (defun company-coq-meta-keyword (name)
   (company-coq-dbg "company-coq-meta-keyword: Called for name %s" name)
   (and (company-coq-get-anchor name)
-       (format "%s: Quick docs; %s: Full documentation"
-               (where-is-internal #'company-show-doc-buffer)
-               (where-is-internal #'company-show-location)))) ;;TODO
+       (format "C-h: Quick docs")))
 
 (defun company-coq-get-pg-buffer ()
   (get-buffer "*goals*"))
@@ -640,6 +637,7 @@ company-coq-maybe-reload-symbols."
     (let ((snippet (first (yas--snippets-at-point))))
       (yas-exit-snippet snippet)))
 
+  ;; FIXME: Should call electric terminator instead of insert
   (defmacro company-coq-register-snippet-terminator (char)
     `(progn
        (company-coq-dbg "registering %s as a snippet terminator" ,char)
@@ -650,8 +648,7 @@ company-coq-maybe-reload-symbols."
              (interactive)
              (and (fboundp 'company-coq-exit-snippet)
                   (company-coq-exit-snippet ,char))
-             (insert ,char)))))) ;; FIXME: Should call electric terminator instead of insert
-  )
+             (insert ,char)))))))
 
 (defun company-coq-get-snippet (candidate)
   (let* ((abbrev  (get-text-property 0 'insert candidate))
@@ -671,7 +668,7 @@ company-coq-maybe-reload-symbols."
               (funcall insert-fun))
           (yas-expand-snippet snippet start end))))))
 
-;; FIXME coq-symbols complete at end of full symbol
+;; TODO completion at end of full symbol
 
 (defun company-coq-symbols (command &optional arg &rest ignored)
   "A company-mode backend for known Coq symbols."
@@ -733,26 +730,6 @@ company-coq-maybe-reload-symbols."
                                                     #'company-coq-string-lessp-foldcase)))
                    backends-alist))))
 
-(when nil
-  (defun company-coq (command &optional arg &rest more-args)
-    "A backend that mixes results from company-coq-symbols and company-coq-keywords."
-    (interactive (list 'interactive))
-    (company-coq-dbg "meta-backend: called with command %s" command)
-    (lexical-let ((arg arg) ;; Rebind to use in lambda
-                  (more-args more-args))
-      (pcase command
-        (`interactive (company-begin-backend 'company-coq))
-        (`sorted     t)
-        (`duplicates nil)
-        (`no-cache   t)
-        (`candidates (cons :async
-                           (lambda (callback)
-                             (funcall callback (apply #'company--multi-backend-adapter
-                                                      company-coq-backends
-                                                      'candidates arg more-args)))))
-        (_           (apply #'company--multi-backend-adapter
-                            company-coq-backends
-                            command arg more-args))))))
 
 (defun company-coq-initialize ()
    (company-coq-init-keywords)
