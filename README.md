@@ -41,7 +41,7 @@ Advanced features (requires a patched version of `coqtop`:
 
 ## Setup
 
-Note: Most of this is tested only on Emacs 24.
+Note: Most of this is untested only on Emacs < 24.
 
 ### `Coq`
 
@@ -104,17 +104,6 @@ Add the following to your `.emacs`
                            (company-coq-initialize)))
 ```
 
-### Autocompleting symbols
-
-The procedure above will give you auto-completion and documentation for tactics and commands, but not for theorem names and symbols. To get the latter, add the following to your `.emacs`, before `(company-coq-initialize)`:
-
-```elisp
-(setq company-coq-autocomplete-symbols t)
-```
-
-This feature won't work well unless you build and use a [patched coq REPL](https://github.com/cpitclaudel/coq/tree/V8.4pl2-SearchAny).
-
-
 ## Quick start guide
 
 `company-coq` should be pretty transparent. Completion windows will pop up when `company-coq` has suggestions to make. By default, this would be when you start writing a tactic name or a command. You can also launch manual completion by using <kbd>C-RET</kbd> (or whatever was originally assigned to `proof-script-complete` in Coq mode).
@@ -128,6 +117,24 @@ If you want to manually invoke completion from time to time, you can add the fol
 ```
 -->
 
-Once auto-completion has started, use <kbd>RET</kbd> to select a completion, or <kbd>C-g</kbd> to interrupt completion. Pressing <kbd>C-h</kbd> or <kbd>&lt;f1></kbd> displays documentation for the currently highlighted identifier.
+Once auto-completion has started, the following key bindings are available:
 
-Selecting a completion generally inserts a snippet with holes at the current point (`company-coq` uses `yasnippet` as the snippet backend). You can move between holes by using <kbd>&lt;tab></kbd> and <kbd>S-&lt;tab></kbd>.
+* <kbd>RET</kbd> selects a completion
+* <kbd>C-g</kbd> interrupts completion.
+* <kbd>C-h</kbd> and <kbd>&lt;f1></kbd> display documentation for the currently highlighted keyword or identifier.
+* <kbd>C-M-v</kbd> scrolls down in the documentation window.
+* <kbd>C-w</kbd> opens the relevant section of the documentation, scrolling to the part about the currently highlighted keyword or identifier. Using <kbd>C-w</kbd> allows you scroll up (<kbd>C-M-S-v</kbd>) in the documentation window to see more context.
+
+Selecting a completion generally often a snippet with holes at the current point (`company-coq` uses `yasnippet` as the snippet backend). You can move between holes by using <kbd>&lt;tab></kbd> and <kbd>S-&lt;tab></kbd>.
+
+## Advanced topics
+
+### Autocompleting symbols
+
+The procedure above will give you auto-completion and documentation for tactics and commands, but not for theorem names and symbols. To get the latter, add the following to your `.emacs`, before `(company-coq-initialize)`:
+
+```elisp
+(setq company-coq-autocomplete-symbols t)
+```
+
+This feature won't work well unless you build and use a [patched coq REPL](https://github.com/cpitclaudel/coq/tree/V8.4pl2-SearchAny).
