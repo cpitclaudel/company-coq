@@ -41,6 +41,8 @@ Advanced features (requires a patched version of `coqtop`:
 
 ## Setup
 
+Note: Most of this is tested only on Emacs 24.
+
 ### `Coq`
 
 ```bash
@@ -58,16 +60,27 @@ sudo apt-get install proof-general
 ### `CompAny`, `YASnippet`
 
 ```elisp
+M-x package-refresh-contents RET
 M-x package-install RET company RET
 M-x package-install RET company-math RET
 M-x package-install RET yasnippet RET
 ```
 
+Note that `company-math` is on [MELPA](http://melpa.org/#/getting-started). If you don't have it, add the following to your `.emacs` and reload it before running the commands above:
+
+```elisp
+(require 'package)
+(add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/") t)
+(package-initialize)
+```
+
+Also note that compiling the packages above will produce a few warnings. That's ok.
+
 ### `company-coq`
 
 ```bash
 mkdir -p ~/.emacs.d/lisp/
-git clone git@github.com:cpitclaudel/company-coq.git ~/.emacs.d/lisp/company-coq
+git clone https://github.com/cpitclaudel/company-coq.git ~/.emacs.d/lisp/company-coq
 ```
 
 ## Configuration
@@ -104,12 +117,16 @@ This feature won't work well unless you build and use a [patched coq REPL](https
 
 ## Quick start guide
 
-`company-coq` should be pretty transparent. Completion windows will pop up when `company-coq` has suggestions to make. By default, this would be when you start writing a tactic name, or a command. If you want to manually invoke completion from time to time, you can add the following to your `.emacs`:
+`company-coq` should be pretty transparent. Completion windows will pop up when `company-coq` has suggestions to make. By default, this would be when you start writing a tactic name or a command. You can also launch manual completion by using <kbd>C-RET</kbd> (or whatever was originally assigned to `proof-script-complete` in Coq mode).
+
+<!--
+If you want to manually invoke completion from time to time, you can add the following to your `.emacs`:
 
 ```elisp
 (add-hook 'company-mode-hook (lambda ()
                                (local-set-key [\C-return] 'company-manual-begin)))
 ```
+-->
 
 Once auto-completion has started, use <kbd>RET</kbd> to select a completion, or <kbd>C-g</kbd> to interrupt completion. Pressing <kbd>C-h</kbd> or <kbd>&lt;f1></kbd> displays documentation for the currently highlighted identifier.
 
