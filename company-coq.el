@@ -774,9 +774,9 @@ company-coq-maybe-reload-symbols."
 (defun company-coq-initialize ()
   (if (not (derived-mode-p major-mode 'coq-mode))
       (error "Please enable coq-mode before starting company-coq")
-   (company-coq-init-keywords)
+    (company-coq-init-keywords)
     (company-coq-init-symbols-completion)
-   (add-to-list (make-local-variable 'company-backends) company-coq-backends)
+    (add-to-list (make-local-variable 'company-backends) company-coq-backends)
     (add-to-list (make-local-variable 'company-transformers) #'company-coq-sort-in-backends-order)))
 
 ;; TODO add a binding to look up the word at point
