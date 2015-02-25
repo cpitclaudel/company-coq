@@ -125,6 +125,8 @@ Once auto-completion has started, the following key bindings are available:
 * <kbd>C-M-v</kbd> scrolls down in the documentation window.
 * <kbd>C-w</kbd> opens the relevant section of the documentation, scrolling to the part about the currently highlighted keyword or identifier. Using <kbd>C-w</kbd> allows you scroll up (<kbd>C-M-S-v</kbd>) in the documentation window to see more context.
 
+You can customize these keybindings by editing `company-active-map`.
+
 Selecting a completion generally often a snippet with holes at the current point (`company-coq` uses `yasnippet` as the snippet backend). You can move between holes by using <kbd>&lt;tab></kbd> and <kbd>S-&lt;tab></kbd>.
 
 ## Advanced topics
