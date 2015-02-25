@@ -111,6 +111,6 @@ This feature won't work well unless you build and use a [patched coq REPL](https
                                (local-set-key [\C-return] 'company-manual-begin)))
 ```
 
-Once auto-completion has started, use <kbd>RET</ret> to select a completion, or <kbd>C-g</kbd> to interrupt completion. Pressing <kbd>C-h</kbd> or <kbd><f1></kbd> displays documentation for the currently highlighted identifier.
+Once auto-completion has started, use <kbd>RET</kbd> to select a completion, or <kbd>C-g</kbd> to interrupt completion. Pressing <kbd>C-h</kbd> or <kbd>&lt;f1></kbd> displays documentation for the currently highlighted identifier.
 
 Selecting a completion generally inserts a snippet with holes at the current point (`company-coq` uses `yasnippet` as the snippet backend). You can move between holes by using <kbd>&lt;tab></kbd> and <kbd>S-&lt;tab></kbd>.
