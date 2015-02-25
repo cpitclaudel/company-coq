@@ -774,10 +774,21 @@ company-coq-maybe-reload-symbols."
 (defun company-coq-initialize ()
   (if (not (derived-mode-p major-mode 'coq-mode))
       (error "Please enable coq-mode before starting company-coq")
+    ;; Enable relevant minor modes
+    (company-mode 1)
+    (yas-minor-mode 1)
+    ;; Set a few company settings
+    (setq-local company-idle-delay 0)
+    (setq-local company-tooltip-align-annotations t)
+    (setq-local company-dabbrev-code-everywhere t)
+    ;; Load identifiers and register hooks
     (company-coq-init-keywords)
     (company-coq-init-symbols-completion)
+    ;; Let company know about our backends
     (add-to-list (make-local-variable 'company-backends) company-coq-backends)
-    (add-to-list (make-local-variable 'company-transformers) #'company-coq-sort-in-backends-order)))
+    (add-to-list (make-local-variable 'company-transformers) #'company-coq-sort-in-backends-order)
+    ;; Bind C-RET to company's autocompletion
+    (substitute-key-definition #'proof-script-complete #'company-manual-begin proof-mode-map)))
 
 ;; TODO add a binding to look up the word at point
 
