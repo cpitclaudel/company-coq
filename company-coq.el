@@ -41,8 +41,10 @@
 (require 'cl-lib)
 (require 'yasnippet)
 
-(require 'proof-site)
 (require 'company-coq-abbrev)
+
+(unless (require 'proof-site nil t)
+  (message "company-coq: Unable to load proof-site. Is ProofGeneral installed, and did you add it to your load-path?"))
 
 (defgroup company-coq-opts nil
   "Options for the Coq company mode"
@@ -170,7 +172,7 @@
 
 (defun company-coq-ask-prover (question)
   (when question
-    (if (company-coq-prover-available)
+    (if (and (company-coq-prover-available) (fboundp 'proof-shell-invisible-cmd-get-result))
         (progn
           (setq company-coq-asking-question t)
           (unwind-protect
@@ -202,9 +204,15 @@
 (defun company-coq-boundp-equal (var symbol)
   (and (boundp var) (equal (symbol-value var) symbol)))
 
+(defun company-coq-value-or-nil (symbol)
+  (and (boundp symbol) (symbol-value symbol)))
+
 (defun company-coq-prover-available ()
-  (let ((available (and (not company-coq-asking-question) (fboundp 'proof-shell-available-p) (proof-shell-available-p))))
-    (when (not available) (company-coq-dbg "company-coq-prover-available: Prover not available"))
+  (let ((available (and (not company-coq-asking-question)
+                        (fboundp 'proof-shell-available-p)
+                        (proof-shell-available-p))))
+    (when (not available)
+      (company-coq-dbg "company-coq-prover-available: Prover not available"))
     available))
 
 (defun company-coq-get-symbols ()
@@ -406,7 +414,7 @@
 
 (defun company-coq-shell-output-is-end-of-proof ()
   "Checks whether proof-general signaled a finished proof"
-  (and (boundp 'proof-shell-proof-completed) proof-shell-proof-completed))
+  (company-coq-value-or-nil 'proof-shell-proof-completed))
 
 (defun company-coq-maybe-reload-symbols ()
   (company-coq-dbg "company-coq-maybe-reload-symbols: Reloading symbols (maybe): %s" company-coq-symbols-reload-needed)
@@ -448,7 +456,7 @@ company-coq-maybe-reload-symbols."
       (ignore (company-coq-dbg "Not in Coq mode"))))
 
 (defun company-coq-in-scripting-mode ()
-  (or (and (boundp 'proof-script-buffer) proof-script-buffer)
+  (or (company-coq-value-or-nil 'proof-script-buffer)
       (ignore (company-coq-dbg "Not in scripting mode"))))
 
 (defun company-coq-grab-prefix ()
