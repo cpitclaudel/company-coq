@@ -540,8 +540,7 @@ company-coq-maybe-reload-symbols."
 
 (defun company-coq-make-title-line ()
   (let ((overlay (make-overlay (point-at-bol) (+ 1 (point-at-eol))))) ;; +1 to cover the full line
-    (overlay-put overlay 'face 'company-coq-doc-header-face))
-  (upcase-region (point-at-bol) (point-at-eol)))
+    (overlay-put overlay 'face 'company-coq-doc-header-face)))
 
 (defun company-coq-get-anchor (kwd)
   (get-text-property 0 'anchor kwd))
@@ -581,14 +580,13 @@ company-coq-maybe-reload-symbols."
   (when target-point
     ;; Remove the star ("*") added by shr
     (delete-char 1)
-    (save-excursion
+    (company-coq-make-title-line)
       (when truncate
-        ;; Company-mode returns to the beginning of the buffer, so centering vertically doesn't work.
-        ;; Instead, just truncate everything.
-        (forward-line 0)
-        (delete-region (point-min) (point)))
-      ;; The font is scaled, so horizontally centering doesn't work
-      (company-coq-make-title-line))))
+      ;; Company-mode returns to the beginning of the buffer, so centering
+      ;; vertically doesn't work.  Instead, just truncate everything, leaving
+      ;; just a bit of room for comments preceeding the tactic if any.
+      (forward-line -2)
+      (delete-region (point-min) (point)))))
 
 (defun company-coq-doc-keywords-put-html (html-full-path truncate)
   (let ((inhibit-read-only t)
