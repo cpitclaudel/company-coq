@@ -1,28 +1,37 @@
-;;; company-coq.el --- Company-based completion of Coq symbols
+;;; company-coq.el --- Company-mode backend for Proof General's coq-mode
+
+;; Copyright 2015 Clément Pit--Claudel
 
 ;;; Commentary:
-;;;
-;;; Sending commands to the prover when it's already busy breaks everything.
-;;; 'proof-shell-handle-delayed-output-hook is a good place to reload stuff,
-;;; except when an error occurs (in that case it runs before all output has been
-;;; processed.
-;;;
-;;; This problem is solved by refusing to communicate with the prover, unless it
-;;; is reported as available. When it isn't, the interaction is either
-;;; abandonned (documentation (and completion if the symbols aren't available
-;;; yet)) or delayed using an idle timer (reload; in fact, this one is always
-;;; wrapped in an idle timer). To prevent loops due to idle timers firing in
-;;; succession, reloads are only attempted once.
-;;;
-;;; The current implementation uses two hooks:
-;;;  * (add-hook 'proof-shell-insert-hook 'company-coq-maybe-proof-input-reload-symbols)
-;;;    This parses the input to see if it is might introduce new symbols (e.g. [Require ...])
-;;;  * (add-hook 'proof-shell-handle-delayed-output-hook 'company-coq-maybe-proof-output-reload-symbols)
-;;;    This parses the output to see if it suggests that new symbols have been introduced (e.g. [... defined])
-;;;
-;;; Since these two hooks are called into even for commands issued by our own
-;;; code, we only execute their body if we are not currently asking a question
-;;; to the prover (company-coq-asking-question).
+;;
+;; See https://github.com/cpitclaudel/company-coq/ for documentation
+;;
+;; Technical notes
+;; ===============
+;;
+;; Sending  commands to  the prover  when it's  already busy  breaks everything.
+;; 'proof-shell-handle-delayed-output-hook is  a good  place to  reload symbols,
+;; except when an error occurs (in that case the hook runs before all output has
+;; been processed.
+;;
+;; This problem is solved by refusing  to communicate with the prover, unless it
+;; is reported as available. When it isn't, the interaction is either abandonned
+;; (that's what happens  with documentation, and with completion  if the symbols
+;; aren't available yet)) or delayed using  an idle timer (reload; in fact, this
+;; one is always wrapped in an idle  timer). To prevent loops due to idle timers
+;; firing in succession, reloads are only attempted once.
+;;
+;; The current implementation uses two hooks:
+;;  * 'proof-shell-insert-hook
+;;      In this one we check the input to see if it might introduce new symbols
+;;      (e.g. [Require ...])
+;;  * 'proof-shell-handle-delayed-output-hook
+;;      In this one we parse the output to see if it suggests that new symbols
+;;      have been introduced (e.g. [... defined])
+;;
+;; Since these two hooks are called into even for commands issued by our own
+;; code, we only execute their body if we are not currently already waiting for
+;; an answer from the prover (company-coq-asking-question).
 
 ;;; Code:
 
