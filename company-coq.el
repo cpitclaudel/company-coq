@@ -510,33 +510,30 @@ company-coq-maybe-reload-symbols."
 (defun company-coq-is-doc-buffer (name action)
   (equal name "*company-documentation*"))
 
-(defun company-coq-display-in-pg-buffer (buffer alist)
+(defun company-coq-display-in-pg-window (buffer alist)
   (company-coq-dbg "Called company-coq-display-in-pg-buffer with %s %s" buffer alist)
   (let ((pg-window (company-coq-get-pg-window)))
-    (unless pg-window
-      (company-coq-dbg "company-coq-print-in-pg-buffer: Buffer *goals* not found"))
     (when pg-window
       ;; Disable dedication; in general, the *goal* buffer isn't dedicated, and
       ;; if it is it's not worth restoring
       (set-window-dedicated-p pg-window nil)
-      ;; This used to be called from company-coq-prepare-doc-buffer, but that
-      ;; approach broke with company's commit
-      ;; 448bcd8ebefb9f2a1e1db2986ec7b1c16edab0df
-      (set-window-buffer pg-window buffer)
-      pg-window)))
+      (set-window-buffer pg-window buffer))
+   pg-window))
 
 (defun company-coq-prepare-doc-buffer ()
   (company-coq-dbg "company-prepare-doc-buffer: Called")
   ;; This ensures that we take control when emacs tries to display the doc buffer
   ;; TODO should it be buffer-local
-  (add-to-list 'display-buffer-alist (cons #'company-coq-is-doc-buffer
-                                           (cons #'company-coq-display-in-pg-buffer nil)))
+  ;; Unneeded thanks to fix of company-mode
+  ;; (add-to-list 'display-buffer-alist (cons #'company-coq-is-doc-buffer
+                                           ;; (cons #'company-coq-display-in-pg-buffer nil)))
   (let ((doc-buffer (get-buffer-create "*company-documentation*")))
     (with-current-buffer doc-buffer
       (let ((inhibit-read-only t))
         (remove-overlays)
         (erase-buffer)))
-      doc-buffer))
+    (company-coq-display-in-pg-window doc-buffer nil)
+    doc-buffer))
 
 (defun company-coq-make-title-line ()
   (let ((overlay (make-overlay (point-at-bol) (+ 1 (point-at-eol))))) ;; +1 to cover the full line
@@ -581,7 +578,7 @@ company-coq-maybe-reload-symbols."
     ;; Remove the star ("*") added by shr
     (delete-char 1)
     (company-coq-make-title-line)
-      (when truncate
+    (when truncate
       ;; Company-mode returns to the beginning of the buffer, so centering
       ;; vertically doesn't work.  Instead, just truncate everything, leaving
       ;; just a bit of room for comments preceeding the tactic if any.
@@ -611,6 +608,7 @@ company-coq-maybe-reload-symbols."
                                 (concat (file-name-directory script-full-path) "refman/" doc-short-path))))
       (when doc-full-path
         (with-current-buffer (company-coq-prepare-doc-buffer)
+          ;; The window must be visible at this point, to ensure proper html rendering
           (company-coq-doc-keywords-put-html doc-full-path truncate)
           (cons (current-buffer) (point)))))))
 
