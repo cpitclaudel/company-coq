@@ -13,11 +13,18 @@ from pyparsing import nestedExpr, ParseResults, ParseException
 #   doc/refman/html folder
 # * Call this script
 
+LABEL_MARKER = r"\label"
+TACTIC_MARKERS = (r'\tacticdef', r'\vernacdef', r'\scopedef', r'\ltacdef')
+
 TACTICS_PREPROCESSING = [('$n$', r'\n'), (r'\_', '_'), (r'\\', ''), (r'\{', 'LBRACE'), (r'\}', 'RBRACE'),
                          ('~', ' '), ("''", ''), ('``', ''), ('\\\n', '\n'), ('"', 'QUOTE')]
 
+def fold_in(match):
+    full, cmd = match.group(0), match.group(1)
+    return full if ('\\' + cmd) in TACTIC_MARKERS else ('{\\' + cmd + ' ')
+
 TACTICS_PREPROCESSING_RE = [(re.compile(r), s) for r, s in
-                            [(r'\\([a-zA-Z]+) *{', r'{\\\1 '),
+                            [(r'\\([a-zA-Z]+) *{', fold_in),
                              # (r'[_\^]{', r'{\\script '),
                              # (r'[_\^](.)', r'{\\script \1}'),
                              (r'\\ ', ' '),
@@ -70,6 +77,10 @@ def optionify(tup):
     else:
         return '?|{}|'.format(body)
 
+def listify(tup):
+    assert len(tup) == 2
+    return (tup[1] + '...' + tup[1])
+
 def keywordize(tup):
     assert len(tup) == 2
     kwd = tup[1]
@@ -107,6 +118,7 @@ ACTIONS = {'tt':          behead,
            'em':          keywordize,
            'it':          keywordize,
            'nterm':       keywordize,
+           'sequence':    listify,
            'zeroone':     optionify,
            'argchoice':   choicify,
            'ldots':       stringify,
@@ -151,7 +163,6 @@ def format_hole(kwd):
 def pluralize(ident):
     if not ID_ONLY_RE.match(ident):
         # print("Multi-patterns dot pattern:", ident)
-        # raise ConversionError
         return ID_RE.sub(r'@{\1&}', ident)
     return ID_RE.sub(r'@{\1+}', ident)
 
@@ -262,9 +273,6 @@ def find_instances(doc, command):
             end = find_instance(doc, start)
             yield start, doc[start:end]
 
-LABEL_MARKER = r"\label"
-TACTIC_MARKERS = (r'\tacticdef', r'\vernacdef', r'\scopedef')
-
 def find_tactics(doc):
     marker = TACTIC_MARKERS[0]
 
@@ -331,6 +339,7 @@ def tactic_to_abbrevs(pos, num, tactic):
         return tuple((num, abbrev) for abbrev in abbrevs)
     except (ConversionError, ParseException):
         print("{}: `{}...`".format(pos, tactic[:min(len(tactic), 40)].replace('\n', '')))
+        print(sexp)
         return ()
 
 def normalize_abbrev(abbr):
@@ -383,7 +392,7 @@ def main():
     annotations = load_annotations(QUICK_HELP_FILE)
 
     start_num = 0
-    for name in ALL_NAMES: # sorted(NAMES, key=ALL_NAMES.index):
+    for name in ALL_NAMES:
         print("Processing", name)
         with open(BASE_PATH.format(name)) as source:
             doc = source.read()
@@ -404,13 +413,6 @@ def main():
 
     WRITE = True
 
-    # idents = set()
-    # for abbr in all_abbrevs:
-    #     for match in ID_RE.findall(abbr):
-    #         idents.add(re.sub(r"[ &\+]", '', match))
-    # for ident in sorted(idents):
-    #     print(r'\newcommand{{\{0}}}{{\emph{{{0}}}}}'.format(ident))
-
     if WRITE:
         with open(TEMPLATE) as template_f:
             template = template_f.read()
@@ -420,10 +422,16 @@ def main():
 
         with open(OUTPUT, mode='w') as output:
             output.write(template)
+
+        with open("tactics", mode = "w") as output:
+            for _, abbrevs in abbrevs_by_chapter.items():
+                for abbrev, _ in abbrevs:
+                    output.write(abbrev + "\n")
     else:
         for abbrev in sorted(abbrevs):
             print(abbrev)
 
-main()
+if __name__ == "__main__":
+    main()
 
-# TODO warn on missing dots
+# TODO warn on missing dots after vernac
