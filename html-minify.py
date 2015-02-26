@@ -1,11 +1,9 @@
 import re
 import sys
 import errno
-from os import mkdir, rename
-from subprocess import call
+from os import mkdir
 from os.path import split, join
 from bs4 import BeautifulSoup
-
 
 B36 = '0123456789abcdefghijklmnopqrstuvwxyz'
 
