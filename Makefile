@@ -21,6 +21,7 @@ clean-refman:
 	rm -rf refman/
 
 deep-clean: clean-refman clean-coq clean
+	rm -f tactics
 
 test:
 	emacs -mm large-coq-imports.v

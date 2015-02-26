@@ -731,6 +731,7 @@ company-coq-maybe-reload-symbols."
     (`comparison-fun #'company-coq-string-lessp-symbols)
     (`require-match 'never)))
 
+;;;###autoload
 (defun company-coq-keywords (command &optional arg &rest ignored)
   "A company-mode backend for Coq keywords."
   (interactive (list 'interactive))
@@ -772,7 +773,7 @@ company-coq-maybe-reload-symbols."
                                                     #'company-coq-string-lessp-foldcase)))
                    backends-alist))))
 
-(defun company-coq-init-symbols-completion ()
+(defun company-coq-init-symbols-completion () ;; NOTE: This could be made callable at the beginning of every completion.
   (when company-coq-autocomplete-symbols
       ;; PG hooks
       (add-hook 'proof-shell-insert-hook 'company-coq-maybe-proof-input-reload-symbols)
@@ -787,7 +788,9 @@ company-coq-maybe-reload-symbols."
         you use a patched coqtop. If you do, set company-coq-fast
         to true."))))
 
+;;;###autoload
 (defun company-coq-initialize ()
+  (interactive)
   (if (not (derived-mode-p major-mode 'coq-mode))
       (error "Please enable coq-mode before starting company-coq")
     ;; Enable relevant minor modes
