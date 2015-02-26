@@ -41,7 +41,7 @@ Advanced features (requires a patched version of `coqtop`:
 
 ## Setup
 
-Note: Most of this is untested only on Emacs < 24.
+Note: You need a version of Emacs >= 24 for this to work properly. You can check which version you are running with <kbd>M-x emacs-version RET</kbd>
 
 ### `Coq`
 
