@@ -6,6 +6,9 @@
 ;;
 ;; See https://github.com/cpitclaudel/company-coq/ for documentation
 ;;
+
+;;; Code:
+
 ;; Technical notes
 ;; ===============
 ;;
@@ -29,11 +32,9 @@
 ;;      In this one we parse the output to see if it suggests that new symbols
 ;;      have been introduced (e.g. [... defined])
 ;;
-;; Since these two hooks are called into even for commands issued by our own
-;; code, we only execute their body if we are not currently already waiting for
+;; Since these  two hooks are  called into even for  commands issued by  our own
+;; code, we only execute their body if  we are not currently already waiting for
 ;; an answer from the prover (company-coq-asking-question).
-
-;;; Code:
 
 (require 'shr)
 (require 'company)
