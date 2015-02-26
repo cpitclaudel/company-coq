@@ -4,3 +4,6 @@
                   (company-math "20150216.352")
                   (yasnippet "20150212.240")
                   (cl-lib "0.5")))
+;; Local Variables:
+;; no-byte-compile: t
+;; End:

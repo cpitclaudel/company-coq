@@ -255,7 +255,9 @@
   (company-coq-init-db 'company-coq-defined-symbols 'company-coq-force-reload-symbols))
 
 (defun company-coq-get-pg-keywords-db ()
-  (append coq-tactics-db coq-solve-tactics-db coq-solve-cheat-tactics-db coq-tacticals-db coq-commands-db))
+  (apply #'append
+         (mapcar #'company-coq-value-or-nil ;; Don't fail when PG is missing
+                 '(coq-tactics-db coq-solve-tactics-db coq-solve-cheat-tactics-db coq-tacticals-db coq-commands-db))))
 
 (defun company-coq-get-own-keywords-db ()
   (apply #'append company-coq-abbrevs-all))
@@ -578,7 +580,8 @@ company-coq-maybe-reload-symbols."
         (with-current-buffer (company-coq-prepare-doc-buffer)
           (let ((inhibit-read-only t))
             (insert doc-full)
-            (coq-response-mode)
+            (when (fboundp 'coq-response-mode)
+              (coq-response-mode))
             (goto-char (point-min))
             (company-coq-make-title-line))
           (current-buffer))))))
@@ -779,10 +782,10 @@ company-coq-maybe-reload-symbols."
       ;; Company backend
       (add-to-list 'company-coq-backends #'company-coq-symbols t)
       (when (not company-coq-fast)
-        (warning "Symbols autocompletion is an experimental
-        feature. Performance won't be good unless you use a
-        patched coqtop. If you do, set company-coq-fast to
-        true."))))
+        (message "Warning: Symbols autocompletion is an
+        experimental feature. Performance won't be good unless
+        you use a patched coqtop. If you do, set company-coq-fast
+        to true."))))
 
 (defun company-coq-initialize ()
   (if (not (derived-mode-p major-mode 'coq-mode))
@@ -790,18 +793,23 @@ company-coq-maybe-reload-symbols."
     ;; Enable relevant minor modes
     (company-mode 1)
     (yas-minor-mode 1)
+
     ;; Set a few company settings
     (setq-local company-idle-delay 0)
     (setq-local company-tooltip-align-annotations t)
-    (setq-local company-dabbrev-code-everywhere t)
+
     ;; Load identifiers and register hooks
     (company-coq-init-keywords)
     (company-coq-init-symbols-completion)
+
     ;; Let company know about our backends
     (add-to-list (make-local-variable 'company-backends) company-coq-backends)
     (add-to-list (make-local-variable 'company-transformers) #'company-coq-sort-in-backends-order)
+
     ;; Bind C-RET to company's autocompletion
-    (substitute-key-definition #'proof-script-complete #'company-manual-begin proof-mode-map)))
+    (if (and (boundp 'proof-mode-map) (fboundp 'proof-script-complete))
+        (substitute-key-definition #'proof-script-complete #'company-manual-begin proof-mode-map)
+      (local-set-key [\C-return] 'company-manual-begin))))
 
 ;; TODO add a binding to look up the word at point
 
