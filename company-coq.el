@@ -1,16 +1,52 @@
 ;;; company-coq.el --- Company-mode backend for Proof General's coq-mode
 
-;; Copyright 2015 Clément Pit--Claudel
-;; Author: Clément Pit--Claudel
+;; Copyright (C) 2015  Clément Pit--Claudel
+;; Author: Clément Pit--Claudel <clement.pitclaudel@live.com>
 ;; URL: https://github.com/cpitclaudel/company-coq
+
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 ;;
-;; See https://github.com/cpitclaudel/company-coq/ for documentation
+;; This package offers a company backend for Proof-General's Coq mode.
+;;
+;; Features
+;; ========
+;;
+;; * Auto-completion of [math symbols](img/tactic-completion-doc.png) (using
+;;   company-math)
+;;
+;; * Easy access to [Proof-General's templates](img/lemma-completion.png) (using
+;;   yasnippet)
+;;
+;; * Auto-completion of (most of) Coq's tactics and commands, with snippets
+;;   auto-extracted from the manual.
+;;
+;; * Documentation for (most) auto-completion entries, with excerpts from the
+;;   manual shown directly in Emacs.
+;;
+;; Advanced features (requires a patched version of `coqtop`)
+;; ==========================================================
+;;
+;; * Auto-completion of all known theorem and symbol names, with inline
+;;   documentation.
+;;
+;; See https://github.com/cpitclaudel/company-coq/ for further documentation
 ;;
 
 ;;; Code:
-
+;;
 ;; Technical notes
 ;; ===============
 ;;
