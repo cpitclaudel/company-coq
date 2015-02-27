@@ -69,6 +69,7 @@ ABBREVS_POSTPROCESSING_RE = [(re.compile(r), s) for r, s in
                               ('  +', ' '),
                               ('^ +', ''),
                               (' +$', '')]]
+                              # (r'^([A-Z].*[^\.])$', r'\1.')]] # This to be disabled for some files
 
 ID_PATTERN = '@{([^{}]+)}'
 ID_RE = re.compile(ID_PATTERN)
@@ -120,6 +121,7 @@ ACTIONS = {'tt':          behead,
            'label':       forget,
            'script':      forget,
            'separator':   forget, #TODO
+           'emph':        keywordize,
            'textrm':      keywordize,
            'textit':      keywordize,
            'textsl':      keywordize,
@@ -248,7 +250,7 @@ def get_arg_variants(abbrev):
 OPT_VERNAC_RE = re.compile("Set ([A-Z])")
 
 def get_set_variants(abbrev):
-    if OPT_VERNAC_RE.match(abbrev):
+    if OPT_VERNAC_RE.match(abbrev) and not ID_RE.match(abbrev):
         return (abbrev,
                 ID_RE.sub('', OPT_VERNAC_RE.sub(r"Unset \1", abbrev, 1)),
                 ID_RE.sub('', OPT_VERNAC_RE.sub(r"Test \1", abbrev, 1)))
