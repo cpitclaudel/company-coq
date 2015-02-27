@@ -52,10 +52,11 @@ ABBREVS_POSTPROCESSING_RE = [(re.compile(r), s) for r, s in
                              [(r"([^\$\']) *([\[\(]+) *", r'\1 \2'),
                               (r' *([-=]) *> *', r' \1> '),
                               (r' *: *= *', r' := '),
-                              (r' *< *([-+]) *', r' <\1 '),
+                              (r' +< *([-+]) +', r' <\1 '),
                               (r' *> *- *> *', r' >-> '),
                               (r'([^\<])-(\|?) +', r'\1-\2'),
-                              (r' *([\]\)\.\,\!]+) *', r'\1 '),
+                              (r' *([\]\)\.\,\!]+)', r'\1'),
+                              (r' *([\]\)\.\,\!]+) +', r'\1 '),
                               (r' *([\%]) *', r'\1'),
                               (r'eqn: *', 'eqn:'),
                               (r' *:= *', ' := '),
@@ -126,7 +127,7 @@ ACTIONS = {'tt':          behead,
            'sl':          keywordize,
            'em':          keywordize,
            'it':          keywordize,
-           'nterm':       keywordize,
+           'nterm':       keywordize, #TODO unfold defs found in macros
            'sequence':    listify,
            'nelist':      listify,
            'nelistnosep': listify,
@@ -172,14 +173,25 @@ def format_hole(kwd):
     placeholder = "@{{{}}}".format(kwd)
     return placeholder if kwd != 'str' else '"' + placeholder + '"'
 
-def pluralize(ident):
+def pluralize(sep_ident):
+    if len(sep_ident) == 0 or len(sep_ident) > 2:
+        raise ConversionError
+    elif len(sep_ident) == 1:
+        sep, ident = '', sep_ident[0]
+    else:
+        sep, ident = sep_ident
+
+    sep = sep.replace(' ', '')
     nb_ids = len(ID_RE.findall(ident))
+
     if nb_ids == 0:
         return None
-    elif nb_ids > 1:
-        return ID_RE.sub(r'@{\1&}', ident)
+    elif nb_ids == 1:
+        indicator = '+'
     else:
-        return ID_RE.sub(r'@{\1+}', ident)
+        indicator = '&'
+
+    return ID_RE.sub(r'@{\1' + sep + indicator + '}', ident)
 
 def find_all(s, pattern):
     indices = []
@@ -192,19 +204,29 @@ def find_all(s, pattern):
             break
     return indices
 
+def find_largest_symmetric(s, left_end, right_start, parts):
+    if left_end is not None and right_start is not None:
+        for sep_len in range(-left_end, 0):
+            left_start, right_end = left_end + sep_len, right_start - sep_len
+            # print([s[left_start:left_end], s[right_start:right_end]])
+            if s[right_start:right_end] == s[left_start:left_end]:
+                parts.append(s[right_start:right_end])
+                return left_start, right_end
+    return None, None
+
 def replace_dot_pattern(s, pivot, pivot_pos, transform):
+    # Looking for a pattern line cccc(AABB...BBAA)dddd
     left_end, right_start = pivot_pos, pivot_pos + len(pivot)
-    for pattern_len in range(-left_end, 0):
-        left_start, right_end = left_end + pattern_len, right_start - pattern_len
-        if s[right_start:right_end] == s[left_start:left_end]:
-            replacement = transform(s[left_start:left_end])
-            if replacement == None:
-                print("No idents in this dot ({}) pattern: '{}'".format(pivot, s[left_start:left_end]))
-                print("String was '{}'".format(s))
-                raise ConversionError
-            s = s[:left_start] + replacement + s[right_end:]
-            return s, True
-    return s, False
+
+    parts = []
+    left_end, right_start = find_largest_symmetric(s, left_end, right_start, parts)
+    new_left_end, new_right_start = find_largest_symmetric(s, left_end, right_start, parts)
+
+    replacement = transform(parts)
+    if replacement == None:
+        return s, False
+    s = s[:new_left_end or left_end] + replacement + s[new_right_start or right_start:]
+    return s, True
 
 def replace_dot_patterns(s, pivot, transform):
     while pivot in s:
@@ -241,11 +263,7 @@ def cleanup_abbrev(abbrev):
 def postprocess_abbrev(abbrev):
     abbrev = re.sub(r' *, *@{ldots} *, *', ' , ... , ', abbrev)
     abbrev = re.sub(r' *@{ldots} *', ' ... ', abbrev)
-    abbrev = replace_dot_patterns(abbrev, ' , ... , ', pluralize) #TODO
-    abbrev = replace_dot_patterns(abbrev, ' <: ... <: ', pluralize) #TODO
-    abbrev = replace_dot_patterns(abbrev, ' < + ... < + ', pluralize) #TODO
-    abbrev = replace_dot_patterns(abbrev, ' | ... | ', pluralize) #TODO
-    abbrev = replace_dot_patterns(abbrev, ' ... ', pluralize)
+    abbrev = replace_dot_patterns(abbrev, '...', pluralize) #TODO
     abbrevs = get_arg_variants(abbrev)
     abbrevs = tuple(map(cleanup_abbrev, abbrevs))
     abbrevs = tuple(chain(*(get_set_variants(abbrev) for abbrev in abbrevs)))
