@@ -542,9 +542,12 @@ company-coq-maybe-reload-symbols."
   (company-coq-get-header
    (company-coq-definition name)))
 
+(defun company-coq-trim (str)
+  (replace-regexp-in-string "\\` *" "" (replace-regexp-in-string " *\\'" "" str)))
+
 (defun company-coq-meta-symbol (name)
   (company-coq-dbg "company-coq-meta-symbol: Called for name %s" name)
-  (let* ((meta (company-coq-join-lines (company-coq-documentation-header name) " " 'string-trim))
+  (let* ((meta (company-coq-join-lines (company-coq-documentation-header name) " " 'company-coq-trim))
          (minibuf-w (window-body-width (minibuffer-window)))
          (meta-trunc (if (> (length meta) minibuf-w)
                          (concat (substring meta 0 (- minibuf-w 3)) "...") meta)))
