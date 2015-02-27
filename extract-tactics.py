@@ -78,8 +78,10 @@ def optionify(tup):
         return '?|{}|'.format(body)
 
 def listify(tup):
-    assert len(tup) == 2
-    return (tup[1] + '...' + tup[1])
+    if len(tup) != 2:
+        print(tup)
+    body = behead(tup)
+    return (body + ' ... ' + body)
 
 def keywordize(tup):
     assert len(tup) == 2
@@ -119,11 +121,11 @@ ACTIONS = {'tt':          behead,
            'it':          keywordize,
            'nterm':       keywordize,
            'sequence':    listify,
+           'nelist':      listify,
+           'nelistnosep': listify,
            'zeroone':     optionify,
            'argchoice':   choicify,
            'ldots':       stringify,
-           'nelist':      behead,
-           'nelistnosep': behead,
            'tacticdef':   behead}
 
 QUICK_HELP_FILE = "./refman/quick-help.html"
@@ -161,7 +163,7 @@ def format_hole(kwd):
     return placeholder if kwd != 'str' else '"' + placeholder + '"'
 
 def pluralize(ident):
-    if not ID_ONLY_RE.match(ident):
+    if len(ID_RE.findall(ident)) > 1:
         # print("Multi-patterns dot pattern:", ident)
         return ID_RE.sub(r'@{\1&}', ident)
     return ID_RE.sub(r'@{\1+}', ident)
