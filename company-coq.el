@@ -533,22 +533,28 @@ company-coq-maybe-reload-symbols."
   (equal name "*company-documentation*"))
 
 (defun company-coq-display-in-pg-window (buffer alist)
+  ;; This always displays the buffer, unless no window is available.  This was
+  ;; important, because if the window is not displayed upon calling
+  ;; shr-insert-document, then shr would get the window width incorrectly, and
+  ;; thus fail to wrap text properly. Setting the wrap limit to a large value
+  ;; fixes this.
   (company-coq-dbg "Called company-coq-display-in-pg-buffer with %s %s" buffer alist)
   (let ((pg-window (company-coq-get-pg-window)))
-    (when pg-window
-      ;; Disable dedication; in general, the *goal* buffer isn't dedicated, and
-      ;; if it is it's not worth restoring
-      (set-window-dedicated-p pg-window nil)
-      (set-window-buffer pg-window buffer))
-   pg-window))
+    (if pg-window
+        (progn
+          ;; Disable dedication; in general, the *goal* buffer isn't dedicated, and
+          ;; if it is it's not worth restoring
+          (set-window-dedicated-p pg-window nil)
+          (set-window-buffer pg-window buffer)
+          pg-window)
+      (display-buffer buffer))))
 
 (defun company-coq-prepare-doc-buffer ()
   (company-coq-dbg "company-prepare-doc-buffer: Called")
-  ;; This ensures that we take control when emacs tries to display the doc buffer
-  ;; TODO should it be buffer-local
-  ;; Unneeded thanks to fix of company-mode
-  ;; (add-to-list 'display-buffer-alist (cons #'company-coq-is-doc-buffer
-                                           ;; (cons #'company-coq-display-in-pg-buffer nil)))
+  ;; Unneeded thanks to fix of company-mode. This ensured that we took control
+  ;; when emacs tried to display the doc buffer TODO should it be buffer-local?
+  ;; (add-to-list 'display-buffer-alist (cons #'company-coq-is-doc-buffer (cons
+  ;; #'company-coq-display-in-pg-buffer nil)))
   (let ((doc-buffer (get-buffer-create "*company-documentation*")))
     (with-current-buffer doc-buffer
       (let ((inhibit-read-only t))
@@ -613,11 +619,12 @@ company-coq-maybe-reload-symbols."
         (doc (with-temp-buffer
                (insert-file-contents html-full-path)
                (libxml-parse-html-region (point-min) (point-max))))
-        (shr-width nil)
+        (shr-width most-positive-fixnum)
         (after-change-functions nil)
         (shr-external-rendering-functions '((tt . company-coq-shr-tag-tt)
                                             (i  . company-coq-shr-tag-i))))
     (shr-insert-document doc) ;; This sets the 'shr-target-id property upon finding the shr-target-id anchor
+    (turn-on-visual-line-mode)
     (company-coq-doc-keywords-prettify-title (next-single-property-change (point-min) 'shr-target-id) truncate)))
 
 (defun company-coq-doc-buffer-keywords (name &optional truncate)
