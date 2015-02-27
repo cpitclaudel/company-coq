@@ -219,7 +219,7 @@
     available))
 
 (defun company-coq-get-symbols ()
-  "Load symbols by issuing command company-coq-all-symbols-fast-cmd and parsing the results. Do not call if proof process is busy."
+  "Load symbols by issuing command company-coq-all-symbols-cmd and parsing the results. Do not call if proof process is busy."
   (interactive)
   (with-temp-message "company-coq: Loading symbols..."
     (let* ((time           (current-time))
