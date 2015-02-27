@@ -24,11 +24,9 @@
 ;; Features
 ;; ========
 ;;
-;; * Auto-completion of [math symbols](img/tactic-completion-doc.png) (using
-;;   company-math)
+;; * Auto-completion of math symbols using company-math
 ;;
-;; * Easy access to [Proof-General's templates](img/lemma-completion.png) (using
-;;   yasnippet)
+;; * Easy access to Proof-General's templates (using yasnippet)
 ;;
 ;; * Auto-completion of (most of) Coq's tactics and commands, with snippets
 ;;   auto-extracted from the manual.
