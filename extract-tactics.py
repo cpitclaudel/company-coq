@@ -23,18 +23,27 @@ def fold_in(match):
     full, cmd = match.group(0), match.group(1)
     return full if ('\\' + cmd) in TACTIC_MARKERS else ('{\\' + cmd + ' ')
 
+BORING_MATH = re.compile(r'^[\{\}\-\+\'\^_0-9abi-np]*$')
+def remove_math(match):
+    body = match.group(1).replace(' ', '')
+    if BORING_MATH.match(body):
+        return ''
+    else:
+        print("Warning: {} not stripped".format(match.group(0)))
+        return body
+
+
 TACTICS_PREPROCESSING_RE = [(re.compile(r), s) for r, s in
                             [(r'\\([a-zA-Z]+) *{', fold_in),
-                             # (r'[_\^]{', r'{\\script '),
-                             # (r'[_\^](.)', r'{\\script \1}'),
+                             (r'\\verb\.([^.]+)\.', r'\1'), #TODO this should handle braces properly, and other separators
                              (r'\\ ', ' '),
                              (r'\$\\num', r'\\num$'),
-                             (r'\$[^\$]*\$', ''), #TODO Check
+                             (r'\$([^\$]*)\$', remove_math), #TODO Check
                              (r'}{([\,])}', r' {\\separator \1}}'),
                              (r'([^\\])%.*', r'\1'),
                              (r'\\%', r'%'),
                              (r' *\.\.\.? *', r' \\ldots '),
-                             (r'\\l?dots', r' \\ldots '),
+                             (r' *\\l?dots *', r' \\ldots '),
                              (r' *([^a-zA-Z_<>!:\\]) *', r' \1 ')]] # This last one should be tokenizer options <- -> eqn: ! _
 
 #TODO RefMan-pro
@@ -43,7 +52,7 @@ ABBREVS_POSTPROCESSING_RE = [(re.compile(r), s) for r, s in
                              [(r"([^\$\']) *([\[\(]+) *", r'\1 \2'),
                               (r' *([-=]) *> *', r' \1> '),
                               (r' *: *= *', r' := '),
-                              (r' *< *- *', r' <- '),
+                              (r' *< *([-+]) *', r' <\1 '),
                               (r' *> *- *> *', r' >-> '),
                               (r'([^\<])-(\|?) +', r'\1-\2'),
                               (r' *([\]\)\.\,\!]+) *', r'\1 '),
@@ -78,8 +87,6 @@ def optionify(tup):
         return '?|{}|'.format(body)
 
 def listify(tup):
-    if len(tup) != 2:
-        print(tup)
     body = behead(tup)
     return (body + ' ... ' + body)
 
@@ -156,6 +163,9 @@ def preprocess_tactic(tactic):
         # print(tactic, "--", r, "--", r.sub(sub, tactic), "--")
         tactic = r.sub(sub, tactic)
 
+    if '$' in tactic:
+        print(tactic)
+
     return tactic
 
 def format_hole(kwd):
@@ -163,10 +173,13 @@ def format_hole(kwd):
     return placeholder if kwd != 'str' else '"' + placeholder + '"'
 
 def pluralize(ident):
-    if len(ID_RE.findall(ident)) > 1:
-        # print("Multi-patterns dot pattern:", ident)
+    nb_ids = len(ID_RE.findall(ident))
+    if nb_ids == 0:
+        return None
+    elif nb_ids > 1:
         return ID_RE.sub(r'@{\1&}', ident)
-    return ID_RE.sub(r'@{\1+}', ident)
+    else:
+        return ID_RE.sub(r'@{\1+}', ident)
 
 def find_all(s, pattern):
     indices = []
@@ -184,7 +197,12 @@ def replace_dot_pattern(s, pivot, pivot_pos, transform):
     for pattern_len in range(-left_end, 0):
         left_start, right_end = left_end + pattern_len, right_start - pattern_len
         if s[right_start:right_end] == s[left_start:left_end]:
-            s = s[:left_start] + str(transform(s[left_start:left_end])) + s[right_end:]
+            replacement = transform(s[left_start:left_end])
+            if replacement == None:
+                print("No idents in this dot ({}) pattern: '{}'".format(pivot, s[left_start:left_end]))
+                print("String was '{}'".format(s))
+                raise ConversionError
+            s = s[:left_start] + replacement + s[right_end:]
             return s, True
     return s, False
 
@@ -221,7 +239,12 @@ def cleanup_abbrev(abbrev):
     return abbrev
 
 def postprocess_abbrev(abbrev):
-    abbrev = re.sub(r'[, ]*@{ldots}[, ]*', ' ... ', abbrev)
+    abbrev = re.sub(r' *, *@{ldots} *, *', ' , ... , ', abbrev)
+    abbrev = re.sub(r' *@{ldots} *', ' ... ', abbrev)
+    abbrev = replace_dot_patterns(abbrev, ' , ... , ', pluralize) #TODO
+    abbrev = replace_dot_patterns(abbrev, ' <: ... <: ', pluralize) #TODO
+    abbrev = replace_dot_patterns(abbrev, ' < + ... < + ', pluralize) #TODO
+    abbrev = replace_dot_patterns(abbrev, ' | ... | ', pluralize) #TODO
     abbrev = replace_dot_patterns(abbrev, ' ... ', pluralize)
     abbrevs = get_arg_variants(abbrev)
     abbrevs = tuple(map(cleanup_abbrev, abbrevs))
@@ -340,7 +363,7 @@ def tactic_to_abbrevs(pos, num, tactic):
         abbrevs   = postprocess_abbrev(preabbrev)
         return tuple((num, abbrev) for abbrev in abbrevs)
     except (ConversionError, ParseException):
-        print("{}: `{}...`".format(pos, tactic[:min(len(tactic), 40)].replace('\n', '')))
+        print("{}: `{}...`".format(pos, tactic[:min(len(tactic), 80)].replace('\n', '')))
         print(sexp)
         return ()
 
