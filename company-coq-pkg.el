@@ -1,8 +1,8 @@
 (define-package "company-coq" "0.1"
                 "Company-mode backend for Proof General's coq-mode"
-                '((company "20150225.1438")
+                '((company "0.8.11")
                   (company-math "20150216.352")
-                  (yasnippet "20150212.240")
+                  (yasnippet "0.9.0.1")
                   (cl-lib "0.5")))
 ;; Local Variables:
 ;; no-byte-compile: t

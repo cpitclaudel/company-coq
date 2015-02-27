@@ -845,8 +845,8 @@ company-coq-maybe-reload-symbols."
   (yas-minor-mode 1)
 
   ;; Set a few company settings
-  (setq-local company-idle-delay 0)
-  (setq-local company-tooltip-align-annotations t)
+  (set (make-local-variable 'company-idle-delay) 0)
+  (set (make-local-variable 'company-tooltip-align-annotations) t)
 
   ;; Load identifiers and register hooks
   (company-coq-init-keywords)
