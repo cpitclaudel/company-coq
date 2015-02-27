@@ -1,6 +1,8 @@
 ;;; company-coq.el --- Company-mode backend for Proof General's coq-mode
 
 ;; Copyright 2015 Clément Pit--Claudel
+;; Author: Clément Pit--Claudel
+;; URL: https://github.com/cpitclaudel/company-coq
 
 ;;; Commentary:
 ;;
