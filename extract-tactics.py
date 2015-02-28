@@ -68,8 +68,8 @@ ABBREVS_POSTPROCESSING_RE = [(re.compile(r), s) for r, s in
                               (r'([^\\])"', r'\1\\"'),
                               ('  +', ' '),
                               ('^ +', ''),
-                              (' +$', '')]]
-                              # (r'^([A-Z].*[^\.])$', r'\1.')]] # This to be disabled for some files
+                              (' +$', ''),
+                              (r'^([A-Z].*[^\.])$', r'\1.')]]
 
 ID_PATTERN = '@{([^{}]+)}'
 ID_RE = re.compile(ID_PATTERN)
@@ -478,5 +478,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# TODO warn on missing dots after vernac
