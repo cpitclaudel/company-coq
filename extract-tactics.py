@@ -83,10 +83,7 @@ def stringify(tup)        : return ' '.join(tup)
 
 def optionify(tup):
     body = behead(tup)
-    if ID_ONLY_RE.match(body):
-        return body # YAS doesn't distinguish between optional and normal fields, and double-wrapping causes a bug
-    else:
-        return '?|{}|'.format(body)
+    return '?|{}|'.format(body)
 
 def listify(tup):
     body = behead(tup)
@@ -394,7 +391,7 @@ def normalize_abbrev(abbr):
         return abbr.lower().rstrip('.')
 
 def sort_uniq(abbrevs):
-    abbrevs = sorted(abbrevs, key = lambda x: (normalize_abbrev(x[1]), x[0]), reverse = True)
+    abbrevs = sorted(abbrevs, key = lambda x: (normalize_abbrev(x[1]), x[0]))
 
     prev = None
     dedup = []
@@ -415,7 +412,7 @@ def extract_abbrevs(doc, start_num):
     return start_num + len(tactics), sorted_abbrevs
 
 def annotate(abbrevs, annotations):
-    return [(abbrev, annotations[num])
+    return [(abbrev, annotations[num], num)
             for num, abbrev in abbrevs]
 
 QUICKHELP_RE = re.compile(r"^(?P<file>[a-z0-9]+)\.html#hevea_quickhelp(?P<num>[0-9]+)$")
@@ -429,8 +426,11 @@ def load_annotations(path):
             m = QUICKHELP_RE.match(href)
             if m:
                 d = m.groupdict()
-                annots[int(d["num"])] = (d["file"], d["num"])
+                annots[int(d["num"])] = (d["file"], int(d["num"]))
     return annots
+
+def abbrev_sort_key(x):
+    return (x[2], len(x[0]), x[0]) # This should use a namedtuple
 
 def main():
     abbrevs_by_chapter = {}
@@ -443,7 +443,7 @@ def main():
             doc = source.read()
             start_num, abbrevs = extract_abbrevs(doc, start_num)
             annotated = annotate(abbrevs, annotations)
-            annotated.sort(key = lambda x: (x[1], len(x[0]), x[0])) # Sort in original order
+            annotated.sort(key = abbrev_sort_key) # Sort in original order
             abbrevs_by_chapter[name] = annotated
         print("{} entries found".format(len(abbrevs)))
 
@@ -452,7 +452,7 @@ def main():
     defconsts = []
     for name in ALL_NAMES:
         lisp = "\n    ".join('\'("{}" . ("{}" . {}))'.format(abbrev, *annot)
-                             for abbrev, annot in abbrevs_by_chapter[name])
+                             for abbrev, annot, num in abbrevs_by_chapter[name])
         defconst = DEFCONST.format(BASE_NAME.format(name), lisp)
         defconsts.append(defconst)
 
@@ -470,7 +470,7 @@ def main():
 
         with open("tactics", mode = "w") as output:
             for _, abbrevs in abbrevs_by_chapter.items():
-                for abbrev, _ in abbrevs:
+                for abbrev, _, _ in abbrevs:
                     output.write(abbrev + "\n")
     else:
         for abbrev in sorted(abbrevs):
