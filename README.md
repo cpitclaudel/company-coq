@@ -86,7 +86,7 @@ Add the following to your `.emacs`
 (require 'proof-site)
 
 ;; Load company-coq when opening Coq files
-(add-hook 'coq-mode-hook (lambda () (company-coq-initialize)))
+(add-hook 'coq-mode-hook 'company-coq-initialize)
 ```
 
 ## Quick start guide
