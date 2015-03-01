@@ -2,7 +2,7 @@ SANDBOX := ./sandbox
 
 all: elc package
 
-clean: clean-elc clean-package clean-sandbo
+clean: clean-elc clean-package clean-sandbox
 
 test:
 	emacs -mm large-coq-imports.v
