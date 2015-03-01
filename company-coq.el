@@ -84,29 +84,29 @@
 (unless (require 'proof-site nil t)
   (message "company-coq: Unable to load proof-site. Is ProofGeneral installed, and did you add it to your load-path?"))
 
-(defgroup company-coq-opts nil
+(defgroup company-coq nil
   "Options for the Coq company mode"
   :group 'company)
 
 (defcustom company-coq-debug nil
   "Debug mode for company-coq."
-  :group 'company-coq-opts)
+  :group 'company-coq)
 
 (defcustom company-coq-autocomplete-symbols nil
   "Autocomplete theorem names by periodically querying coq about defined identifiers. This is an experimental feature. It requires a patched version of Coq to work properly; it will be very slow otherwise."
-  :group 'company-coq-opts)
+  :group 'company-coq)
 
 (defcustom company-coq-fast nil
   "Indicates whether we have access to a faster, patched REPL"
-  :group 'company-coq-opts)
+  :group 'company-coq)
 
 (defcustom company-coq-explicit-placeholders t
   "Show holes using explicit placeholders"
-  :group 'company-coq-opts)
+  :group 'company-coq)
 
 (defcustom company-coq-backends '(company-math-symbols-unicode company-coq-keywords)
   "List of backends to use, listed in the order in which you want the results displayed. Note that the first backend to return a prefix superseeds all the others; they all must work with the same prefix."
-  :group 'company-coq-opts)
+  :group 'company-coq)
 
 (defvar company-coq-asking-question nil
   "Indicates whether a interaction has been initiated with the prover, to disable the input and output hooks.")
@@ -198,7 +198,7 @@
 (when nil
   (defcustom company-coq-symbol-matching-scheme 'substring
     "The strategy used to look for keywords"
-    :group company-coq-opts)
+    :group company-coq)
 
   (defun company-coq-symbol-matching-scheme-is-plain ()
     (equal company-coq-symbol-matching-scheme 'plain)))
