@@ -1,3 +1,4 @@
+;;; -*- lexical-binding: t -*-
 ;;; company-coq.el --- Company-mode backend for Proof General's coq-mode
 
 ;; Copyright (C) 2015  Clément Pit--Claudel
@@ -257,9 +258,9 @@
   (interactive)
   (with-temp-message "company-coq: Loading symbols..."
     (let* ((time           (current-time))
-           (prelude-output (company-coq-ask-prover (company-coq-all-symbols-prelude)))
+           (_              (company-coq-ask-prover (company-coq-all-symbols-prelude)))
            (output         (company-coq-ask-prover (company-coq-all-symbols-cmd)))
-           (coda-output    (company-coq-ask-prover (company-coq-all-symbols-coda)))
+           (_              (company-coq-ask-prover (company-coq-all-symbols-coda)))
            (lines          (company-coq-split-lines output))
            (line-filter    (company-coq-all-symbols-filter-line))
            (line-extractor (company-coq-all-symbols-extract-names))
@@ -307,7 +308,7 @@
      (concat " *\\(" company-coq-dabbrev-placeholders-regexp "\\) *") "#"
      kwd))))
 
-(defun company-coq-parse-keywords-db-entry (menuname abbrev insert &optional statech kwreg insert-fun hide)
+(defun company-coq-parse-keywords-db-entry (menuname _abbrev insert &optional _statech _kwreg insert-fun _hide)
   (when (or insert insert-fun)
     (propertize (if insert-fun menuname insert)
                 'source 'pg
@@ -390,9 +391,7 @@
              (company-coq-string-lessp-foldcase str1 str2)))))
 
 (defun company-coq-string-lessp-keywords (str1 str2)
-  (let ((mb1 (equal 0 (get-text-property 0 'match-beginning str1)))
-        (mb2 (equal 0 (get-text-property 0 'match-beginning str2)))
-        (id1 (get-text-property 0 'num str1))
+  (let ((id1 (get-text-property 0 'num str1))
         (id2 (get-text-property 0 'num str2))
         (l1 (company-coq-is-lower str1))
         (l2 (company-coq-is-lower str2)))
@@ -566,9 +565,6 @@ company-coq-maybe-reload-symbols."
       (let ((window (get-buffer-window pg-buffer)))
         window))))
 
-(defun company-coq-is-doc-buffer (name action)
-  (equal name "*company-documentation*"))
-
 (defun company-coq-display-in-pg-window (buffer alist)
   ;; This always displays the buffer, unless no window is available.  This was
   ;; important, because if the window is not displayed upon calling
@@ -695,7 +691,7 @@ company-coq-maybe-reload-symbols."
   (company-coq-dbg "company-coq-match: matching %s" completion)
   (get-text-property 0 'match-end completion))
 
-(defun company-coq-dabbrev-to-yas-format-marker (match regexp)
+(defun company-coq-dabbrev-to-yas-format-marker (match)
   (string-match company-coq-dabbrev-placeholders-regexp match)
   (let* ((start      (match-beginning 1))
          (end        (match-end       1))
@@ -703,22 +699,30 @@ company-coq-maybe-reload-symbols."
                          (and company-coq-explicit-placeholders "_") "")))
     (concat  "${" identifier "}")))
 
+(defun company-coq-maybe-append-hole (snippet match-num)
+  (let* ((ends-with-space  (string-match "[^\\.][[:space:]]+\\'" snippet))
+         (suffix           (if (and ends-with-space (equal 0 match-num))
+                               (company-coq-dabbrev-to-yas-format-marker "#") nil)))
+    (when suffix
+      (company-coq-dbg "Adding hole after '%s'" snippet))
+    (if suffix
+        (cons (+ 1 match-num) (concat snippet suffix))
+      (cons snippet match-num))))
+
 (defun company-coq-dabbrev-to-yas (abbrev)
   (interactive)
   (company-coq-dbg "company-coq-dabbrev-to-yas: Transforming %s" abbrev)
   (let* ((match-num        0)
-         (number-matches    (lambda (match)
-                              (setq match-num (+ match-num 1))
-                              (company-coq-dabbrev-to-yas-format-marker match company-coq-dabbrev-placeholders-regexp)))
-         (snippet           (replace-regexp-in-string company-coq-dabbrev-placeholders-regexp number-matches abbrev))
-         (ends-with-space   (string-match "[^\\.][[:space:]]+\\'" snippet))
-         (suffix            (if (and ends-with-space (equal 0 match-num))
-                                (progn (setq match-num (+ match-num 1))
-                                       (company-coq-dabbrev-to-yas-format-marker "#" match-num)) ""))
-         (final-snippet    (concat snippet suffix)))
-    (put-text-property 0 (length final-snippet) 'num-holes match-num final-snippet)
-    (company-coq-dbg "company-coq-dabbrev-to-yas: transformed using suffix %s, to %s" suffix final-snippet)
-    final-snippet))
+         (mark-matches     (lambda (match)
+                             (setq match-num (+ match-num 1))
+                             (company-coq-dabbrev-to-yas-format-marker match)))
+         (snippet          (replace-regexp-in-string company-coq-dabbrev-placeholders-regexp mark-matches abbrev)))
+    (destructuring-bind
+        (final-snippet . match-num)
+        (company-coq-maybe-append-hole snippet match-num)
+      (put-text-property 0 (length final-snippet) 'num-holes match-num final-snippet)
+      (company-coq-dbg "company-coq-dabbrev-to-yas: transformed to %s" final-snippet)
+      final-snippet)))
 
 (when nil
   (defun company-coq-exit-snippet (char)
