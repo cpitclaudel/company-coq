@@ -361,7 +361,7 @@
            (lines      (cdr-safe (company-coq-split-lines output)))
            (path-specs (mapcar #'company-coq-parse-path-spec lines))
            (path-specs (cl-remove-if-not #'identity path-specs)))
-      (message "Loaded %d modules (%.03f seconds)" (length path-specs) (float-time (time-since time)))
+      (message "Loaded %d modules paths (%.03f seconds)" (length path-specs) (float-time (time-since time)))
       path-specs)))
 
 (defun company-coq-force-reload-modules ()
@@ -544,8 +544,9 @@
   (cl-remove-if (lambda (s) (string-equal s "")) ss))
 
 (defun company-coq-match-logical-paths (module-atoms path-atoms)
-  "Produces a cons (SEARCH-ATOMS QUALID-ATOMS) from a module path
-and a logical path. This function distinguishes three cases:
+  "Produces a cons (QUALID-ATOMS SEARCH-ATOMS LEFT-PTH) from a
+module path and a logical path. This function distinguishes three
+cases:
 
 1. The logical path is longer; in this case, the qualifier is the
    full logical path, and the search term is empty.
@@ -560,8 +561,8 @@ and a logical path. This function distinguishes three cases:
   (pcase (company-coq-chomp module-atoms path-atoms)
     (`(,mod .  nil) (let ((subdirectory-atoms (butlast mod)))
                       (unless (member "" subdirectory-atoms) ;; We don't support skipping over subdirectories
-                       (cons (append path-atoms subdirectory-atoms) mod))))
-    (`(nil  . ,pth) (cons path-atoms nil))
+                       (cons (append path-atoms subdirectory-atoms) (cons mod nil)))))
+    (`(nil  . ,pth) (cons path-atoms (cons nil pth)))
     (_              nil)))
 
 (defun company-coq-complete-module-unqualified (search-path search-regexp)
@@ -573,19 +574,30 @@ extension." ;; TODO include directories
               (replace-regexp-in-string company-coq-compiled-regexp "" fname))
             (directory-files search-path nil search-regexp))))
 
-(defun company-coq-qualify-module-names (mod-names qualid-atoms kwd-len)
+(defun company-coq-take-summed-lengths (ls count)
+  (cl-loop for i = 0 then (+ 1 i)
+           for l = ls then (cdr l)
+           while (< i count)
+           sum (length (car-safe l))))
+
+(defun company-coq-qualify-module-names (mod-names qualid-atoms fully-matched-count part-matched-len)
   "Qualify each name in MOD-NAMES using QUALID-ATOMS."
+  (when mod-names
   (let* ((qualid    (mapconcat 'identity qualid-atoms "."))
          (prefix    (if qualid-atoms (concat qualid ".") ""))
-         (match-end (+ (length prefix) kwd-len))) ;; FIXME: kwd-len == 0 is incorrectly handled
+           (m-pref-len (company-coq-take-summed-lengths qualid-atoms fully-matched-count))
+           (match-end  (+ m-pref-len ;; fully matched prefix
+                          part-matched-len ;; partially matched element (end of search term)
+                          fully-matched-count))) ;; dots
     (mapcar (lambda (mod-name)
               (propertize (concat prefix mod-name)
                           'match-end match-end))
-            mod-names)))
+              mod-names))))
 
-(defun company-coq-complete-module-qualified (qualid-atoms search-atoms physical-path)
+(defun company-coq-complete-module-qualified (qualid-atoms search-atoms physical-path
+                                              fully-matched-count part-matched-len)
   "Find qualified module names in PHYSICAL-PATH that match SEARCH-ATOMS."
-  (message "> [%s] [%s]" (prin1-to-string qualid-atoms) (prin1-to-string search-atoms))
+  ;; (message "> [%s] [%s]" (prin1-to-string qualid-atoms) (prin1-to-string search-atoms))
   (let* ((kwd           (car-safe (last search-atoms)))
          (nil-kwd       (or (not kwd) (equal kwd "")))
          (ext-path      (company-coq-extend-path physical-path search-atoms))
@@ -595,20 +607,27 @@ extension." ;; TODO include directories
                                 ".*" company-coq-compiled-regexp))
          (mod-names     (company-coq-complete-module-unqualified
                          search-path search-regexp)))
-    (company-coq-qualify-module-names mod-names qualid-atoms (length kwd))))
+    (company-coq-qualify-module-names mod-names qualid-atoms fully-matched-count part-matched-len)))
 
 (defun company-coq-complete-module-from-atoms (module-atoms path-atoms physical-path)
   "Wrapper around company-coq-complete-module-qualified."
   (pcase (company-coq-match-logical-paths module-atoms path-atoms)
-    (`(,qualid . ,search) (company-coq-complete-module-qualified
-                           qualid search physical-path))))
+    (`(,qualid . (,search . ,pth))
+     (let* (;; Fully matched count is the full qualid if the search term
+            ;; (module-atoms) was strictly longer than the path, and otherwise
+            ;; one less than the number of elements in common
+            (fully-matched-count (if (eq search nil)
+                                     (- (length path-atoms) (length pth) 1)
+                                   (length qualid)))
+            ;; Part matched len is always the length of the last search term
+            (part-matched-len    (length (car-safe (last module-atoms)))))
+       (company-coq-complete-module-qualified qualid search physical-path fully-matched-count part-matched-len)))))
 
 (defun company-coq-complete-module-from-path-spec (module-atoms path-spec)
   "Find modules matching MODULE-ATOMS in PATH-SPEC.
 This essentially attempts to match MODULE-ATOMS to the logical
 path in PATH-SPEC, and for each matching position computes a
-search term and a qualifier. For example,
-"
+search term and a qualifier."
   (destructuring-bind (logical-path . physical-path) path-spec
     (let* ((path-atoms   (company-coq-split-logical-path logical-path))
            (completions  (list (company-coq-complete-module-from-atoms module-atoms nil physical-path))))
