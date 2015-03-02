@@ -96,6 +96,10 @@
   "Autocomplete theorem names by periodically querying coq about defined identifiers. This is an experimental feature. It requires a patched version of Coq to work properly; it will be very slow otherwise."
   :group 'company-coq)
 
+(defcustom company-coq-autocomplete-modules t
+  "Autocomplete module names by periodically querying coq about the current load path. This is an experimental feature."
+  :group 'company-coq)
+
 (defcustom company-coq-fast nil
   "Indicates whether we have access to a faster, patched REPL"
   :group 'company-coq)
@@ -105,18 +109,29 @@
   :group 'company-coq)
 
 (defcustom company-coq-backends '(company-math-symbols-unicode company-coq-keywords)
-  "List of backends to use, listed in the order in which you want the results displayed. Note that the first backend to return a prefix superseeds all the others; they all must work with the same prefix."
+  "List of backends to use for completion."
+  :group 'company-coq)
+
+(defcustom company-coq-sorted-backends '(company-math-symbols-unicode company-coq-modules company-coq-keywords company-coq-symbols)
+  "List of all, listed in the order in which you want the results displayed. Note that the first backend that returns a prefix superseeds all the others; they all must work with the same prefix."
   :group 'company-coq)
 
 (defvar company-coq-asking-question nil
   "Indicates whether a interaction has been initiated with the prover, to disable the input and output hooks.")
 
 (defvar company-coq-symbols-reload-needed nil
-  "Indicates whether a reload might be needed. This variable is
+  "Indicates whether a reload of all symbols might be needed. This variable is
+  set from places where immediate reloading is impossible, for example in proof-shell-insert-hook")
+
+(defvar company-coq-modules-reload-needed nil
+  "Indicates whether a reload of all modules might be needed. This variable is
   set from places where immediate reloading is impossible, for example in proof-shell-insert-hook")
 
 (defvar company-coq-defined-symbols nil
-  "Keep track of defined symbols.")
+  "Keeps track of defined symbols.")
+
+(defvar company-coq-known-path-specs nil
+  "Keeps track of paths specs in load path.")
 
 (defvar  company-coq-known-keywords nil
   "List of defined Coq syntax forms")
@@ -156,17 +171,26 @@
 (defconst company-coq-def-cmd "Print %s"
   "Command used to retrieve the definition of a symbol.")
 
+(defconst company-coq-modules-cmd "Print LoadPath."
+  "Command use to retrieve module path specs (for module name completion).")
+
+(defconst company-coq-compiled-regexp "\\.vo\\'"
+  "Regexp matching the extension of compiled Coq files.")
+
 (defconst company-coq-prefix-regexp (concat company-coq-name-regexp-base "*")
   "Regexp used to find symbol prefixes")
 
 (defconst company-coq-undefined-regexp " not a defined object.$"
   "Regexp used to detect missing documentation (useful if database becomes outdated)")
 
-(defconst company-coq-output-reload-regexp "is \\(defined\\|assumed\\)"
+(defconst company-coq-end-of-def-regexp "is \\(defined\\|assumed\\)"
   "Regexp used to detect signs that new definitions have been added to the context")
 
-(defconst company-coq-input-reload-regexp "\\(Require\\)\\|\\(Import\\)"
+(defconst company-coq-import-regexp "\\(Require\\)\\|\\(Import\\)"
   "Regexp used to detect signs that new definitions will be added to the context")
+
+(defconst company-coq-load-regexp "\\(LoadPath\\)"
+  "Regexp used to detect signs that new paths will be added to the load path")
 
 (defconst company-coq-doc-tagline "Documentation for symbol %s"
   "Format string for the header of the documentation buffer")
@@ -245,6 +269,25 @@
 (defun company-coq-value-or-nil (symbol)
   (and (boundp symbol) (symbol-value symbol)))
 
+(defun company-coq-extend-path (path components)
+  "Contruct a path by appending each element in COMPONENTS to PATH"
+  (mapc (lambda (component)
+          (setq path (expand-file-name component path))) components)
+  path)
+
+(defun company-coq-chomp (l1 l2)
+  "Remove the longest common prefix of l1 and l2. Returns a cons of what remains"
+  ;; (message "> [%s] [%s]" l1 l2)
+  (while (and l1 l2 (string-prefix-p (car l1) (car l2)))
+    (setq l1 (cdr l1))
+    (setq l2 (cdr l2)))
+  ;; (message "< [%s] [%s]" l1 l2)
+  (cons l1 l2))
+
+(defun company-coq-split-logical-path (path)
+  "Split a logical path, such as a module path, into individual components"
+  (split-string path "\\."))
+
 (defun company-coq-prover-available ()
   (let ((available (and (not company-coq-asking-question)
                         (fboundp 'proof-shell-available-p)
@@ -252,6 +295,21 @@
     (when (not available)
       (company-coq-dbg "company-coq-prover-available: Prover not available"))
     available))
+
+(defun company-coq-force-reload-with-prover (track-symbol store-symbol load-function)
+  (company-coq-dbg "company-coq-force-reload-from-prover: Reloading (forced)")
+  (if (not (company-coq-prover-available))
+      (company-coq-dbg "company-coq-force-reload-from-prover: Reloading aborted; proof process busy")
+    (set track-symbol nil)
+    (set store-symbol (funcall load-function))))
+
+(defun company-coq-init-db (db initfun)
+  (interactive)
+  (company-coq-dbg "company-coq-init-db: Loading %s (if nil; currently has %s elems)" db (length (symbol-value db)))
+  (or (symbol-value db)
+      (progn
+        (company-coq-dbg "company-coq-init-db: reloading")
+        (funcall initfun))))
 
 (defun company-coq-get-symbols ()
   "Load symbols by issuing command company-coq-all-symbols-cmd and parsing the results. Do not call if proof process is busy."
@@ -271,26 +329,51 @@
 
 (defun company-coq-force-reload-symbols ()
   (interactive)
-  (company-coq-dbg "company-coq-force-reload-symbols: Reloading symbols (forced)")
-  (unless (company-coq-prover-available)
-    (company-coq-dbg "company-coq-force-reload-symbols: Reloading aborted; proof process busy"))
-  (and (company-coq-prover-available)
-       (progn
-         (setq company-coq-symbols-reload-needed nil)
-         (setq company-coq-defined-symbols (company-coq-get-symbols)))))
-
-(defun company-coq-init-db (db initfun)
-  (interactive)
-  (company-coq-dbg "company-coq-init-db: Loading %s (if nil; currently has %s elems)" db (length (symbol-value db)))
-  (or (symbol-value db)
-      (progn
-        (company-coq-dbg "company-coq-init-db: reloading")
-        (funcall initfun))))
+  (company-coq-force-reload-with-prover 'company-coq-symbols-reload-needed
+                                        'company-coq-defined-symbols
+                                        #'company-coq-get-symbols))
 
 (defun company-coq-init-symbols ()
   (interactive)
   (company-coq-dbg "company-coq-init-symbols: Loading symbols (if never loaded)")
   (company-coq-init-db 'company-coq-defined-symbols 'company-coq-force-reload-symbols))
+
+(defun company-coq-line-is-import-p ()
+  (save-excursion
+    (let* ((bol           (point-at-bol))
+           (command-begin (or (search-backward ". " bol t) bol)))
+      (goto-char command-begin)
+      (looking-at " *\\(Require\\)\\|\\(Import\\)\\|\\(Export\\) *"))))
+
+(defun company-coq-parse-path-spec (loadpath-line)
+  "Parse a line of output from company-coq-modules-cmd, returning a pair of paths (logical . physical)"
+  ;; FIXME: Print LoadPath splits its output on two lines when a path is too
+  ;; long. Such output is currently discarded
+  (when (string-match "\\`\\([^ ]+\\) +\\(.+\\)\\'" loadpath-line)
+    (cons (match-string 1 loadpath-line) (match-string 2 loadpath-line))))
+
+(defun company-coq-get-path-specs ()
+  "Load modules by issuing command company-coq-modules-cmd and parsing the results. Do not call if proof process is busy."
+  (interactive)
+  (with-temp-message "company-coq: Loading module names..."
+    (let* ((time       (current-time))
+           (output     (company-coq-ask-prover company-coq-modules-cmd))
+           (lines      (cdr-safe (company-coq-split-lines output)))
+           (path-specs (mapcar #'company-coq-parse-path-spec lines))
+           (path-specs (cl-remove-if-not #'identity path-specs)))
+      (message "Loaded %d modules (%.03f seconds)" (length path-specs) (float-time (time-since time)))
+      path-specs)))
+
+(defun company-coq-force-reload-modules ()
+  (interactive)
+  (company-coq-force-reload-with-prover 'company-coq-modules-reload-needed
+                                        'company-coq-known-path-specs
+                                        #'company-coq-get-path-specs))
+
+(defun company-coq-init-modules ()
+  (interactive)
+  (company-coq-dbg "company-coq-init-modules: Loading modules (if never loaded)")
+  (company-coq-init-db 'company-coq-known-path-specs 'company-coq-force-reload-modules))
 
 (defun company-coq-get-pg-keywords-db ()
   (apply #'append
@@ -348,6 +431,17 @@
     (cl-loop for abbrev in (apply #'append lists)
              if (not (get-text-property 0 'dup abbrev))
              collect abbrev)))
+
+(defun company-coq-union-sort (test comp &rest lists)
+  (let ((merged  (cl-sort (apply #'append lists) comp))
+        (deduped nil)
+        (prev    nil))
+    (while merged
+      (let ((top (pop merged)))
+        (unless (and prev (funcall test top prev))
+          (setq deduped (push top deduped)))
+        (setq prev top)))
+    deduped))
 
 (defun company-coq-number (ls)
   (let ((num 0))
@@ -446,48 +540,142 @@
   (interactive)
   (company-coq-complete-prefix prefix company-coq-known-keywords))
 
+(defun company-coq-no-empty-strings (ss)
+  (cl-remove-if (lambda (s) (string-equal s "")) ss))
+
+(defun company-coq-match-logical-paths (module-atoms path-atoms)
+  "Produces a cons (SEARCH-ATOMS QUALID-ATOMS) from a module path
+and a logical path. This function distinguishes three cases:
+
+1. The logical path is longer; in this case, the qualifier is the
+   full logical path, and the search term is empty.
+
+2. The module path is longer; in this case, the qualifier is the
+   full logical path, plus what remains of the module path (minus
+   the last item of the module path), and the search term is the
+   last item of the module path.
+
+3. The two paths don't match; in this case, there is no qualifier
+   nor search term."
+  (pcase (company-coq-chomp module-atoms path-atoms)
+    (`(,mod .  nil) (let ((subdirectory-atoms (butlast mod)))
+                      (unless (member "" subdirectory-atoms) ;; We don't support skipping over subdirectories
+                       (cons (append path-atoms subdirectory-atoms) mod))))
+    (`(nil  . ,pth) (cons path-atoms nil))
+    (_              nil)))
+
+(defun company-coq-complete-module-unqualified (search-path search-regexp)
+  "Find module names matching SEARCH-REGEXP in SEARCH-PATH.
+Results are file names only, and do not include the .vo
+extension." ;; TODO include directories
+  (when (file-exists-p search-path)
+    (mapcar (lambda (fname)
+              (replace-regexp-in-string company-coq-compiled-regexp "" fname))
+            (directory-files search-path nil search-regexp))))
+
+(defun company-coq-qualify-module-names (mod-names qualid-atoms kwd-len)
+  "Qualify each name in MOD-NAMES using QUALID-ATOMS."
+  (let* ((qualid    (mapconcat 'identity qualid-atoms "."))
+         (prefix    (if qualid-atoms (concat qualid ".") ""))
+         (match-end (+ (length prefix) kwd-len))) ;; FIXME: kwd-len == 0 is incorrectly handled
+    (mapcar (lambda (mod-name)
+              (propertize (concat prefix mod-name)
+                          'match-end match-end))
+            mod-names)))
+
+(defun company-coq-complete-module-qualified (qualid-atoms search-atoms physical-path)
+  "Find qualified module names in PHYSICAL-PATH that match SEARCH-ATOMS."
+  (message "> [%s] [%s]" (prin1-to-string qualid-atoms) (prin1-to-string search-atoms))
+  (let* ((kwd           (car-safe (last search-atoms)))
+         (nil-kwd       (or (not kwd) (equal kwd "")))
+         (ext-path      (company-coq-extend-path physical-path search-atoms))
+         (search-path   (if nil-kwd (file-name-as-directory ext-path)
+                          (file-name-directory ext-path)))
+         (search-regexp (concat "\\`" (if nil-kwd "" (regexp-quote kwd))
+                                ".*" company-coq-compiled-regexp))
+         (mod-names     (company-coq-complete-module-unqualified
+                         search-path search-regexp)))
+    (company-coq-qualify-module-names mod-names qualid-atoms (length kwd))))
+
+(defun company-coq-complete-module-from-atoms (module-atoms path-atoms physical-path)
+  "Wrapper around company-coq-complete-module-qualified."
+  (pcase (company-coq-match-logical-paths module-atoms path-atoms)
+    (`(,qualid . ,search) (company-coq-complete-module-qualified
+                           qualid search physical-path))))
+
+(defun company-coq-complete-module-from-path-spec (module-atoms path-spec)
+  "Find modules matching MODULE-ATOMS in PATH-SPEC.
+This essentially attempts to match MODULE-ATOMS to the logical
+path in PATH-SPEC, and for each matching position computes a
+search term and a qualifier. For example,
+"
+  (destructuring-bind (logical-path . physical-path) path-spec
+    (let* ((path-atoms   (company-coq-split-logical-path logical-path))
+           (completions  (list (company-coq-complete-module-from-atoms module-atoms nil physical-path))))
+      (while path-atoms
+        (setq completions (push (company-coq-complete-module-from-atoms
+                                 module-atoms path-atoms physical-path)
+                                completions))
+        (setq path-atoms (cdr path-atoms)))
+      (apply #'append completions))))
+
+(defun company-coq-complete-modules (module)
+  (let ((module-atoms (company-coq-split-logical-path module))
+        (completions nil))
+    (mapc (lambda (path-spec)
+            (setq completions (push (company-coq-complete-module-from-path-spec
+                                     module-atoms path-spec)
+                                    completions)))
+          company-coq-known-path-specs)
+    (apply #'company-coq-union-sort
+           #'string-equal #'string-lessp completions)))
+
 (defun company-coq-shell-output-is-end-of-def ()
-  "Checks whether the output of the last command matches company-coq-output-reload-regexp"
-  (company-coq-boundp-string-match company-coq-output-reload-regexp 'proof-shell-last-output))
+  "Checks whether the output of the last command matches company-coq-end-of-def-regexp"
+  (company-coq-boundp-string-match company-coq-end-of-def-regexp 'proof-shell-last-output))
 
 (defun company-coq-shell-output-is-end-of-proof ()
   "Checks whether proof-general signaled a finished proof"
   (company-coq-value-or-nil 'proof-shell-proof-completed))
 
-(defun company-coq-maybe-reload-symbols ()
-  (company-coq-dbg "company-coq-maybe-reload-symbols: Reloading symbols (maybe): %s" company-coq-symbols-reload-needed)
-  (when company-coq-symbols-reload-needed
-    (run-with-idle-timer 0 nil 'company-coq-force-reload-symbols)))
+(defun company-coq-maybe-reload-with-timer (tracker-symbol reload-fun)
+  (when (symbol-value tracker-symbol)
+    (run-with-idle-timer 0 nil reload-fun)))
 
-(defun company-coq-maybe-proof-output-reload-symbols ()
+(defun company-coq-maybe-reload-things ()
+  (company-coq-dbg "company-coq-maybe-reload-things: Reloading symbols (maybe): %s" company-coq-symbols-reload-needed)
+  (company-coq-maybe-reload-with-timer 'company-coq-symbols-reload-needed #'company-coq-force-reload-symbols)
+  (company-coq-maybe-reload-with-timer 'company-coq-modules-reload-needed #'company-coq-force-reload-modules))
+
+(defun company-coq-maybe-proof-output-reload-things ()
   "Updates company-coq-symbols-reload-needed if a proof just
 completed or if output mentions new symbol, then calls
-company-coq-maybe-reload-symbols."
+company-coq-maybe-reload-things."
   (interactive)
-  (company-coq-dbg "company-coq-maybe-proof-output-reload-symbols: Reloading symbols (maybe)")
+  (company-coq-dbg "company-coq-maybe-proof-output-reload-things: Reloading symbols (maybe)")
   (unless company-coq-asking-question
-    (let ((is-end-of-def (company-coq-shell-output-is-end-of-def))
-          (is-end-of-proof (company-coq-shell-output-is-end-of-proof)))
-      (when is-end-of-proof (company-coq-dbg "company-coq-maybe-proof-output-reload-symbols: At end of proof"))
-      (when is-end-of-def (company-coq-dbg "company-coq-maybe-proof-output-reload-symbols: At end of definition"))
-      (when (or is-end-of-def is-end-of-proof)
-        (company-coq-dbg "company-coq-maybe-proof-output-reload-symbols: Setting company-coq-symbols-reload-needed")
-        (setq company-coq-symbols-reload-needed t))
-      (company-coq-maybe-reload-symbols))))
+    (let ((is-end-of-def    (company-coq-shell-output-is-end-of-def))
+          (is-end-of-proof  (company-coq-shell-output-is-end-of-proof)))
+      (when is-end-of-proof (company-coq-dbg "company-coq-maybe-proof-output-reload-things: At end of proof"))
+      (when is-end-of-def   (company-coq-dbg "company-coq-maybe-proof-output-reload-things: At end of definition"))
+      (setq company-coq-symbols-reload-needed
+            (or company-coq-symbols-reload-needed is-end-of-def is-end-of-proof)))
+    (company-coq-maybe-reload-things)))
 
-(defun company-coq-maybe-proof-input-reload-symbols ()
+(defun company-coq-maybe-proof-input-reload-things ()
   "Reload symbols if input mentions new symbols"
   (interactive)
-  (company-coq-dbg "company-coq-maybe-proof-input-reload-symbols: Reloading symbols (maybe)")
+  (company-coq-dbg "company-coq-maybe-proof-input-reload-things: Reloading symbols (maybe)")
   (unless company-coq-asking-question
-    (let ((is-backwards (company-coq-boundp-equal 'action 'proof-done-retracting))
-          (is-import (and (company-coq-boundp-equal 'action 'proof-done-advancing)
-                          (company-coq-boundp-string-match company-coq-input-reload-regexp 'string))))
-      (when is-backwards (company-coq-dbg "company-coq-maybe-proof-input-reload-symbols: Rewinding"))
-      (when is-import (company-coq-dbg "company-coq-maybe-proof-input-reload-symbols: New import"))
-      (when (or is-backwards is-import)
-        (company-coq-dbg "company-coq-maybe-proof-input-reload-symbols: Setting company-coq-symbols-reload-needed")
-        (setq company-coq-symbols-reload-needed t)))))
+    (let* ((is-advancing  (company-coq-boundp-equal 'action 'proof-done-advancing))
+           (is-retracting (company-coq-boundp-equal 'action 'proof-done-retracting))
+           (is-import     (and is-advancing (company-coq-boundp-string-match company-coq-import-regexp 'string)))
+           (is-load       (and is-advancing (company-coq-boundp-string-match company-coq-load-regexp   'string))))
+      (when is-retracting (company-coq-dbg "company-coq-maybe-proof-input-reload-things: Rewinding"))
+      (when is-import     (company-coq-dbg "company-coq-maybe-proof-input-reload-things: New import"))
+      (when is-load       (company-coq-dbg "company-coq-maybe-proof-input-reload-things: Touching load path"))
+      (setq company-coq-symbols-reload-needed (or company-coq-symbols-reload-needed is-retracting is-import))
+      (setq company-coq-modules-reload-needed (or company-coq-modules-reload-needed is-import is-load)))))
 
 (defun company-coq-in-coq-mode ()
   (or (derived-mode-p 'coq-mode)
@@ -499,6 +687,7 @@ company-coq-maybe-reload-symbols."
 
 (defun company-coq-grab-prefix ()
   ;; Only one grab function; otherwise the first backend in the list of backend shadows the others
+  ;; FIXME: Should not return nil at the beginning of a hole
   (unless (and (char-after) (memq (char-syntax (char-after)) '(?w ?_)))
     (save-excursion ;; TODO could be optimized
       (when (looking-back company-coq-prefix-regexp (point-at-bol) t)
@@ -506,14 +695,22 @@ company-coq-maybe-reload-symbols."
 
 (defun company-coq-prefix-symbol ()
   (interactive)
-  (company-coq-dbg "company-coq-prefix-symbol: prefix-symbol called")
+  (company-coq-dbg "company-coq-prefix-symbol: Called")
   (when (and (company-coq-in-coq-mode) (company-coq-in-scripting-mode))
     (company-coq-grab-prefix)))
 
 (defun company-coq-prefix-keyword ()
   (interactive)
-  (company-coq-dbg "company-coq-prefix-symbol: prefix-symbol called")
+  (company-coq-dbg "company-coq-prefix-keyword: Called")
   (when (company-coq-in-coq-mode)
+    (company-coq-grab-prefix)))
+
+(defun company-coq-prefix-module ()
+  (interactive)
+  (company-coq-dbg "company-coq-prefix-module: Called")
+  (when (and (company-coq-in-coq-mode)
+             (company-coq-in-scripting-mode)
+             (company-coq-line-is-import-p))
     (company-coq-grab-prefix)))
 
 (defun company-coq-documentation (name)
@@ -686,6 +883,12 @@ company-coq-maybe-reload-symbols."
   (when (company-coq-init-keywords)
     (company-coq-complete-keyword (company-coq-prefix-keyword))))
 
+(defun company-coq-candidates-modules ()
+  (interactive)
+  (company-coq-dbg "company-coq-candidates-modules: Called")
+  (when (company-coq-init-modules)
+    (company-coq-complete-modules (company-coq-prefix-module))))
+
 (defun company-coq-match (completion)
   (company-coq-dbg "company-coq-match: matching %s" completion)
   (get-text-property 0 'match-end completion))
@@ -781,7 +984,6 @@ company-coq-maybe-reload-symbols."
     (`comparison-fun #'company-coq-string-lessp-symbols)
     (`require-match 'never)))
 
-;;;###autoload
 (defun company-coq-keywords (command &optional arg &rest ignored)
   "A company-mode backend for Coq keywords."
   (interactive (list 'interactive))
@@ -803,8 +1005,24 @@ company-coq-maybe-reload-symbols."
     (`comparison-fun #'company-coq-string-lessp-keywords)
     (`require-match 'never)))
 
+(defun company-coq-modules (command &optional arg &rest ignored)
+  "A company-mode backend for Coq modules."
+  (interactive (list 'interactive))
+  (company-coq-dbg "modules backend: called with command %s" command)
+  (pcase command
+    (`interactive (company-begin-backend 'company-coq-modules))
+    (`prefix (company-coq-prefix-module)) ;; FIXME Completion at beginning of hole
+    (`candidates (company-coq-candidates-modules)) ;; FIXME
+    (`sorted t)
+    (`duplicates nil)
+    (`ignore-case nil)
+    (`no-cache t)
+    (`match (company-coq-match arg))
+    (`require-match 'never)))
+
 (defun company-coq-make-backends-alist ()
-  (mapcar (lambda (backend) (cons backend ())) (append '(nil) company-coq-backends)))
+  (mapcar (lambda (backend) (cons backend ()))
+          (append '(nil) company-coq-sorted-backends)))
 
 (defun company-coq-push-to-backend-alist (candidate backends-alist)
   (let* ((company-tag   (get-text-property 0 'company-backend candidate))
@@ -824,19 +1042,26 @@ company-coq-maybe-reload-symbols."
                    backends-alist))))
 
 (defun company-coq-init-symbols-completion () ;; NOTE: This could be made callable at the beginning of every completion.
-  (when company-coq-autocomplete-symbols
-      ;; PG hooks
-      (add-hook 'proof-shell-insert-hook 'company-coq-maybe-proof-input-reload-symbols)
-      (add-hook 'proof-shell-handle-delayed-output-hook 'company-coq-maybe-proof-output-reload-symbols)
-      ;; General save hook
-      (add-hook 'after-save-hook 'company-coq-maybe-reload-symbols nil t)
-      ;; Company backend
+  (when (or company-coq-autocomplete-symbols company-coq-autocomplete-modules)
+    ;; PG hooks
+    (add-hook 'proof-shell-insert-hook
+              'company-coq-maybe-proof-input-reload-things)
+    (add-hook 'proof-shell-handle-delayed-output-hook
+              'company-coq-maybe-proof-output-reload-things)
+    ;; General save hook
+    (add-hook 'after-save-hook
+              'company-coq-maybe-reload-things nil t)
+    ;; Company modules backend
+    (when company-coq-autocomplete-modules
+      (add-to-list 'company-coq-backends #'company-coq-modules t))
+    ;; Company symbols backend
+    (when company-coq-autocomplete-symbols
       (add-to-list 'company-coq-backends #'company-coq-symbols t)
       (when (not company-coq-fast)
         (message "Warning: Symbols autocompletion is an
         experimental feature. Performance won't be good unless
         you use a patched coqtop. If you do, set company-coq-fast
-        to true."))))
+        to true.")))))
 
 ;;;###autoload
 (defun company-coq-initialize ()
