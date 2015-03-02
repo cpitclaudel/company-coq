@@ -839,9 +839,9 @@ company-coq-maybe-reload-symbols."
         to true."))))
 
 ;;;###autoload
-(defun company-coq-initialize (&optional force-load)
+(defun company-coq-initialize ()
   (interactive)
-  (when (not (or (company-coq-in-coq-mode) force-load))
+  (when (not (company-coq-in-coq-mode))
     (error "company-coq only works with coq-mode."))
 
   ;; Enable relevant minor modes
