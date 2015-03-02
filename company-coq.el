@@ -671,7 +671,6 @@ company-coq-maybe-reload-symbols."
                                 (concat (file-name-directory script-full-path) "refman/" doc-short-path))))
       (when doc-full-path
         (with-current-buffer (company-coq-prepare-doc-buffer)
-          ;; The window must be visible at this point, to ensure proper html rendering
           (company-coq-doc-keywords-put-html doc-full-path truncate)
           (cons (current-buffer) (point)))))))
 
