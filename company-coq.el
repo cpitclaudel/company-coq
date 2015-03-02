@@ -583,15 +583,15 @@ extension." ;; TODO include directories
 (defun company-coq-qualify-module-names (mod-names qualid-atoms fully-matched-count part-matched-len)
   "Qualify each name in MOD-NAMES using QUALID-ATOMS."
   (when mod-names
-  (let* ((qualid    (mapconcat 'identity qualid-atoms "."))
-         (prefix    (if qualid-atoms (concat qualid ".") ""))
+    (let* ((qualid     (mapconcat 'identity qualid-atoms "."))
+           (prefix     (if qualid-atoms (concat qualid ".") ""))
            (m-pref-len (company-coq-take-summed-lengths qualid-atoms fully-matched-count))
            (match-end  (+ m-pref-len ;; fully matched prefix
                           part-matched-len ;; partially matched element (end of search term)
                           fully-matched-count))) ;; dots
-    (mapcar (lambda (mod-name)
-              (propertize (concat prefix mod-name)
-                          'match-end match-end))
+      (mapcar (lambda (mod-name)
+                (propertize (concat prefix mod-name)
+                            'match-end match-end))
               mod-names))))
 
 (defun company-coq-complete-module-qualified (qualid-atoms search-atoms physical-path
@@ -1095,6 +1095,7 @@ company-coq-maybe-reload-things."
   ;; Set a few company settings
   (set (make-local-variable 'company-idle-delay) 0)
   (set (make-local-variable 'company-tooltip-align-annotations) t)
+  (set (make-local-variable 'company-abort-manual-when-too-short) t)
 
   ;; Load identifiers and register hooks
   (company-coq-init-keywords)
