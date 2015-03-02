@@ -32,7 +32,9 @@
 ;; * Auto-completion of (most of) Coq's tactics and commands, with snippets
 ;;   auto-extracted from the manual.
 ;;
-;; * Documentation for (most) auto-completion entries, with excerpts from the
+;; * Auto-completion of module names in [Import] commands.
+;;
+;; * Documentation for (most) tactics and commands, with excerpts from the
 ;;   manual shown directly in Emacs.
 ;;
 ;; Advanced features (requires a patched version of `coqtop`)
@@ -1031,7 +1033,7 @@ company-coq-maybe-reload-things."
   (pcase command
     (`interactive (company-begin-backend 'company-coq-modules))
     (`prefix (company-coq-prefix-module)) ;; FIXME Completion at beginning of hole
-    (`candidates (company-coq-candidates-modules)) ;; FIXME
+    (`candidates (company-coq-candidates-modules)) ;; FIXME making this // breaks completion
     (`sorted t)
     (`duplicates nil)
     (`ignore-case nil)
