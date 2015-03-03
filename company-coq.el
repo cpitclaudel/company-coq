@@ -1014,25 +1014,6 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
       (company-coq-dbg "company-coq-dabbrev-to-yas: transformed to %s" final-snippet)
       final-snippet)))
 
-(when nil
-  (defun company-coq-exit-snippet (char)
-    (company-coq-dbg "Exiting snippet (received %s)" char)
-    (let ((snippet (first (yas--snippets-at-point))))
-      (yas-exit-snippet snippet)))
-
-  ;; FIXME: Should call electric terminator instead of insert
-  (defmacro company-coq-register-snippet-terminator (char)
-    `(progn
-       (company-coq-dbg "registering %s as a snippet terminator" ,char)
-       (when (boundp 'yas-keymap)
-         ;;(make-local-variable 'yas-keymap)
-         (define-key yas-keymap (kbd ,char)
-           (lambda ()
-             (interactive)
-             (and (fboundp 'company-coq-exit-snippet)
-                  (company-coq-exit-snippet ,char))
-             (insert ,char)))))))
-
 (defun company-coq-get-snippet (candidate)
   (let* ((abbrev  (get-text-property 0 'insert candidate))
          (snippet (and abbrev (company-coq-dabbrev-to-yas abbrev))))
