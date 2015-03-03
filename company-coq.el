@@ -705,7 +705,7 @@ company-coq-maybe-reload-symbols."
     (when suffix
       (company-coq-dbg "Adding hole after '%s'" snippet))
     (if suffix
-        (cons (+ 1 match-num) (concat snippet suffix))
+        (cons (concat snippet suffix) (+ 1 match-num))
       (cons snippet match-num))))
 
 (defun company-coq-dabbrev-to-yas (abbrev)
