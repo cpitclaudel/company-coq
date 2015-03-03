@@ -110,11 +110,11 @@
   "Show holes using explicit placeholders"
   :group 'company-coq)
 
-(defcustom company-coq-backends '(company-math-symbols-unicode company-coq-keywords)
+(defcustom company-coq-backends '(company-math-symbols-unicode company-coq-context company-coq-keywords)
   "List of backends to use for completion."
   :group 'company-coq)
 
-(defcustom company-coq-sorted-backends '(company-math-symbols-unicode company-coq-modules company-coq-keywords company-coq-symbols)
+(defcustom company-coq-sorted-backends '(company-math-symbols-unicode company-coq-modules company-coq-context company-coq-keywords company-coq-symbols)
   "List of all, listed in the order in which you want the results displayed. Note that the first backend that returns a prefix superseeds all the others; they all must work with the same prefix."
   :group 'company-coq)
 
@@ -132,6 +132,9 @@
 (defvar company-coq-defined-symbols nil
   "Keeps track of defined symbols.")
 
+(defvar company-coq-current-context nil
+  "Keeps track of the context while proofs are ongoing.")
+
 (defvar company-coq-known-path-specs nil
   "Keeps track of paths specs in load path.")
 
@@ -140,8 +143,14 @@
 
 (defconst company-coq-name-regexp-base "[a-zA-Z0-9_.!]") ;; '!' included so that patterns like [intros!] still work
 
-(defconst company-coq-all-symbols-slow-regexp (concat "^\\(" company-coq-name-regexp-base "+\\):.*")
+(defconst company-coq-all-symbols-slow-regexp (concat "\\`\\(" company-coq-name-regexp-base "+\\):.*\\'")
   "Regexp used to filter out lines without symbols in output of SearchPattern")
+
+(defconst company-coq-goals-hyp-regexp (concat "\\`  \\(" company-coq-name-regexp-base "+\\) : \\(.*\\)\\'")
+  "Regexp used to find hypotheses in goals output")
+
+(defconst company-coq-goals-line-regexp (concat "\\`  ============================[= ]*\\'")
+  "Regexp used to find hypotheses in goals output")
 
 (defun company-coq-all-symbols-prelude ()
   "Command to run before listing all symbols, using a patched version of Coq"
@@ -542,6 +551,11 @@
   (interactive)
   (company-coq-complete-prefix prefix company-coq-known-keywords))
 
+(defun company-coq-complete-context (prefix)
+  "List elements of company-coq-current-context containing PREFIX"
+  (interactive)
+  (company-coq-complete-prefix-substring prefix company-coq-current-context))
+
 (defun company-coq-no-empty-strings (ss)
   (cl-remove-if (lambda (s) (string-equal s "")) ss))
 
@@ -668,10 +682,44 @@ search term and a qualifier."
   (company-coq-maybe-reload-with-timer 'company-coq-symbols-reload-needed #'company-coq-force-reload-symbols)
   (company-coq-maybe-reload-with-timer 'company-coq-modules-reload-needed #'company-coq-force-reload-modules))
 
+(defmacro company-coq-parse-goals-line (context current-hyp line)
+  `(progn
+     (if (string-match company-coq-goals-hyp-regexp ,line)
+         (progn (message "New hyp: %s" ,line)
+                (if ,current-hyp
+                    (setq ,context (push ,current-hyp ,context)))
+                (setq ,current-hyp
+                      (cons (match-string 1 ,line) (company-coq-trim (match-string 2 ,line)))))
+       (when ,current-hyp
+         (setcdr ,current-hyp (concat (cdr ,current-hyp) " " (company-coq-trim ,line)))))))
+
+(defun company-coq-properties-from-alist-rev (alist)
+  (let ((propertized-list nil))
+    (while alist
+      (setq propertized-list (push (propertize (caar alist) 'meta (cdar alist)) propertized-list))
+      (setq alist (cdr alist)))
+    propertized-list))
+
+(defun company-coq-maybe-reload-context (&optional end-of-proof)
+  "Updates company-coq-current-context."
+  (if end-of-proof
+      (setq company-coq-current-context nil)
+    (when (boundp 'proof-shell-last-goals-output)
+      (let* ((goal-lines          (company-coq-split-lines proof-shell-last-goals-output))
+             (context             nil)
+             (current-hyp         nil))
+        (cl-loop for line in goal-lines
+                 while (not (string-match-p company-coq-goals-line-regexp line))
+                 do (company-coq-parse-goals-line context current-hyp line))
+        (when current-hyp
+          (setq context (push current-hyp context)))
+        (when context
+          (setq company-coq-current-context (company-coq-properties-from-alist-rev context)))))))
+
 (defun company-coq-maybe-proof-output-reload-things ()
   "Updates company-coq-symbols-reload-needed if a proof just
 completed or if output mentions new symbol, then calls
-company-coq-maybe-reload-things."
+company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (interactive)
   (company-coq-dbg "company-coq-maybe-proof-output-reload-things: Reloading symbols (maybe)")
   (unless company-coq-asking-question
@@ -680,8 +728,9 @@ company-coq-maybe-reload-things."
       (when is-end-of-proof (company-coq-dbg "company-coq-maybe-proof-output-reload-things: At end of proof"))
       (when is-end-of-def   (company-coq-dbg "company-coq-maybe-proof-output-reload-things: At end of definition"))
       (setq company-coq-symbols-reload-needed
-            (or company-coq-symbols-reload-needed is-end-of-def is-end-of-proof)))
-    (company-coq-maybe-reload-things)))
+            (or company-coq-symbols-reload-needed is-end-of-def is-end-of-proof))
+      (company-coq-maybe-reload-context (or is-end-of-def is-end-of-proof))
+      (company-coq-maybe-reload-things))))
 
 (defun company-coq-maybe-proof-input-reload-things ()
   "Reload symbols if input mentions new symbols"
@@ -696,7 +745,8 @@ company-coq-maybe-reload-things."
       (when is-import     (company-coq-dbg "company-coq-maybe-proof-input-reload-things: New import"))
       (when is-load       (company-coq-dbg "company-coq-maybe-proof-input-reload-things: Touching load path"))
       (setq company-coq-symbols-reload-needed (or company-coq-symbols-reload-needed is-retracting is-import))
-      (setq company-coq-modules-reload-needed (or company-coq-modules-reload-needed is-import is-load)))))
+      (setq company-coq-modules-reload-needed (or company-coq-modules-reload-needed is-import is-load))
+      (when is-retracting (company-coq-maybe-reload-context nil)))))
 
 (defun company-coq-in-coq-mode ()
   (or (derived-mode-p 'coq-mode)
@@ -760,19 +810,28 @@ company-coq-maybe-reload-things."
 (defun company-coq-trim (str)
   (replace-regexp-in-string "\\` *" "" (replace-regexp-in-string " *\\'" "" str)))
 
+(defun company-coq-truncate-to-minibuf (str)
+  (when str
+    (let* ((minibuf-w  (window-body-width (minibuffer-window))))
+      (if (> (length str) minibuf-w)
+          (concat (substring str 0 (- minibuf-w 3)) "...")
+        str))))
+
 (defun company-coq-meta-symbol (name)
   (company-coq-dbg "company-coq-meta-symbol: Called for name %s" name)
-  (let* ((meta (company-coq-join-lines (company-coq-documentation-header name) " " 'company-coq-trim))
-         (minibuf-w (window-body-width (minibuffer-window)))
-         (meta-trunc (if (> (length meta) minibuf-w)
-                         (concat (substring meta 0 (- minibuf-w 3)) "...") meta)))
-    (company-coq-dbg "Meta: %s" meta)
-    meta-trunc))
+  (company-coq-truncate-to-minibuf
+   (company-coq-join-lines
+    (company-coq-documentation-header name) " " 'company-coq-trim)))
 
 (defun company-coq-meta-keyword (name)
   (company-coq-dbg "company-coq-meta-keyword: Called for name %s" name)
   (and (company-coq-get-anchor name)
        (format "C-h: Quick docs")))
+
+(defun company-coq-meta-context (name)
+  (company-coq-dbg "company-coq-meta-context: Called for name %s" name)
+  (company-coq-truncate-to-minibuf
+   (get-text-property 0 'meta name)))
 
 (defun company-coq-get-pg-buffer ()
   (get-buffer "*goals*"))
@@ -828,6 +887,9 @@ company-coq-maybe-reload-things."
     (if (and (numberp num-holes) (> num-holes 0))
         (format "%s<kwd (%d)>" prefix num-holes)
       (format "%s<kwd>" prefix))))
+
+(defun company-coq-annotation-context (_)
+  "<h>")
 
 (defun company-coq-doc-buffer-symbols (name)
   (company-coq-dbg "company-coq-doc-buffer-symbols: Called for name %s" name)
@@ -904,6 +966,11 @@ company-coq-maybe-reload-things."
   (when (company-coq-init-keywords)
     (company-coq-complete-keyword (company-coq-prefix-keyword))))
 
+(defun company-coq-candidates-context ()
+  (interactive)
+  (company-coq-dbg "company-coq-symbols-candidates: Called")
+  (company-coq-complete-context (company-coq-prefix-symbol)))
+
 (defun company-coq-candidates-modules ()
   (interactive)
   (company-coq-dbg "company-coq-candidates-modules: Called")
@@ -929,7 +996,7 @@ company-coq-maybe-reload-things."
     (when suffix
       (company-coq-dbg "Adding hole after '%s'" snippet))
     (if suffix
-        (cons (+ 1 match-num) (concat snippet suffix))
+        (cons (concat snippet suffix) (+ 1 match-num))
       (cons snippet match-num))))
 
 (defun company-coq-dabbrev-to-yas (abbrev)
@@ -1026,6 +1093,26 @@ company-coq-maybe-reload-things."
     (`comparison-fun #'company-coq-string-lessp-keywords)
     (`require-match 'never)))
 
+(defun company-coq-context (command &optional arg &rest ignored)
+  "A company-mode backend for Coq keywords."
+  (interactive (list 'interactive))
+  (company-coq-dbg "context backend: called with command %s" command)
+  (pcase command
+    (`interactive (company-begin-backend 'company-coq-context))
+    (`prefix (company-coq-prefix-symbol))
+    (`candidates (company-coq-candidates-context))
+    (`sorted t)
+    (`duplicates nil)
+    (`ignore-case nil)
+    (`meta (company-coq-meta-context arg))
+    (`no-cache t)
+    ;; (`match (company-coq-match arg))
+    (`annotation (company-coq-annotation-context arg))
+    ;; (`doc-buffer (car (company-coq-doc-buffer-keywords arg t)))
+    ;; (`location (company-coq-doc-buffer-keywords arg nil)) ;; TODO
+    (`comparison-fun #'company-coq-string-lessp-symbols)
+    (`require-match 'never)))
+
 (defun company-coq-modules (command &optional arg &rest ignored)
   "A company-mode backend for Coq modules."
   (interactive (list 'interactive))
@@ -1033,7 +1120,7 @@ company-coq-maybe-reload-things."
   (pcase command
     (`interactive (company-begin-backend 'company-coq-modules))
     (`prefix (company-coq-prefix-module)) ;; FIXME Completion at beginning of hole
-    (`candidates (company-coq-candidates-modules)) ;; FIXME making this // breaks completion
+    (`candidates (company-coq-candidates-modules)) ;; FIXME making async seems to break completion
     (`sorted t)
     (`duplicates nil)
     (`ignore-case nil)
@@ -1065,10 +1152,13 @@ company-coq-maybe-reload-things."
 (defun company-coq-init-symbols-completion () ;; NOTE: This could be made callable at the beginning of every completion.
   (when (or company-coq-autocomplete-symbols company-coq-autocomplete-modules)
     ;; PG hooks
-    (add-hook 'proof-shell-insert-hook
+    (add-hook 'proof-shell-insert-hook ;; (lambda () (message "INSERT")))
               'company-coq-maybe-proof-input-reload-things)
-    (add-hook 'proof-shell-handle-delayed-output-hook
+    (add-hook 'proof-shell-handle-delayed-output-hook ;; (lambda () (message "DELAYED OUTPUT")))
               'company-coq-maybe-proof-output-reload-things)
+    (add-hook 'proof-shell-handle-error-or-interrupt-hook ;; (lambda () (message "ERROR OR INTERRUPT")))
+              'company-coq-maybe-reload-context)
+    ;; (add-hook 'proof-state-change-hook (lambda () (message "STATE CHANGE")))
     ;; General save hook
     (add-hook 'after-save-hook
               'company-coq-maybe-reload-things nil t)
