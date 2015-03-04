@@ -311,7 +311,8 @@ prefix."
 
 (defun company-coq-split-logical-path (path)
   "Split a logical path, such as a module path, into individual components"
-  (split-string path "\\."))
+  (unless (string-equal path "<>")
+    (split-string path "\\.")))
 
 (defun company-coq-prover-available ()
   (let ((available (and (not company-coq-asking-question)
@@ -609,9 +610,12 @@ cases:
 Results are file names only, and do not include the .vo
 extension." ;; TODO include directories
   (when (file-exists-p search-path)
-    (mapcar (lambda (fname)
-              (replace-regexp-in-string company-coq-compiled-regexp "" fname))
-            (directory-files search-path nil search-regexp))))
+    (cl-loop for file in (directory-files search-path nil nil t)
+             if      (or (not search-regexp) (string-match-p search-regexp file))
+             if      (string-match-p company-coq-compiled-regexp file)
+             collect (replace-regexp-in-string company-coq-compiled-regexp "" file)
+             else if (and (not (string-match-p "\\." file)) (file-directory-p (expand-file-name file search-path)))
+             collect (concat file "."))))
 
 (defun company-coq-take-summed-lengths (ls count)
   (cl-loop for i = 0 then (+ 1 i)
@@ -1004,7 +1008,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
 
 (defun company-coq-candidates-modules ()
   (interactive)
-  (company-coq-dbg "company-coq-candidates-modules: Called")
+  (company-coq-dbg "company-coq-candidates-modules: Called with prefix %s" (company-coq-prefix-module))
   (when (company-coq-init-modules)
     (company-coq-complete-modules (company-coq-prefix-module))))
 
