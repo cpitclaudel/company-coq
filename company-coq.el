@@ -150,6 +150,9 @@ prefix."
 (defvar  company-coq-known-keywords nil
   "List of defined Coq syntax forms")
 
+(defvar company-coq-last-goals-output nil
+  "If proof-shell-last-goals-output matches this, it is ignored. This prevents old goals from being reparsed.")
+
 (defconst company-coq-name-regexp-base "[a-zA-Z0-9_.!]") ;; '!' included so that patterns like [intros!] still work
 
 (defconst company-coq-all-symbols-slow-regexp (concat "\\`\\(" company-coq-name-regexp-base "+\\):.*\\'")
@@ -733,14 +736,14 @@ search term and a qualifier."
 
 (defun company-coq-maybe-reload-context (&optional end-of-proof)
   "Updates company-coq-current-context."
-  (if end-of-proof
-      (progn (company-coq-dbg "company-coq-maybe-reload-context: Clearing context")
-             (setq company-coq-current-context nil))
-    (when (boundp 'proof-shell-last-goals-output)
-      (company-coq-dbg "company-coq-maybe-reload-context: Reloading context")
-      (let* ((goal-lines (company-coq-split-lines proof-shell-last-goals-output))
-             (context    (company-coq-parse-goal-lines goal-lines)))
-        (setq company-coq-current-context context)))))
+  (let* ((output        (company-coq-value-or-nil 'proof-shell-last-goals-output))
+         (is-new-output (not (string-equal output company-coq-last-goals-output))))
+    (cond (end-of-proof  (company-coq-dbg "company-coq-maybe-reload-context: Clearing context")
+                         (setq company-coq-current-context nil))
+          (is-new-output (company-coq-dbg "company-coq-maybe-reload-context: Reloading context")
+                         (setq company-coq-current-context (company-coq-parse-goal-lines
+                                                            (company-coq-split-lines output)))))
+    (setq company-coq-last-goals-output output)))
 
 (defun company-coq-maybe-proof-output-reload-things ()
   "Updates company-coq-symbols-reload-needed if a proof just
