@@ -1,17 +1,30 @@
 # company-coq
 
-Company backend for Proof-General's Coq mode. Setup should be pretty straightforward, although the most advanced features require a patched version of coqtop.
+Company backend for Proof-General's Coq mode. Setup should be pretty straightforward, although the
+most advanced features require a patched version of coqtop.
 
 ## Features
 
 * Auto-completion of [math symbols](img/tactic-completion-doc.png) (using company-math)
+
+* Auto-completion of theorem names defined in the same buffer, with type annotations.
+
 * Easy access to [Proof-General's templates](img/lemma-completion.png) (using yasnippet)
-* Auto-completion of (most of) Coq's [tactics](img/command-completion-doc.png) and [commands](img/symbol-completion-doc.png), with snippets auto-extracted from the manual.
-* [Documentation](img/keyword-completion-doc.png) for (most) auto-completion entries, with excerpts from the manual shown directly in Emacs.
+
+* Auto-completion of (most of) Coq's [tactics](img/command-completion-doc.png) and
+  [commands](img/symbol-completion-doc.png), with snippets auto-extracted from the manual.
+
+* Auto-completion of module names in `Import` commands.
+
+* Auto-completion of identifiers in proof contexts.
+
+* [Documentation](img/keyword-completion-doc.png) for (most) auto-completion entries, with excerpts
+  from the manual shown directly in Emacs.
 
 Advanced features (requires a patched version of `coqtop`):
 
-* Auto-completion of all known [theorem and symbol names](img/symbol-completion-doc.png), with [inline documentation](img/symbol-completion.png).
+* Auto-completion of all known [theorem and symbol names](img/symbol-completion-doc.png), with
+  [type annotations](img/symbol-completion.png).
 
 ## Screenshots
 
@@ -37,7 +50,7 @@ Advanced features (requires a patched version of `coqtop`):
 
 (notice the help string in the mini-buffer)
 
-<img src="img/symbol-completion-doc.png" alt="Autocompletion of symbol names with documentation" />
+<img src="img/symbol-completion-doc.png" alt="Autocompletion of symbol names with type annotations" />
 
 ## Setup
 
@@ -109,13 +122,26 @@ Selecting a completion generally often a snippet with holes at the current point
 
 ### Autocompleting symbols
 
-The procedure above will give you auto-completion and documentation for tactics and commands, but not for theorem names and symbols. To get the latter, add the following to your `.emacs`, before `(company-coq-initialize)`:
+The procedure above will give you auto-completion and documentation for tactics, commands, and theorems that you define locally, but not for theorem names and symbols defined in the libraries you load. To get the latter, add the following to your `.emacs`, before `(company-coq-initialize)`:
 
 ```elisp
-(setq company-coq-autocomplete-symbols t)
+(setq company-coq-autocomplete-symbols-dynamic t)
 ```
 
 This feature won't work well unless you build and use a [patched coq REPL](https://github.com/cpitclaudel/coq/tree/V8.4pl2-SearchAny).
+
+### Disabling some modules
+
+Modules and symbols auto-completion can be turned off using the following lines
+
+```elisp
+(setq company-coq-autocomplete-symbols nil)
+(setq company-coq-autocomplete-modules nil)
+```
+
+### Unloading `company-coq`
+
+`M-x unload-feature RET company-coq RET` should work fine.
 
 ### Installing from source
 
