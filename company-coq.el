@@ -1206,6 +1206,24 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
       (substitute-key-definition #'proof-script-complete #'company-manual-begin proof-mode-map)
     (local-set-key [\C-return] 'company-manual-begin)))
 
+(defun company-coq-unload-function ()
+  (unload-feature 'company-coq-abbrev t)
+  (remove-hook 'proof-shell-insert-hook 'company-coq-maybe-proof-input-reload-things)
+  (remove-hook 'proof-shell-handle-delayed-output-hook 'company-coq-maybe-proof-output-reload-things)
+  (remove-hook 'proof-shell-handle-error-or-interrupt-hook 'company-coq-maybe-reload-context)
+  (remove-hook 'after-save-hook 'company-coq-maybe-reload-things t)
+
+  (setq company-backends     (delete company-coq-backends company-backends))
+  (setq company-transformers (delete #'company-coq-sort-in-backends-order company-transformers))
+
+  nil)
+
+(defun toggle-company-coq-debug ()
+  "Toggles company-coq-debug. When on, prints debug messages during operation."
+  (interactive)
+  (setq company-coq-debug (not company-coq-debug))
+  (message "company-coq-debug: %s" company-coq-debug))
+
 ;; TODO add a binding to look up the word at point
 
 (provide 'company-coq)
