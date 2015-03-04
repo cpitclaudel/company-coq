@@ -619,7 +619,7 @@ extension." ;; TODO include directories
            while (< i count)
            sum (length (car-safe l))))
 
-(defun company-coq-qualify-module-names (mod-names qualid-atoms fully-matched-count part-matched-len)
+(defun company-coq-qualify-module-names (mod-names qualid-atoms fully-matched-count part-matched-len physical-path)
   "Qualify each name in MOD-NAMES using QUALID-ATOMS."
   (when mod-names
     (let* ((qualid     (mapconcat 'identity qualid-atoms "."))
@@ -630,23 +630,25 @@ extension." ;; TODO include directories
                           fully-matched-count))) ;; dots
       (mapcar (lambda (mod-name)
                 (propertize (concat prefix mod-name)
+                            'meta      (concat physical-path " -> " mod-name)
+                            'location  (expand-file-name (concat mod-name ".v") physical-path)
                             'match-end match-end))
               mod-names))))
 
 (defun company-coq-complete-module-qualified (qualid-atoms search-atoms physical-path
                                               fully-matched-count part-matched-len)
   "Find qualified module names in PHYSICAL-PATH that match SEARCH-ATOMS."
-  ;; (message "> [%s] [%s]" (prin1-to-string qualid-atoms) (prin1-to-string search-atoms))
+  ;; (message "> [%s] [%s] [%s]" (prin1-to-string qualid-atoms) (prin1-to-string search-atoms) physical-path)
   (let* ((kwd           (car-safe (last search-atoms)))
          (nil-kwd       (or (not kwd) (equal kwd "")))
          (ext-path      (company-coq-extend-path physical-path search-atoms))
          (search-path   (if nil-kwd (file-name-as-directory ext-path)
                           (file-name-directory ext-path)))
-         (search-regexp (concat "\\`" (if nil-kwd "" (regexp-quote kwd))
-                                ".*" company-coq-compiled-regexp))
+         (search-regexp (if nil-kwd nil (concat "\\`" (regexp-quote kwd))))
          (mod-names     (company-coq-complete-module-unqualified
                          search-path search-regexp)))
-    (company-coq-qualify-module-names mod-names qualid-atoms fully-matched-count part-matched-len)))
+    ;; (message "Searching in [%s] with regexp [%s]: [%s]" search-path search-regexp mod-names)
+    (company-coq-qualify-module-names mod-names qualid-atoms fully-matched-count part-matched-len search-path)))
 
 (defun company-coq-complete-module-from-atoms (module-atoms path-atoms physical-path)
   "Wrapper around company-coq-complete-module-qualified."
@@ -704,9 +706,6 @@ search term and a qualifier."
   (company-coq-dbg "company-coq-maybe-reload-things: Reloading symbols (maybe): %s" company-coq-symbols-reload-needed)
   (company-coq-maybe-reload-with-timer 'company-coq-symbols-reload-needed #'company-coq-force-reload-symbols)
   (company-coq-maybe-reload-with-timer 'company-coq-modules-reload-needed #'company-coq-force-reload-modules))
-
-(defun company-coq-cons-filled (cons)
-  (and (car-safe cons) (cdr-safe cons)))
 
 (defmacro company-coq-remember-hyp (hyp-cons context)
   `(destructuring-bind (name . type-lines) ,hyp-cons
@@ -769,7 +768,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
       (when is-load       (company-coq-dbg "company-coq-maybe-proof-input-reload-things: Touching load path"))
       (setq company-coq-symbols-reload-needed (or company-coq-symbols-reload-needed is-retracting is-import))
       (setq company-coq-modules-reload-needed (or company-coq-modules-reload-needed is-import is-load))
-      (when is-retracting (company-coq-maybe-reload-context nil)))))
+      (when is-retracting (company-coq-maybe-reload-context t)))))
 
 (defun company-coq-in-coq-mode ()
   (or (derived-mode-p 'coq-mode)
@@ -851,10 +850,19 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (and (company-coq-get-anchor name)
        (format "C-h: Quick docs")))
 
-(defun company-coq-meta-context (name)
-  (company-coq-dbg "company-coq-meta-context: Called for name %s" name)
+(defun company-coq-meta-simple (name)
+  (company-coq-dbg "company-coq-meta-simple: Called for name %s" name)
   (company-coq-truncate-to-minibuf
    (get-text-property 0 'meta name)))
+
+(defun company-coq-location-simple (name)
+  (company-coq-dbg "company-coq-location-simple: Called for name %s" name)
+  (let ((fname (get-text-property 0 'location name)))
+    (when (and fname (file-exists-p fname))
+      (with-current-buffer (company-coq-prepare-doc-buffer)
+        (insert-file-contents fname)
+        (coq-mode)
+        `(,(current-buffer) . 0)))))
 
 (defun company-coq-get-pg-buffer ()
   (get-buffer "*goals*"))
@@ -894,7 +902,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
         (remove-overlays)
         (erase-buffer)))
     (company-coq-display-in-pg-window doc-buffer nil)
-    doc-buffer))
+    doc-buffer)) ;;TODO make doc buffer read only
 
 (defun company-coq-make-title-line ()
   (let ((overlay (make-overlay (point-at-bol) (+ 1 (point-at-eol))))) ;; +1 to cover the full line
@@ -1098,7 +1106,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
     (`require-match 'never)))
 
 (defun company-coq-context (command &optional arg &rest ignored)
-  "A company-mode backend for Coq keywords."
+  "A company-mode backend for identifiers grabbed from the current proof context."
   (interactive (list 'interactive))
   (company-coq-dbg "context backend: called with command %s" command)
   (pcase command
@@ -1108,7 +1116,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
     (`sorted t)
     (`duplicates nil)
     (`ignore-case nil)
-    (`meta (company-coq-meta-context arg))
+    (`meta (company-coq-meta-simple arg))
     (`no-cache t)
     ;; (`match (company-coq-match arg))
     (`annotation (company-coq-annotation-context arg))
@@ -1128,6 +1136,8 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
     (`sorted t)
     (`duplicates nil)
     (`ignore-case nil)
+    (`meta (company-coq-meta-simple arg))
+    (`location (company-coq-location-simple arg))
     (`no-cache t)
     (`match (company-coq-match arg))
     (`require-match 'never)))
