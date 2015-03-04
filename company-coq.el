@@ -672,7 +672,7 @@ search term and a qualifier."
            (completions  (list (company-coq-complete-module-from-atoms module-atoms nil physical-path))))
       (while path-atoms
         (push (company-coq-complete-module-from-atoms
-                                 module-atoms path-atoms physical-path)
+               module-atoms path-atoms physical-path)
               completions)
         (setq path-atoms (cdr path-atoms)))
       (apply #'append completions))))
@@ -682,7 +682,7 @@ search term and a qualifier."
         (completions nil))
     (mapc (lambda (path-spec)
             (push (company-coq-complete-module-from-path-spec
-                                     module-atoms path-spec)
+                   module-atoms path-spec)
                   completions))
           company-coq-known-path-specs)
     (apply #'company-coq-union-sort
@@ -705,39 +705,39 @@ search term and a qualifier."
   (company-coq-maybe-reload-with-timer 'company-coq-symbols-reload-needed #'company-coq-force-reload-symbols)
   (company-coq-maybe-reload-with-timer 'company-coq-modules-reload-needed #'company-coq-force-reload-modules))
 
-(defmacro company-coq-parse-goals-line (context current-hyp line)
-  `(progn
-     (if (string-match company-coq-goals-hyp-regexp ,line)
-         (progn (message "New hyp: %s" ,line)
-                (if ,current-hyp
-                    (setq ,context (push ,current-hyp ,context)))
-                (setq ,current-hyp
-                      (cons (match-string 1 ,line) (company-coq-trim (match-string 2 ,line)))))
-       (when ,current-hyp
-         (setcdr ,current-hyp (concat (cdr ,current-hyp) " " (company-coq-trim ,line)))))))
+(defun company-coq-cons-filled (cons)
+  (and (car-safe cons) (cdr-safe cons)))
 
-(defun company-coq-properties-from-alist-rev (alist)
-  (let ((propertized-list nil))
-    (while alist
-      (setq propertized-list (push (propertize (caar alist) 'meta (cdar alist)) propertized-list))
-      (setq alist (cdr alist)))
-    propertized-list))
+(defmacro company-coq-remember-hyp (hyp-cons context)
+  `(destructuring-bind (name . type-lines) ,hyp-cons
+     (when (and name type-lines)
+       ;; (message "New hyp: [%s . [%s]]" name type-lines)
+       (let ((type (mapconcat #'company-coq-trim (nreverse type-lines) " ")))
+         (push (propertize name 'meta type) ,context)))))
+
+(defun company-coq-parse-goal-lines (goal-lines)
+ (cl-loop for     line
+          in      goal-lines
+          with    context  = nil
+          with    current-hyp = `(nil . nil)
+          while   (not (string-match-p company-coq-goals-line-regexp line))
+          if      (string-match company-coq-goals-hyp-regexp line)
+          do      (company-coq-remember-hyp current-hyp context)
+          and do  (setq current-hyp `(,(match-string 1 line) . ,(list (match-string 2 line))))
+          else do (push line (cdr current-hyp))
+          finally (company-coq-remember-hyp current-hyp context)
+          finally return context))
 
 (defun company-coq-maybe-reload-context (&optional end-of-proof)
   "Updates company-coq-current-context."
   (if end-of-proof
-      (setq company-coq-current-context nil)
+      (progn (company-coq-dbg "company-coq-maybe-reload-context: Clearing context")
+             (setq company-coq-current-context nil))
     (when (boundp 'proof-shell-last-goals-output)
-      (let* ((goal-lines          (company-coq-split-lines proof-shell-last-goals-output))
-             (context             nil)
-             (current-hyp         nil))
-        (cl-loop for line in goal-lines
-                 while (not (string-match-p company-coq-goals-line-regexp line))
-                 do (company-coq-parse-goals-line context current-hyp line))
-        (when current-hyp
-          (setq context (push current-hyp context)))
-        (when context
-          (setq company-coq-current-context (company-coq-properties-from-alist-rev context)))))))
+      (company-coq-dbg "company-coq-maybe-reload-context: Reloading context")
+      (let* ((goal-lines (company-coq-split-lines proof-shell-last-goals-output))
+             (context    (company-coq-parse-goal-lines goal-lines)))
+        (setq company-coq-current-context context)))))
 
 (defun company-coq-maybe-proof-output-reload-things ()
   "Updates company-coq-symbols-reload-needed if a proof just
