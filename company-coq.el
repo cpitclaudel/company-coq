@@ -39,6 +39,9 @@
 ;; * Documentation for (most) tactics and commands, with excerpts from the
 ;;   manual shown directly in Emacs.
 ;;
+;; * Auto-completion theorem names from the same buffer, with inline
+;;   documentation.
+;;
 ;; Advanced features (requires a patched version of `coqtop`)
 ;; ==========================================================
 ;;
@@ -382,7 +385,7 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
     (company-coq-reload-buffer-defuns)))
 
 (defun company-coq-reload-buffer-defuns (&optional start end)
-  (interactive) ;; FIXME should timeout after some time
+  (interactive) ;; FIXME should timeout after some time, and should accumulate search results
   (setq start (or start (point-min)))
   (setq end   (or end   (point)))
   (let ((search-fold-case nil)
