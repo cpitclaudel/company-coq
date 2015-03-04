@@ -34,6 +34,8 @@
 ;;
 ;; * Auto-completion of module names in [Import] commands.
 ;;
+;; * Auto-completion of identifiers in proof contexts.
+;;
 ;; * Documentation for (most) tactics and commands, with excerpts from the
 ;;   manual shown directly in Emacs.
 ;;
@@ -151,6 +153,11 @@
 
 (defconst company-coq-goals-line-regexp (concat "\\`  ============================[= ]*\\'")
   "Regexp used to find hypotheses in goals output")
+
+(defconst company-coq-path-part-regexp  "\\([^ ]+\\)")
+(defconst company-coq-path-begin-regexp (concat "\\`"   company-coq-path-part-regexp " +\\'"))
+(defconst company-coq-path-end-regexp   (concat "\\` +" company-coq-path-part-regexp   "\\'"))
+(defconst company-coq-path-full-regexp  (concat "\\`"   company-coq-path-part-regexp " +" company-coq-path-part-regexp "\\'"))
 
 (defun company-coq-all-symbols-prelude ()
   "Command to run before listing all symbols, using a patched version of Coq"
@@ -356,12 +363,22 @@
       (goto-char command-begin)
       (looking-at " *\\(Require\\)\\|\\(Import\\)\\|\\(Export\\) *"))))
 
-(defun company-coq-parse-path-spec (loadpath-line)
-  "Parse a line of output from company-coq-modules-cmd, returning a pair of paths (logical . physical)"
-  ;; FIXME: Print LoadPath splits its output on two lines when a path is too
-  ;; long. Such output is currently discarded
-  (when (string-match "\\`\\([^ ]+\\) +\\(.+\\)\\'" loadpath-line)
-    (cons (match-string 1 loadpath-line) (match-string 2 loadpath-line))))
+(defun company-coq-parse-path-specs (loadpath-lines)
+  "Parse lines of output from company-coq-modules-cmd. Output is
+a list of pairs of paths in the form (LOGICAL . PHYSICAL)"
+  ;; (message "Path specs: discarding %s" current-spec)))
+  (cl-loop for     line
+           in      loadpath-lines
+           with    current-spec = `(nil . nil)
+           if      (string-match company-coq-path-begin-regexp line)
+           do      (setcar current-spec (match-string 1 line))
+           else if (string-match company-coq-path-end-regexp line)
+           do      (setcdr current-spec (match-string 1 line))
+           else if (string-match company-coq-path-full-regexp line)
+           do      (setq current-spec `(,(match-string 1 line) . ,(match-string 2 line)))
+           when    (and (car-safe current-spec) (cdr-safe current-spec))
+           collect current-spec
+           and do  (setq current-spec `(nil . nil))))
 
 (defun company-coq-get-path-specs ()
   "Load modules by issuing command company-coq-modules-cmd and parsing the results. Do not call if proof process is busy."
@@ -370,8 +387,7 @@
     (let* ((time       (current-time))
            (output     (company-coq-ask-prover company-coq-modules-cmd))
            (lines      (cdr-safe (company-coq-split-lines output)))
-           (path-specs (mapcar #'company-coq-parse-path-spec lines))
-           (path-specs (cl-remove-if-not #'identity path-specs)))
+           (path-specs (company-coq-parse-path-specs lines)))
       (message "Loaded %d modules paths (%.03f seconds)" (length path-specs) (float-time (time-since time)))
       path-specs)))
 
