@@ -473,7 +473,7 @@ a list of pairs of paths in the form (LOGICAL . PHYSICAL)"
     (while merged
       (let ((top (pop merged)))
         (unless (and prev (funcall test top prev))
-          (setq deduped (push top deduped)))
+          (push top deduped))
         (setq prev top)))
     deduped))
 
@@ -671,9 +671,9 @@ search term and a qualifier."
     (let* ((path-atoms   (company-coq-split-logical-path logical-path))
            (completions  (list (company-coq-complete-module-from-atoms module-atoms nil physical-path))))
       (while path-atoms
-        (setq completions (push (company-coq-complete-module-from-atoms
+        (push (company-coq-complete-module-from-atoms
                                  module-atoms path-atoms physical-path)
-                                completions))
+              completions)
         (setq path-atoms (cdr path-atoms)))
       (apply #'append completions))))
 
@@ -681,9 +681,9 @@ search term and a qualifier."
   (let ((module-atoms (company-coq-split-logical-path module))
         (completions nil))
     (mapc (lambda (path-spec)
-            (setq completions (push (company-coq-complete-module-from-path-spec
+            (push (company-coq-complete-module-from-path-spec
                                      module-atoms path-spec)
-                                    completions)))
+                  completions))
           company-coq-known-path-specs)
     (apply #'company-coq-union-sort
            #'string-equal #'string-lessp completions)))
