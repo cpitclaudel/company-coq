@@ -96,12 +96,16 @@
   "Debug mode for company-coq."
   :group 'company-coq)
 
-(defcustom company-coq-autocomplete-symbols nil
+(defcustom company-coq-autocomplete-symbols-dynamic nil
   "Autocomplete theorem names by periodically querying coq about defined identifiers. This is an experimental feature. It requires a patched version of Coq to work properly; it will be very slow otherwise."
   :group 'company-coq)
 
 (defcustom company-coq-autocomplete-modules t
   "Autocomplete module names by periodically querying coq about the current load path. This is an experimental feature."
+  :group 'company-coq)
+
+(defcustom company-coq-autocomplete-symbols t
+  "Autocomplete symbols by searching in the buffer for lemmas and theorems. If company-coq-autocomplete-symbols-dynamic is non-nil, query the proof assistant instead of searching."
   :group 'company-coq)
 
 (defcustom company-coq-fast nil
@@ -138,8 +142,11 @@ prefix."
   "Indicates whether a reload of all modules might be needed. This variable is
   set from places where immediate reloading is impossible, for example in proof-shell-insert-hook")
 
-(defvar company-coq-defined-symbols nil
+(defvar company-coq-dynamic-symbols nil
   "Keeps track of defined symbols.")
+
+(defvar company-coq-buffer-defuns nil
+  "Keeps track of buffer symbols, based on regexp searches")
 
 (defvar company-coq-current-context nil
   "Keeps track of the context while proofs are ongoing.")
@@ -168,6 +175,11 @@ prefix."
 (defconst company-coq-path-begin-regexp (concat "\\`"   company-coq-path-part-regexp " +\\'"))
 (defconst company-coq-path-end-regexp   (concat "\\` +" company-coq-path-part-regexp   "\\'"))
 (defconst company-coq-path-full-regexp  (concat "\\`"   company-coq-path-part-regexp " +" company-coq-path-part-regexp "\\'"))
+
+(defconst company-coq-defuns-regexp (concat "^[[:space:]]*" (regexp-opt '("Theorem" "Lemma" "Ltac" "Fact"))
+                                            "[[:space:]]+\\(" company-coq-name-regexp-base "+\\)")
+  "Regexp used to locate symbol definitions in the current buffer.
+This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
 
 (defun company-coq-all-symbols-prelude ()
   "Command to run before listing all symbols, using a patched version of Coq"
@@ -359,13 +371,27 @@ prefix."
 (defun company-coq-force-reload-symbols ()
   (interactive)
   (company-coq-force-reload-with-prover 'company-coq-symbols-reload-needed
-                                        'company-coq-defined-symbols
+                                        'company-coq-dynamic-symbols
                                         #'company-coq-get-symbols))
 
-(defun company-coq-init-symbols ()
+(defun company-coq-init-symbols-or-defuns ()
   (interactive)
-  (company-coq-dbg "company-coq-init-symbols: Loading symbols (if never loaded)")
-  (company-coq-init-db 'company-coq-defined-symbols 'company-coq-force-reload-symbols))
+  (company-coq-dbg "company-coq-init-symbols-or-defuns: Loading symbols (if never loaded)")
+  (if company-coq-autocomplete-symbols-dynamic
+      (company-coq-init-db 'company-coq-dynamic-symbols 'company-coq-force-reload-symbols)
+    (company-coq-reload-buffer-defuns)))
+
+(defun company-coq-reload-buffer-defuns (&optional start end)
+  (interactive) ;; FIXME should timeout after some time
+  (setq start (or start (point-min)))
+  (setq end   (or end   (point)))
+  (let ((search-fold-case nil)
+        (symbols          nil))
+    (save-excursion
+      (goto-char start)
+      (while (search-forward-regexp company-coq-defuns-regexp end t)
+        (push (match-string-no-properties 1) symbols)))
+    (setq company-coq-buffer-defuns symbols)))
 
 (defun company-coq-line-is-import-p ()
   (save-excursion
@@ -568,13 +594,18 @@ a list of pairs of paths in the form (LOGICAL . PHYSICAL)"
      (lambda (completion) (company-coq-propertize-match completion 0 prefix-len))
      (all-completions prefix completions))))
 
-(defun company-coq-complete-symbol (prefix)
-  "List elements of company-coq-defined-symbols containing PREFIX"
+(defun company-coq-symbols-or-defuns ()
+  (if (and company-coq-autocomplete-symbols-dynamic (company-coq-in-scripting-mode))
+      company-coq-dynamic-symbols ;; Use actual symbols iff it's enabled and scripting mode is on
+    company-coq-buffer-defuns))
+
+(defun company-coq-complete-symbol-or-defun (prefix)
+  "List elements of company-coq-dynamic-symbols or company-coq-buffer-defuns containing PREFIX"
   (interactive)
-  (company-coq-complete-prefix-substring prefix company-coq-defined-symbols))
+  (company-coq-complete-prefix-substring prefix (company-coq-symbols-or-defuns)))
 
 (defun company-coq-complete-keyword (prefix)
-  "List elements of company-coq-defined-symbols starting with PREFIX"
+  "List elements of company-coq-known-keywords starting with PREFIX"
   (interactive)
   (company-coq-complete-prefix prefix company-coq-known-keywords))
 
@@ -796,9 +827,10 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
 (defun company-coq-prefix-symbol ()
   (interactive)
   (company-coq-dbg "company-coq-prefix-symbol: Called")
-  (when (and (company-coq-in-coq-mode) (company-coq-in-scripting-mode))
+  (when (company-coq-in-coq-mode)
     (company-coq-grab-prefix)))
 
+;; TODO merge with above
 (defun company-coq-prefix-keyword ()
   (interactive)
   (company-coq-dbg "company-coq-prefix-keyword: Called")
@@ -995,8 +1027,8 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
 (defun company-coq-candidates-symbols ()
   (interactive)
   (company-coq-dbg "company-coq-symbols-candidates: Called")
-  (when (company-coq-init-symbols)
-    (company-coq-complete-symbol (company-coq-prefix-symbol))))
+  (when (company-coq-init-symbols-or-defuns)
+    (company-coq-complete-symbol-or-defun (company-coq-prefix-symbol))))
 
 (defun company-coq-candidates-keywords ()
   (interactive)
@@ -1180,20 +1212,24 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
     (add-hook 'proof-shell-handle-error-or-interrupt-hook ;; (lambda () (message "ERROR OR INTERRUPT")))
               'company-coq-maybe-reload-context)
     ;; (add-hook 'proof-state-change-hook (lambda () (message "STATE CHANGE")))
+
     ;; General save hook
     (add-hook 'after-save-hook
               'company-coq-maybe-reload-things nil t)
-    ;; Company modules backend
+
+    ;; Modules backend
     (when company-coq-autocomplete-modules
       (add-to-list 'company-coq-backends #'company-coq-modules t))
-    ;; Company symbols backend
+
     (when company-coq-autocomplete-symbols
-      (add-to-list 'company-coq-backends #'company-coq-symbols t)
-      (when (not company-coq-fast)
-        (message "Warning: Symbols autocompletion is an
-        experimental feature. Performance won't be good unless
-        you use a patched coqtop. If you do, set company-coq-fast
-        to true.")))))
+      (add-to-list 'company-coq-backends #'company-coq-symbols t))
+
+    ;; Symbols backend
+    (when (and company-coq-autocomplete-symbols-dynamic (not company-coq-fast))
+          (message "Warning: Symbols autocompletion is an
+          experimental feature. Performance won't be good unless
+          you use a patched coqtop. If you do, set
+          company-coq-fast to true."))))
 
 ;;;###autoload
 (defun company-coq-initialize ()
