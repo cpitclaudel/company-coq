@@ -116,8 +116,15 @@
   "List of backends to use for completion."
   :group 'company-coq)
 
-(defcustom company-coq-sorted-backends '(company-math-symbols-unicode company-coq-modules company-coq-context company-coq-keywords company-coq-symbols)
-  "List of all, listed in the order in which you want the results displayed. Note that the first backend that returns a prefix superseeds all the others; they all must work with the same prefix."
+(defcustom company-coq-sorted-backends '(company-math-symbols-unicode
+                                         company-coq-modules
+                                         company-coq-context
+                                         company-coq-keywords
+                                         company-coq-symbols)
+  "List of all, listed in the order in which you want the results
+displayed. Note that the first backend that returns a prefix
+superseeds all the others; they all must work with the same
+prefix."
   :group 'company-coq)
 
 (defvar company-coq-asking-question nil
