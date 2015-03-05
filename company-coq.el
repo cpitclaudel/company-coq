@@ -392,7 +392,7 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
   (interactive) ;; FIXME should timeout after some time, and should accumulate search results
   (setq start (or start (point-min)))
   (setq end   (or end   (point-at-bol)))
-  (let ((search-fold-case nil)
+  (let ((case-fold-search nil)
         (symbols          nil))
     (save-excursion
       (goto-char start)
@@ -837,16 +837,9 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
       (when (looking-back company-coq-prefix-regexp (point-at-bol) t)
         (match-string-no-properties 0)))))
 
-(defun company-coq-prefix-symbol ()
+(defun company-coq-prefix-simple ()
   (interactive)
-  (company-coq-dbg "company-coq-prefix-symbol: Called")
-  (when (company-coq-in-coq-mode)
-    (company-coq-grab-prefix)))
-
-;; TODO merge with above
-(defun company-coq-prefix-keyword ()
-  (interactive)
-  (company-coq-dbg "company-coq-prefix-keyword: Called")
+  (company-coq-dbg "company-coq-prefix-simple: Called")
   (when (company-coq-in-coq-mode)
     (company-coq-grab-prefix)))
 
@@ -1041,18 +1034,18 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (interactive)
   (company-coq-dbg "company-coq-symbols-candidates: Called")
   (when (company-coq-init-symbols-or-defuns)
-    (company-coq-complete-symbol-or-defun (company-coq-prefix-symbol))))
+    (company-coq-complete-symbol-or-defun (company-coq-prefix-simple))))
 
 (defun company-coq-candidates-keywords ()
   (interactive)
   (company-coq-dbg "company-coq-symbols-candidates: Called")
   (when (company-coq-init-keywords)
-    (company-coq-complete-keyword (company-coq-prefix-keyword))))
+    (company-coq-complete-keyword (company-coq-prefix-simple))))
 
 (defun company-coq-candidates-context ()
   (interactive)
   (company-coq-dbg "company-coq-symbols-candidates: Called")
-  (company-coq-complete-context (company-coq-prefix-symbol)))
+  (company-coq-complete-context (company-coq-prefix-simple)))
 
 (defun company-coq-candidates-modules ()
   (interactive)
@@ -1123,7 +1116,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (company-coq-dbg "symbols backend: called with command %s" command)
   (pcase command
     (`interactive (company-begin-backend 'company-coq-symbols))
-    (`prefix (company-coq-prefix-symbol))
+    (`prefix (company-coq-prefix-simple))
     (`candidates (cons :async (lambda (callback) (funcall callback (company-coq-candidates-symbols)))))
     (`sorted t)
     (`duplicates nil)
@@ -1142,7 +1135,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (company-coq-dbg "keywords backend: called with command %s" command)
   (pcase command
     (`interactive (company-begin-backend 'company-coq-keywords))
-    (`prefix (company-coq-prefix-keyword))
+    (`prefix (company-coq-prefix-simple))
     (`candidates (cons :async (lambda (callback) (funcall callback (company-coq-candidates-keywords)))))
     (`sorted t)
     (`duplicates nil)
@@ -1163,7 +1156,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (company-coq-dbg "context backend: called with command %s" command)
   (pcase command
     (`interactive (company-begin-backend 'company-coq-context))
-    (`prefix (company-coq-prefix-symbol))
+    (`prefix (company-coq-prefix-simple))
     (`candidates (cons :async (lambda (callback) (funcall callback (company-coq-candidates-context)))))
     (`sorted t)
     (`duplicates nil)
