@@ -229,6 +229,9 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
 (defconst company-coq-end-of-def-regexp "is \\(defined\\|assumed\\)"
   "Regexp used to detect signs that new definitions have been added to the context")
 
+(defconst company-coq-abort-proof-regexp "Current goals? aborted"
+  "Regexp used to detect signs that new definitions have been added to the context")
+
 (defconst company-coq-import-regexp "\\(Require\\)\\|\\(Import\\)"
   "Regexp used to detect signs that new definitions will be added to the context")
 
@@ -373,9 +376,10 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
 
 (defun company-coq-force-reload-symbols ()
   (interactive)
-  (company-coq-force-reload-with-prover 'company-coq-symbols-reload-needed
-                                        'company-coq-dynamic-symbols
-                                        #'company-coq-get-symbols))
+  (when company-coq-autocomplete-symbols-dynamic
+    (company-coq-force-reload-with-prover 'company-coq-symbols-reload-needed
+                                          'company-coq-dynamic-symbols
+                                          #'company-coq-get-symbols)))
 
 (defun company-coq-init-symbols-or-defuns ()
   (interactive)
@@ -387,7 +391,7 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
 (defun company-coq-reload-buffer-defuns (&optional start end)
   (interactive) ;; FIXME should timeout after some time, and should accumulate search results
   (setq start (or start (point-min)))
-  (setq end   (or end   (point)))
+  (setq end   (or end   (point-at-bol)))
   (let ((search-fold-case nil)
         (symbols          nil))
     (save-excursion
@@ -735,6 +739,10 @@ search term and a qualifier."
   "Checks whether the output of the last command matches company-coq-end-of-def-regexp"
   (company-coq-boundp-string-match company-coq-end-of-def-regexp 'proof-shell-last-output))
 
+(defun company-coq-shell-output-proof-aborted ()
+  "Checks whether the output of the last command matches company-coq-end-of-def-regexp"
+  (company-coq-boundp-string-match company-coq-abort-proof-regexp 'proof-shell-last-output))
+
 (defun company-coq-shell-output-is-end-of-proof ()
   "Checks whether proof-general signaled a finished proof"
   (company-coq-value-or-nil 'proof-shell-proof-completed))
@@ -787,12 +795,14 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (company-coq-dbg "company-coq-maybe-proof-output-reload-things: Reloading symbols (maybe)")
   (unless company-coq-asking-question
     (let ((is-end-of-def    (company-coq-shell-output-is-end-of-def))
-          (is-end-of-proof  (company-coq-shell-output-is-end-of-proof)))
+          (is-end-of-proof  (company-coq-shell-output-is-end-of-proof))
+          (is-aborted       (company-coq-shell-output-proof-aborted)))
       (when is-end-of-proof (company-coq-dbg "company-coq-maybe-proof-output-reload-things: At end of proof"))
       (when is-end-of-def   (company-coq-dbg "company-coq-maybe-proof-output-reload-things: At end of definition"))
+      (when is-aborted      (company-coq-dbg "company-coq-maybe-proof-output-reload-things: Proof aborted"))
       (setq company-coq-symbols-reload-needed
             (or company-coq-symbols-reload-needed is-end-of-def is-end-of-proof))
-      (company-coq-maybe-reload-context (or is-end-of-def is-end-of-proof))
+      (company-coq-maybe-reload-context (or is-end-of-def is-end-of-proof is-aborted))
       (company-coq-maybe-reload-things))))
 
 (defun company-coq-maybe-proof-input-reload-things ()
@@ -889,8 +899,8 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
 
 (defun company-coq-meta-keyword (name)
   (company-coq-dbg "company-coq-meta-keyword: Called for name %s" name)
-  (and (company-coq-get-anchor name)
-       (format "C-h: Quick docs")))
+  (and (company-coq-get-anchor name) ;; substitute-command-keys doesn't work here
+       "C-h: Quick docs. C-w: Full docs (scrollable)."))
 
 (defun company-coq-meta-simple (name)
   (company-coq-dbg "company-coq-meta-simple: Called for name %s" name)
