@@ -1117,7 +1117,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (pcase command
     (`interactive (company-begin-backend 'company-coq-symbols))
     (`prefix (company-coq-prefix-simple))
-    (`candidates (cons :async (lambda (callback) (funcall callback (company-coq-candidates-symbols)))))
+    (`candidates (company-coq-candidates-symbols))
     (`sorted t)
     (`duplicates nil)
     (`ignore-case nil)
@@ -1136,7 +1136,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (pcase command
     (`interactive (company-begin-backend 'company-coq-keywords))
     (`prefix (company-coq-prefix-simple))
-    (`candidates (cons :async (lambda (callback) (funcall callback (company-coq-candidates-keywords)))))
+    (`candidates (company-coq-candidates-keywords))
     (`sorted t)
     (`duplicates nil)
     (`ignore-case nil)
@@ -1157,7 +1157,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (pcase command
     (`interactive (company-begin-backend 'company-coq-context))
     (`prefix (company-coq-prefix-simple))
-    (`candidates (cons :async (lambda (callback) (funcall callback (company-coq-candidates-context)))))
+    (`candidates (company-coq-candidates-context))
     (`sorted t)
     (`duplicates nil)
     (`ignore-case nil)
@@ -1177,7 +1177,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (pcase command
     (`interactive (company-begin-backend 'company-coq-modules))
     (`prefix (company-coq-prefix-module)) ;; FIXME Completion at beginning of hole
-    (`candidates (cons :async (lambda (callback) (funcall callback (company-coq-candidates-modules)))))
+    (`candidates (company-coq-candidates-modules))
     (`sorted t)
     (`duplicates nil)
     (`ignore-case nil)
