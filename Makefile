@@ -34,7 +34,8 @@ sandbox: clean-sandbox package
 		--eval "(add-to-list 'package-archives '(\"gnu\" . \"http://elpa.gnu.org/packages/\") t)" \
 		--eval "(add-to-list 'package-archives '(\"melpa\" . \"http://melpa.org/packages/\") t)" \
 		--eval "(package-refresh-contents)" \
-		--eval "(package-initialize)"
+		--eval "(package-initialize)" \
+		--eval "(package-install-file \"build/$(PKG).tar\")"
 
 clean-sandbox:
 	rm -rf $(SANDBOX)
