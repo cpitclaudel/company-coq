@@ -172,6 +172,30 @@ def format_hole(kwd):
     placeholder = "@{{{}}}".format(kwd)
     return placeholder if kwd != 'str' else '"' + placeholder + '"'
 
+DOTS_RE = re.compile(r"([^ ].+[^ ]) *((.*[^ ])?) *\.\.\. *\2 *\1")
+
+def replace_dots_re(s):
+    while DOTS_RE.search(s):
+        s = DOTS_RE.sub(pluralize_re, s)
+    return s
+
+def pluralize_re(match):
+    pattern, sep = match.group(1), match.group(2)
+
+    pattern = replace_dots_re(pattern)
+    sep = sep.replace(' ', '')
+
+    nb_ids = len(ID_RE.findall(pattern))
+
+    if nb_ids == 0:
+        return None
+    elif nb_ids == 1:
+        indicator = '+'
+    else:
+        indicator = '&'
+
+    return ID_RE.sub(r'@{\1' + sep + indicator + '}', pattern)
+
 def pluralize(sep_ident):
     if len(sep_ident) == 0 or len(sep_ident) > 2:
         raise ConversionError
@@ -191,52 +215,6 @@ def pluralize(sep_ident):
         indicator = '&'
 
     return ID_RE.sub(r'@{\1' + sep + indicator + '}', ident)
-
-def find_all(s, pattern):
-    indices = []
-    pos = -1
-    while True:
-        pos = s.find(pattern, pos + 1)
-        if pos >= 0:
-            indices.append(pos)
-        else:
-            break
-    return indices
-
-def find_largest_symmetric(s, left_end, right_start, parts):
-    if left_end is not None and right_start is not None:
-        for sep_len in range(-left_end, 0):
-            left_start, right_end = left_end + sep_len, right_start - sep_len
-            # print([s[left_start:left_end], s[right_start:right_end]])
-            if s[right_start:right_end] == s[left_start:left_end]:
-                parts.append(s[right_start:right_end])
-                return left_start, right_end
-    return None, None
-
-def replace_dot_pattern(s, pivot, pivot_pos, transform):
-    # Looking for a pattern line cccc(AABB...BBAA)dddd
-    left_end, right_start = pivot_pos, pivot_pos + len(pivot)
-
-    parts = []
-    left_end, right_start = find_largest_symmetric(s, left_end, right_start, parts)
-    new_left_end, new_right_start = find_largest_symmetric(s, left_end, right_start, parts)
-
-    replacement = transform(parts)
-    if replacement == None:
-        return s, False
-    s = s[:new_left_end or left_end] + replacement + s[new_right_start or right_start:]
-    return s, True
-
-def replace_dot_patterns(s, pivot, transform):
-    while pivot in s:
-        for pivot_pos in find_all(s, pivot):
-            s, success = replace_dot_pattern(s, pivot, pivot_pos, transform)
-            if success:
-                break
-        else:
-            print("Invalid dots pattern:", s)
-            raise ConversionError
-    return s
 
 def get_arg_variants(abbrev):
     if OPTION_RE.search(abbrev):
@@ -260,9 +238,9 @@ def cleanup_abbrev(abbrev):
     return abbrev
 
 def postprocess_abbrev(abbrev):
-    abbrev = re.sub(r' *, *@{ldots} *, *', ' , ... , ', abbrev)
+    # abbrev = re.sub(r' *, *@{ldots} *, *', ' , ... , ', abbrev)
     abbrev = re.sub(r' *@{ldots} *', ' ... ', abbrev)
-    abbrev = replace_dot_patterns(abbrev, '...', pluralize) #TODO
+    abbrev = replace_dots_re(abbrev)
     abbrevs = get_arg_variants(abbrev)
     abbrevs = tuple(map(cleanup_abbrev, abbrevs))
     abbrevs = tuple(chain(*(get_set_variants(abbrev) for abbrev in abbrevs)))
