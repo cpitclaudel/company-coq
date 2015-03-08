@@ -13,7 +13,7 @@ elc:
 clean-elc:
 	rm -rf *.elc
 
-package:
+package: clean-package
 	$(eval PKG := company-coq-$(shell sed -n -e 's/.*"\(.*\)".*/\1/' -e 3p company-coq-pkg.el))
 	mkdir -p build/$(PKG)
 	cp -R *.el refman build/$(PKG)
