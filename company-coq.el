@@ -188,9 +188,8 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
   "Command to run before listing all symbols, using a patched version of Coq"
   (when company-coq-fast "Set Search Minimal"))
 
-(defun company-coq-all-symbols-cmd ()
-  "Command used to list all symbols."
-  (if company-coq-fast "SearchAny" "SearchPattern _"))
+(defconst company-coq-all-symbols-cmd "SearchPattern _"
+  "Command used to list all symbols.")
 
 (defun company-coq-all-symbols-coda ()
   "Command to run after listing all symbols, using a patched version of Coq"
@@ -364,7 +363,7 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
   (with-temp-message "company-coq: Loading symbols..."
     (let* ((time           (current-time))
            (_              (company-coq-ask-prover (company-coq-all-symbols-prelude)))
-           (output         (company-coq-ask-prover (company-coq-all-symbols-cmd)))
+           (output         (company-coq-ask-prover company-coq-all-symbols-cmd))
            (_              (company-coq-ask-prover (company-coq-all-symbols-coda)))
            (lines          (company-coq-split-lines output))
            (line-filter    (company-coq-all-symbols-filter-line))
