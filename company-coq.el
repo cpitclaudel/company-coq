@@ -84,6 +84,7 @@
 (require 'company)
 (require 'company-math)
 (require 'cl-lib)
+(require 'outline)
 (require 'yasnippet)
 
 (require 'company-coq-abbrev)
@@ -103,6 +104,10 @@
   "Autocomplete theorem names by periodically querying coq about defined identifiers. This is an experimental feature. It requires a patched version of Coq to work properly; it will be very slow otherwise."
   :group 'company-coq)
 
+(defcustom company-coq-autocomplete-context t
+  "Autocomplete hypotheses by parsing the latest Goals output. This is an experimental feature."
+  :group 'company-coq)
+
 (defcustom company-coq-autocomplete-modules t
   "Autocomplete module names by periodically querying coq about the current load path. This is an experimental feature."
   :group 'company-coq)
@@ -119,7 +124,7 @@
   "Show holes using explicit placeholders"
   :group 'company-coq)
 
-(defcustom company-coq-backends '(company-math-symbols-unicode company-coq-context company-coq-keywords)
+(defcustom company-coq-backends '(company-math-symbols-unicode company-coq-keywords)
   "List of backends to use for completion."
   :group 'company-coq)
 
@@ -1107,6 +1112,64 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
               (funcall insert-fun))
           (yas-expand-snippet snippet start end))))))
 
+(defun company-coq-goto-occurence (&optional _event)
+  (interactive)
+  (let ((pos (occur-mode-find-occurrence)))
+    (switch-to-buffer (marker-buffer pos))
+    (goto-char pos)
+    (kill-buffer "*Occur*")))
+
+(defconst company-coq-outline-kwds '("Chapter" "Corrolary" "Definition"
+                                   "Fact" "Fixpoint" "Function" "Goal"
+                                   "Lemma" "Let" "Ltac" "Module" "Record"
+                                   "Remark" "Section" "Theorem")
+  "Keywords used in outline mode and in company-coq-occur")
+
+(defconst company-coq-outline-regexp (concat ;; "\\("
+                                             ;; "\\(\r\\|\n\\|\\`\\)" ;; Require must be after newline or at beginning of file
+                                             ;; (regexp-opt '("Require" "Import" "Export"
+                                             ;;              "Require Import" "Require Export"))
+                                             ;; "\\)\\|\\("
+                                             "[ \t]*" (regexp-opt company-coq-outline-kwds))
+  "Regexp used to locate headings")
+
+(defun company-coq-outline-level ()
+  "Function used to determine the current outline level"
+  0)
+
+(defconst company-coq-outline-heading-end-regexp "\\.[ \t\n]\\|\n"
+  "Regexp used to locate the end of a heading")
+
+(defun company-coq-occur ()
+  (interactive)
+  (let ((same-window-regexps '("\*Occur\*")))
+    (occur (concat "^" company-coq-outline-regexp))
+    (with-current-buffer "*Occur*"
+      (let ((local-map (copy-keymap (current-local-map))))
+        (substitute-key-definition #'occur-mode-goto-occurrence #'company-coq-goto-occurence local-map)
+        (substitute-key-definition #'occur-mode-mouse-goto #'company-coq-goto-occurence local-map)
+        (use-local-map local-map)))))
+
+;; TODO this could work better by using information from show-paren-data-function
+
+(defun company-coq-cant-fold-unfold ()
+  (save-excursion
+    (condition-case nil
+        (progn (outline-back-to-heading) nil)
+      ('error t))))
+
+(defun company-coq-fold ()
+  (interactive)
+  (if (or (eq last-command #'company-coq-fold) (company-coq-cant-fold-unfold))
+      (hide-body)
+    (hide-subtree)))
+
+(defun company-coq-unfold ()
+  (interactive)
+  (if (or (eq last-command #'company-coq-unfold) (company-coq-cant-fold-unfold))
+      (show-all)
+    (show-subtree)))
+
 ;; TODO completion at end of full symbol
 
 (defun company-coq-symbols (command &optional arg &rest ignored)
@@ -1207,34 +1270,45 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
                                                     #'company-coq-string-lessp-foldcase)))
                    backends-alist))))
 
-(defun company-coq-init-symbols-completion () ;; NOTE: This could be made callable at the beginning of every completion.
-  (when (or company-coq-autocomplete-symbols company-coq-autocomplete-modules)
-    ;; PG hooks
-    (add-hook 'proof-shell-insert-hook ;; (lambda () (message "INSERT")))
-              'company-coq-maybe-proof-input-reload-things)
-    (add-hook 'proof-shell-handle-delayed-output-hook ;; (lambda () (message "DELAYED OUTPUT")))
-              'company-coq-maybe-proof-output-reload-things)
-    (add-hook 'proof-shell-handle-error-or-interrupt-hook ;; (lambda () (message "ERROR OR INTERRUPT")))
-              'company-coq-maybe-reload-context)
-    ;; (add-hook 'proof-state-change-hook (lambda () (message "STATE CHANGE")))
+(defun company-coq-setup-hooks () ;; NOTE: This could be made callable at the beginning of every completion.
+  ;; PG hooks
+  (add-hook 'proof-shell-insert-hook ;; (lambda () (message "INSERT")))
+            'company-coq-maybe-proof-input-reload-things)
+  (add-hook 'proof-shell-handle-delayed-output-hook ;; (lambda () (message "DELAYED OUTPUT")))
+            'company-coq-maybe-proof-output-reload-things)
+  (add-hook 'proof-shell-handle-error-or-interrupt-hook ;; (lambda () (message "ERROR OR INTERRUPT")))
+            'company-coq-maybe-reload-context)
+  ;; (add-hook 'proof-state-change-hook (lambda () (message "STATE CHANGE")))
 
-    ;; General save hook
-    (add-hook 'after-save-hook
-              'company-coq-maybe-reload-things nil t)
+  ;; General save hook
+  (add-hook 'after-save-hook
+            'company-coq-maybe-reload-things nil t))
 
-    ;; Modules backend
-    (when company-coq-autocomplete-modules
-      (add-to-list 'company-coq-backends #'company-coq-modules t))
+(defun company-coq-setup-optional-backends ()
+  (when company-coq-autocomplete-context
+    (add-to-list 'company-coq-backends #'company-coq-context t))
 
-    (when company-coq-autocomplete-symbols
-      (add-to-list 'company-coq-backends #'company-coq-symbols t))
+  (when company-coq-autocomplete-modules
+    (add-to-list 'company-coq-backends #'company-coq-modules t))
 
-    ;; Symbols backend
-    (when (and company-coq-autocomplete-symbols-dynamic (not company-coq-fast))
-          (message "Warning: Symbols autocompletion is an
-          experimental feature. Performance won't be good unless
-          you use a patched coqtop. If you do, set
-          company-coq-fast to true."))))
+  (when company-coq-autocomplete-symbols
+    (add-to-list 'company-coq-backends #'company-coq-symbols t))
+
+  ;; Symbols backend
+  (when (and company-coq-autocomplete-symbols-dynamic (not company-coq-fast))
+    (message "Warning: Symbols autocompletion is an experimental
+    feature. Performance won't be good unless you use a patched
+    coqtop. If you do, set company-coq-fast to true.")))
+
+(defun company-coq-setup-keybindings ()
+  ;; Bind C-RET to company's autocompletion
+  (if (and (boundp 'proof-mode-map) (fboundp 'proof-script-complete))
+      (substitute-key-definition #'proof-script-complete #'company-manual-begin proof-mode-map)
+    (local-set-key [\C-return] #'company-manual-begin))
+
+  (local-set-key (kbd "C-c C-/") #'company-coq-fold)
+  (local-set-key (kbd "C-c C-\\") #'company-coq-unfold)
+  (local-set-key (kbd "C-c C-,") #'company-coq-occur))
 
 ;;;###autoload
 (defun company-coq-initialize ()
@@ -1245,24 +1319,31 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   ;; Enable relevant minor modes
   (company-mode 1)
   (yas-minor-mode 1)
+  (outline-minor-mode 1)
 
   ;; Set a few company settings
   (set (make-local-variable 'company-idle-delay) 0)
   (set (make-local-variable 'company-tooltip-align-annotations) t)
   (set (make-local-variable 'company-abort-manual-when-too-short) t)
 
-  ;; Load identifiers and register hooks
+  ;; And a few outline settings
+  (set (make-local-variable 'outline-level) #'company-coq-outline-level)
+  (set (make-local-variable 'outline-regexp) company-coq-outline-regexp)
+  (set (make-local-variable 'outline-heading-end-regexp) company-coq-outline-heading-end-regexp)
+
+  ;; Load keywords
   (company-coq-init-keywords)
-  (company-coq-init-symbols-completion)
+
+  ;; Setup hooks and extra backends
+  (company-coq-setup-hooks)
+  (company-coq-setup-optional-backends)
 
   ;; Let company know about our backends
   (add-to-list (make-local-variable 'company-backends) company-coq-backends)
   (add-to-list (make-local-variable 'company-transformers) #'company-coq-sort-in-backends-order)
 
-  ;; Bind C-RET to company's autocompletion
-  (if (and (boundp 'proof-mode-map) (fboundp 'proof-script-complete))
-      (substitute-key-definition #'proof-script-complete #'company-manual-begin proof-mode-map)
-    (local-set-key [\C-return] 'company-manual-begin)))
+  ;; Set up a few convenient key bindings
+  (company-coq-setup-keybindings))
 
 (defun company-coq-unload-function ()
   (unload-feature 'company-coq-abbrev t)
