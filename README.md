@@ -14,9 +14,9 @@ most advanced features require a patched version of coqtop.
 * Auto-completion of (most of) Coq's [tactics](img/command-completion-doc.png) and
   [commands](img/symbol-completion-doc.png), with snippets auto-extracted from the manual.
 
-* Auto-completion of module names in `Import` commands.
+* Fuzzy auto-completion of [module names](img/module-completion.png) in `Import` commands.
 
-* Auto-completion of identifiers in proof contexts.
+* Auto-completion of [identifiers](img/identifiers-completion.png) in proof contexts.
 
 * [Documentation](img/keyword-completion-doc.png) for (most) auto-completion entries, with excerpts
   from the manual shown directly in Emacs.
@@ -39,6 +39,14 @@ Advanced features (requires a patched version of `coqtop`):
 ### Auto insertion of Proof-General's templates
 
 <img src="img/lemma-completion.png" alt="Auto insertion of Proof-General's templates" />
+
+### Fuzzy autocompletion of module names
+
+<img src="img/modules-completion.png" alt="Fuzzy autocompletion of module names" />
+
+### Auto-completion of identifiers
+
+<img src="img/identifiers-completion.png" alt="Auto-completion of identifiers" />
 
 ### Unicode math symbols
 
