@@ -5,7 +5,7 @@ all: elc package
 clean: clean-elc clean-package clean-sandbox
 
 test:
-	emacs -mm large-coq-imports.v
+	emacs -mm tests.v
 
 elc:
 	emacs --batch -L . --script ~/.emacs -f batch-byte-compile *.el

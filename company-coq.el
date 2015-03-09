@@ -543,12 +543,12 @@ a list of pairs of paths in the form (LOGICAL . PHYSICAL)"
   (company-coq-dbg "company-coq-get-annotated-keywords: Called")
   (let ((pg-keywords     (remove nil (mapcar (lambda (db-entry)
                                                (apply 'company-coq-parse-keywords-pg-entry db-entry))
-                                           (company-coq-get-pg-keywords-db))))
-        (own-keywords (company-coq-number
+                                             (company-coq-get-pg-keywords-db))))
+        (own-keywords    (company-coq-number
                           (mapcar #'company-coq-parse-own-db-entry (company-coq-get-own-keywords-db))))
         (custom-keywords (mapcar #'company-coq-parse-custom-db-entry company-coq-custom-snippets)))
-     (company-coq-union-nosort
-      #'company-coq-abbrev-equal #'string-lessp #'company-coq-read-normalized-abbrev
+    (company-coq-union-nosort
+     #'company-coq-abbrev-equal #'string-lessp #'company-coq-read-normalized-abbrev
      custom-keywords own-keywords pg-keywords)))
 
 (defun company-coq-force-reload-keywords ()
@@ -1141,9 +1141,9 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
     (kill-buffer "*Occur*")))
 
 (defconst company-coq-outline-kwds '("Chapter" "Corollary" "Definition"
-                                   "Fact" "Fixpoint" "Function" "Goal"
-                                   "Lemma" "Let" "Ltac" "Module" "Record"
-                                   "Remark" "Section" "Theorem")
+                                     "Fact" "Fixpoint" "Function" "Goal"
+                                     "Lemma" "Let" "Ltac" "Module" "Record"
+                                     "Remark" "Section" "Theorem")
   "Keywords used in outline mode and in company-coq-occur")
 
 (defconst company-coq-outline-regexp (concat ;; "\\("
