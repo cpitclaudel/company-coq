@@ -552,26 +552,34 @@ a list of pairs of paths in the form (LOGICAL . PHYSICAL)"
 (defun company-coq-string-lessp-foldcase (str1 str2)
   (string-lessp (upcase str1) (upcase str2)))
 
+(defmacro company-coq-lessp-fallback (a1 a2 fallback-t &optional fallback-nil)
+  (declare (indent defun))
+  `(let ((a1 ,a1)
+         (a2 ,a2))
+     (or (and      a1  (not a2))
+         (and      a1       a2  ,fallback-t)
+         (and (not a1) (not a2) ,(or fallback-nil fallback-t)))))
+
+(defmacro company-coq-attr-lessp (symbol str1 str2 extraction cmp fallback-t &optional fallback-nil)
+  (declare (indent defun))
+  `(let ((a1 (,extraction ,cmp (get-text-property 0 ,symbol ,str1)))
+         (a2 (,extraction ,cmp (get-text-property 0 ,symbol ,str2))))
+     (company-coq-lessp-fallback a1 a2
+       ,fallback-t ,fallback-nil)))
+
 (defun company-coq-string-lessp-symbols (str1 str2)
-  (let ((mb1 (equal 0 (get-text-property 0 'match-beginning str1)))
-        (mb2 (equal 0 (get-text-property 0 'match-beginning str2))))
-    (or (and mb1 (not mb2))
-        (and (equal mb1 mb2)
-             (company-coq-string-lessp-foldcase str1 str2)))))
+  (company-coq-attr-lessp 'match-beginning str1 str2 eq 0
+    (company-coq-string-lessp-foldcase str1 str2)))
 
 (defun company-coq-string-lessp-keywords (str1 str2)
-  (let ((id1 (get-text-property 0 'num str1))
-        (id2 (get-text-property 0 'num str2))
-        (l1 (company-coq-is-lower str1))
-        (l2 (company-coq-is-lower str2)))
-    (or (and      l1  (not l2))
-        (and (not l1) (not l2) (company-coq-string-lessp-foldcase str1 str2))
-        (and      l1       l2  (or (and id1 (not id2))
-                                   (and id1 id2 (< id1 id2))
-                                   (and (equal id1 id2)
-                                        (company-coq-string-lessp-foldcase str1 str2)))))))
+  (company-coq-attr-lessp 'source str1 str2 eq 'custom
+    (company-coq-lessp-fallback (company-coq-is-lower str1) (company-coq-is-lower str2)
+      (company-coq-attr-lessp 'num str1 str2 or nil
+        (< a1 a2)
+        (company-coq-string-lessp-foldcase str1 str2))
+      (company-coq-string-lessp-foldcase str1 str2))))
 
-(defun company-coq-make-proper-list (improper-list)
+(defun company-coq-make-proper-list (improper-list) ;;TODO used?
   (let ((last-cell (last improper-list)))
     (setcdr last-cell nil)
     improper-list))
