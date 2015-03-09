@@ -136,7 +136,7 @@ Selecting a completion generally often a snippet with holes at the current point
 Loading `company-coq` also binds the following keys:
 
 * <kbd>C-c C-/</kbd> folds the current code block, or all blocs in the file if repeated.
-* <kbd>C-c C-\</kbd> unfolds the current code block, or all blocs in the file if repeated.
+* <kbd>C-c C-\\</kbd> unfolds the current code block, or all blocs in the file if repeated.
 * <kbd>C-c C-,</kbd> opens an outline of the code in a separate buffer (using `occur`).
 
 ## Advanced topics
@@ -149,15 +149,16 @@ The procedure above will give you auto-completion and documentation for tactics,
 (setq company-coq-autocomplete-symbols-dynamic t)
 ```
 
-This feature won't work well unless you build and use a [patched coq REPL](https://github.com/cpitclaudel/coq/tree/V8.4pl2-SearchAny).
+This feature won't work well unless you build and use a patched coq REPL. Users of version 8.4pl2 cal use [this branch](https://github.com/cpitclaudel/coq/tree/V8.4pl2-SearchMinimal); others can apply [this patch](https://github.com/cpitclaudel/company-coq/blob/master/SearchMinimal.patch).
 
 ### Disabling some modules
 
-Modules and symbols auto-completion can be turned off using the following lines
+Modules, context and symbols auto-completion can be turned off using the following lines
 
 ```elisp
-(setq company-coq-autocomplete-symbols nil)
 (setq company-coq-autocomplete-modules nil)
+(setq company-coq-autocomplete-context nil)
+(setq company-coq-autocomplete-symbols nil)
 ```
 
 ### Unloading `company-coq`
