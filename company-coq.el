@@ -100,6 +100,10 @@
   "Debug mode for company-coq."
   :group 'company-coq)
 
+(defcustom company-coq-custom-snippets '("Section ${1:SectionName}.\n$0\nEnd $1."
+                                         "Module ${1:ModuleName}.\n$0\nEnd $1.")
+  "Custom YAS snippets")
+
 (defcustom company-coq-autocomplete-symbols-dynamic nil
   "Autocomplete theorem names by periodically querying coq about defined identifiers. This is an experimental feature. It requires a patched version of Coq to work properly; it will be very slow otherwise."
   :group 'company-coq)
@@ -248,8 +252,12 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
 (defconst company-coq-doc-def-sep "\n---\n\n"
   "Separation line between the output of company-coq-doc-cmd and company-coq-def-cmd in the doc buffer.")
 
-(defconst company-coq-dabbrev-placeholders-regexp "#\\|@{\\([^}]+\\)}"
-  "Used to match placeholders in dabbrev definitions")
+(defconst company-coq-dabbrev-to-yas-regexp "#\\|@{\\([^}]+\\)}"
+  "Used to match replace holes in dabbrevs")
+
+(defconst company-coq-placeholder-regexp (concat company-coq-dabbrev-to-yas-regexp
+                                                 "\\|\\${\\([^}]+\\)}\\|\\$[[:digit:]]")
+  "Used to count placeholders in abbrevs")
 
 (defconst script-full-path load-file-name
   "Full path of this script")
@@ -461,12 +469,12 @@ a list of pairs of paths in the form (LOGICAL . PHYSICAL)"
 (defun company-coq-normalize-abbrev (kwd)
   (downcase
    (replace-regexp-in-string
-    "[ \\.]+\\'" ""
+    "[ .]+\\'" ""
     (replace-regexp-in-string
-     (concat " *\\(" company-coq-dabbrev-placeholders-regexp "\\) *") "#"
+     (concat " *\\(" company-coq-placeholder-regexp "\\) *") "#"
      kwd))))
 
-(defun company-coq-parse-keywords-db-entry (menuname _abbrev insert &optional _statech _kwreg insert-fun _hide)
+(defun company-coq-parse-keywords-pg-entry (menuname _abbrev insert &optional _statech _kwreg insert-fun _hide)
   (when (or insert insert-fun)
     (propertize (if insert-fun menuname insert)
                 'source 'pg
@@ -482,6 +490,12 @@ a list of pairs of paths in the form (LOGICAL . PHYSICAL)"
                 'anchor anchor
                 'insert abbrev
                 'stripped (company-coq-normalize-abbrev abbrev))))
+
+(defun company-coq-parse-custom-db-entry (abbrev)
+  (print (propertize abbrev
+              'source 'custom
+              'insert abbrev
+              'stripped (company-coq-normalize-abbrev abbrev))))
 
 (defun company-coq-abbrev-equal (a1 a2)
   (and (equal (company-coq-read-normalized-abbrev a1)
@@ -527,13 +541,15 @@ a list of pairs of paths in the form (LOGICAL . PHYSICAL)"
 
 (defun company-coq-get-annotated-keywords ()
   (company-coq-dbg "company-coq-get-annotated-keywords: Called")
-  (let ((pg-keywords  (remove nil (mapcar (lambda (db-entry) (apply 'company-coq-parse-keywords-db-entry db-entry))
+  (let ((pg-keywords     (remove nil (mapcar (lambda (db-entry)
+                                               (apply 'company-coq-parse-keywords-pg-entry db-entry))
                                            (company-coq-get-pg-keywords-db))))
         (own-keywords (company-coq-number
-                       (mapcar #'company-coq-parse-own-db-entry (company-coq-get-own-keywords-db)))))
+                          (mapcar #'company-coq-parse-own-db-entry (company-coq-get-own-keywords-db))))
+        (custom-keywords (mapcar #'company-coq-parse-custom-db-entry company-coq-custom-snippets)))
      (company-coq-union-nosort
       #'company-coq-abbrev-equal #'string-lessp #'company-coq-read-normalized-abbrev
-      own-keywords pg-keywords)))
+     custom-keywords own-keywords pg-keywords)))
 
 (defun company-coq-force-reload-keywords ()
   (company-coq-dbg "company-coq-force-reload-keywords: Called")
@@ -1076,41 +1092,32 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (get-text-property 0 'match-end completion))
 
 (defun company-coq-dabbrev-to-yas-format-marker (match)
-  (string-match company-coq-dabbrev-placeholders-regexp match)
   (let* ((start      (match-beginning 1))
          (end        (match-end       1))
          (identifier (or (and start end (substring match start end))
                          (and company-coq-explicit-placeholders "_") "")))
     (concat  "${" identifier "}")))
 
-(defun company-coq-maybe-append-hole (snippet match-num)
-  (let* ((ends-with-space  (string-match "[^\\.][[:space:]]+\\'" snippet))
-         (suffix           (if (and ends-with-space (equal 0 match-num))
-                               (company-coq-dabbrev-to-yas-format-marker "#") nil)))
-    (when suffix
-      (company-coq-dbg "Adding hole after '%s'" snippet))
-    (if suffix
-        (cons (concat snippet suffix) (+ 1 match-num))
-      (cons snippet match-num))))
-
 (defun company-coq-dabbrev-to-yas (abbrev)
-  (interactive)
-  (company-coq-dbg "company-coq-dabbrev-to-yas: Transforming %s" abbrev)
-  (let* ((match-num        0)
-         (mark-matches     (lambda (match)
-                             (setq match-num (+ match-num 1))
-                             (company-coq-dabbrev-to-yas-format-marker match)))
-         (snippet          (replace-regexp-in-string company-coq-dabbrev-placeholders-regexp mark-matches abbrev)))
-    (destructuring-bind
-        (final-snippet . match-num)
-        (company-coq-maybe-append-hole snippet match-num)
-      (put-text-property 0 (length final-snippet) 'num-holes match-num final-snippet)
-      (company-coq-dbg "company-coq-dabbrev-to-yas: transformed to %s" final-snippet)
-      final-snippet)))
+  (let* ((snippet (replace-regexp-in-string
+                   company-coq-dabbrev-to-yas-regexp
+                   #'company-coq-dabbrev-to-yas-format-marker abbrev)))
+    (company-coq-dbg "company-coq-dabbrev-to-yas: transformed to %s" snippet)
+    snippet))
+
+(defconst company-coq-abbrevs-transforms-alist '((own . company-coq-dabbrev-to-yas)
+                                                 (pg  . company-coq-dabbrev-to-yas)))
+
+(defun company-coq-abbrev-to-yas (abbrev source)
+  (company-coq-dbg "company-coq-abbrev-to-yas: Transforming %s" abbrev)
+  (let ((transform (cdr-safe (assq source company-coq-abbrevs-transforms-alist))))
+    (if transform (funcall transform abbrev)
+      abbrev)))
 
 (defun company-coq-get-snippet (candidate)
   (let* ((abbrev  (get-text-property 0 'insert candidate))
-         (snippet (and abbrev (company-coq-dabbrev-to-yas abbrev))))
+         (source  (company-coq-read-abbrev-source candidate))
+         (snippet (and abbrev (company-coq-abbrev-to-yas abbrev source))))
     snippet))
 
 (defun company-coq-post-completion-keyword (kwd)
@@ -1133,7 +1140,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
     (goto-char pos)
     (kill-buffer "*Occur*")))
 
-(defconst company-coq-outline-kwds '("Chapter" "Corrolary" "Definition"
+(defconst company-coq-outline-kwds '("Chapter" "Corollary" "Definition"
                                    "Fact" "Fixpoint" "Function" "Goal"
                                    "Lemma" "Let" "Ltac" "Module" "Record"
                                    "Remark" "Section" "Theorem")
