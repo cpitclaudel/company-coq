@@ -492,10 +492,10 @@ a list of pairs of paths in the form (LOGICAL . PHYSICAL)"
                 'stripped (company-coq-normalize-abbrev abbrev))))
 
 (defun company-coq-parse-custom-db-entry (abbrev)
-  (print (propertize abbrev
+  (propertize abbrev
               'source 'custom
               'insert abbrev
-              'stripped (company-coq-normalize-abbrev abbrev))))
+              'stripped (company-coq-normalize-abbrev abbrev)))
 
 (defun company-coq-abbrev-equal (a1 a2)
   (and (equal (company-coq-read-normalized-abbrev a1)
@@ -806,10 +806,12 @@ search term and a qualifier."
 
 (defun company-coq-maybe-reload-context (&optional end-of-proof)
   "Updates company-coq-current-context."
+  (company-coq-dbg "company-coq-maybe-reload-context: Called")
   (let* ((output        (company-coq-value-or-nil 'proof-shell-last-goals-output))
          (is-new-output (not (string-equal output company-coq-last-goals-output))))
     (cond (end-of-proof  (company-coq-dbg "company-coq-maybe-reload-context: Clearing context")
-                         (setq company-coq-current-context nil))
+                         (setq company-coq-current-context nil)
+                         (setq output nil))
           (is-new-output (company-coq-dbg "company-coq-maybe-reload-context: Reloading context")
                          (setq company-coq-current-context (company-coq-parse-goal-lines
                                                             (company-coq-split-lines output)))))
@@ -828,6 +830,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
       (when is-end-of-proof (company-coq-dbg "company-coq-maybe-proof-output-reload-things: At end of proof"))
       (when is-end-of-def   (company-coq-dbg "company-coq-maybe-proof-output-reload-things: At end of definition"))
       (when is-aborted      (company-coq-dbg "company-coq-maybe-proof-output-reload-things: Proof aborted"))
+      ;; (message "[%s] [%s] [%s]" company-coq-symbols-reload-needed is-end-of-def is-end-of-proof)
       (setq company-coq-symbols-reload-needed
             (or company-coq-symbols-reload-needed is-end-of-def is-end-of-proof))
       (company-coq-maybe-reload-context (or is-end-of-def is-end-of-proof is-aborted))
