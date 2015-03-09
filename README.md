@@ -21,6 +21,8 @@ most advanced features require a patched version of coqtop.
 * [Documentation](img/keyword-completion-doc.png) for (most) auto-completion entries, with excerpts
   from the manual shown directly in Emacs.
 
+* Interactive [proof script outline](img/outline.png) and [in-buffer folding](img/folding.png)
+
 Advanced features (requires a patched version of `coqtop`):
 
 * Auto-completion of all known [theorem and symbol names](img/symbol-completion-doc.png), with
@@ -47,6 +49,11 @@ Advanced features (requires a patched version of `coqtop`):
 ### Auto-completion of identifiers
 
 <img src="img/identifiers-completion.png" alt="Auto-completion of identifiers" />
+
+### Outline and folding
+
+<img src="img/outline.png" alt="Outline" />
+<img src="img/folding.png" alt="Folding" />
 
 ### Unicode math symbols
 
@@ -125,6 +132,12 @@ Once auto-completion has started, the following key bindings are available:
 You can customize these keybindings by editing `company-active-map`.
 
 Selecting a completion generally often a snippet with holes at the current point (`company-coq` uses `yasnippet` as the snippet backend). You can move between holes by using <kbd>&lt;tab></kbd> and <kbd>S-&lt;tab></kbd>.
+
+Loading `company-coq` also binds the following keys:
+
+* <kbd>C-c C-/</kbd> folds the current code block, or all blocs in the file if repeated.
+* <kbd>C-c C-\</kbd> unfolds the current code block, or all blocs in the file if repeated.
+* <kbd>C-c C-,</kbd> opens an outline of the code in a separate buffer (using `occur`).
 
 ## Advanced topics
 
