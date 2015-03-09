@@ -677,7 +677,7 @@ cases:
 (defun company-coq-complete-module-unqualified (search-path search-regexp)
   "Find module names matching SEARCH-REGEXP in SEARCH-PATH.
 Results are file names only, and do not include the .vo
-extension." ;; TODO include directories
+extension." ;; TODO format directories properly
   (when (file-exists-p search-path)
     (cl-loop for file in (directory-files search-path nil nil t)
              if      (or (not search-regexp) (string-match-p search-regexp file))
@@ -1330,6 +1330,13 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (local-set-key (kbd "C-c C-/") #'company-coq-fold)
   (local-set-key (kbd "C-c C-\\") #'company-coq-unfold)
   (local-set-key (kbd "C-c C-,") #'company-coq-occur))
+
+;; (defun company-coq-skip-to-end-of-block ()
+;;   (re-search-forward "\\.[[:space:]]")
+;;   (let ((block-info (funcall show-paren-data-function)))
+;;     (when block-info
+;;       (destructuring-bind (list ss se es ee _) block-info
+;;         (goto-char es)))))
 
 ;;;###autoload
 (defun company-coq-initialize ()
