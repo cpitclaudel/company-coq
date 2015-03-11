@@ -172,12 +172,16 @@ same prefix."
 (defvar company-coq-last-goals-output nil
   "If proof-shell-last-goals-output matches this, it is ignored. This prevents old goals from being reparsed.")
 
-(defconst company-coq-name-regexp-base "[a-zA-Z0-9_.!]") ;; '!' included so that patterns like [intros!] still work
+(defconst company-coq-id-regexp-base "[a-zA-Z0-9_]")
 
-(defconst company-coq-all-symbols-slow-regexp (concat "\\`\\(" company-coq-name-regexp-base "+\\):.*\\'")
+(defconst company-coq-rich-id-regexp-base "[a-zA-Z0-9_.]")
+
+(defconst company-coq-prefix-regexp-base "[a-zA-Z0-9_.!]") ;; '!' included so that patterns like [intros!] still work
+
+(defconst company-coq-all-symbols-slow-regexp (concat "\\`\\(" company-coq-rich-id-regexp-base "+\\):.*\\'")
   "Regexp used to filter out lines without symbols in output of SearchPattern")
 
-(defconst company-coq-goals-hyp-regexp (concat "\\`  \\(" company-coq-name-regexp-base "+\\) : \\(.*\\)\\'")
+(defconst company-coq-goals-hyp-regexp (concat "\\`  \\(" company-coq-id-regexp-base "+\\) : \\(.*\\)\\'")
   "Regexp used to find hypotheses in goals output")
 
 (defconst company-coq-goals-line-regexp (concat "\\`  ============================[= ]*\\'")
@@ -188,10 +192,18 @@ same prefix."
 (defconst company-coq-path-end-regexp   (concat "\\` +" company-coq-path-part-regexp   "\\'"))
 (defconst company-coq-path-full-regexp  (concat "\\`"   company-coq-path-part-regexp " +" company-coq-path-part-regexp "\\'"))
 
-(defconst company-coq-defuns-regexp (concat "^[[:space:]]*" (regexp-opt '("Theorem" "Lemma" "Ltac" "Fact"))
-                                            "[[:space:]]+\\(" company-coq-name-regexp-base "+\\)")
+(defun company-coq-make-headers-regexp (headers regexp-base)
+  (concat "^[ \t]*\\b\\(" (regexp-opt headers) "\\)"
+          "[[:space:]]+\\(" regexp-base "+\\)"))
+
+(defconst company-coq-defuns-regexp (company-coq-make-headers-regexp '("Theorem" "Lemma" "Ltac" "Fact")
+                                                                     company-coq-id-regexp-base)
   "Regexp used to locate symbol definitions in the current buffer.
 This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
+
+(defconst company-coq-block-end-regexp (company-coq-make-headers-regexp '("End")
+                                                                          company-coq-id-regexp-base)
+  "Regexp used to find section endings")
 
 (defun company-coq-all-symbols-prelude ()
   "Command to run before listing all symbols, using a patched version of Coq"
@@ -228,7 +240,7 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
 (defconst company-coq-compiled-regexp "\\.vo\\'"
   "Regexp matching the extension of compiled Coq files.")
 
-(defconst company-coq-prefix-regexp (concat company-coq-name-regexp-base "*")
+(defconst company-coq-prefix-regexp (concat company-coq-prefix-regexp-base "*")
   "Regexp used to find symbol prefixes")
 
 (defconst company-coq-undefined-regexp " not a defined object.$"
@@ -258,6 +270,31 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
 (defconst company-coq-placeholder-regexp (concat company-coq-dabbrev-to-yas-regexp
                                                  "\\|\\${\\([^}]+\\)}\\|\\$[[:digit:]]")
   "Used to count placeholders in abbrevs")
+
+(defconst company-coq-section-kwds '("Chapter" "Module" "Module Type" "Section")
+  "Keywords used in outline mode and in company-coq-occur")
+
+(defconst company-coq-outline-kwds `("Chapter" "Corollary" "Definition"
+                                     "Fact" "Fixpoint" "Function" "Goal"
+                                     "Lemma" "Let" "Ltac" "Module" "Record"
+                                     "Remark" "Section" "Theorem" ,@company-coq-section-kwds)
+  "Keywords used in outline mode and in company-coq-occur")
+
+(defconst company-coq-section-regexp (company-coq-make-headers-regexp company-coq-section-kwds
+                                                                      company-coq-id-regexp-base)
+  "Regexp used to locate the closest section opening")
+
+;; TODO: Would be nice to fold [Require Import]s together
+(defconst company-coq-outline-regexp (company-coq-make-headers-regexp company-coq-outline-kwds
+                                                                      company-coq-id-regexp-base)
+  "Regexp used to locate headings")
+
+(defun company-coq-outline-level ()
+  "Function used to determine the current outline level"
+  0)
+
+(defconst company-coq-outline-heading-end-regexp "\\.[ \t\n]\\|\n"
+  "Regexp used to locate the end of a heading")
 
 (defconst script-full-path load-file-name
   "Full path of this script")
@@ -409,7 +446,7 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
     (save-excursion
       (goto-char start)
       (while (search-forward-regexp company-coq-defuns-regexp end t)
-        (push (match-string-no-properties 1) symbols)))
+        (push (match-string-no-properties 2) symbols)))
     (setq company-coq-buffer-defuns symbols)))
 
 (defun company-coq-line-is-import-p ()
@@ -1069,19 +1106,19 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
 
 (defun company-coq-candidates-symbols ()
   (interactive)
-  (company-coq-dbg "company-coq-symbols-candidates: Called")
+  (company-coq-dbg "company-coq-candidates-symbols: Called")
   (when (company-coq-init-symbols-or-defuns)
     (company-coq-complete-symbol-or-defun (company-coq-prefix-simple))))
 
 (defun company-coq-candidates-keywords ()
   (interactive)
-  (company-coq-dbg "company-coq-symbols-candidates: Called")
+  (company-coq-dbg "company-coq-candidates-keywords: Called")
   (when (company-coq-init-keywords)
     (company-coq-complete-keyword (company-coq-prefix-simple))))
 
 (defun company-coq-candidates-context ()
   (interactive)
-  (company-coq-dbg "company-coq-symbols-candidates: Called")
+  (company-coq-dbg "company-coq-candidates-context: Called")
   (company-coq-complete-context (company-coq-prefix-simple)))
 
 (defun company-coq-candidates-modules ()
@@ -1143,31 +1180,10 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
     (goto-char pos)
     (kill-buffer "*Occur*")))
 
-(defconst company-coq-outline-kwds '("Chapter" "Corollary" "Definition"
-                                     "Fact" "Fixpoint" "Function" "Goal"
-                                     "Lemma" "Let" "Ltac" "Module" "Record"
-                                     "Remark" "Section" "Theorem")
-  "Keywords used in outline mode and in company-coq-occur")
-
-(defconst company-coq-outline-regexp (concat ;; "\\("
-                                             ;; "\\(\r\\|\n\\|\\`\\)" ;; Require must be after newline or at beginning of file
-                                             ;; (regexp-opt '("Require" "Import" "Export"
-                                             ;;              "Require Import" "Require Export"))
-                                             ;; "\\)\\|\\("
-                                             "[ \t]*" (regexp-opt company-coq-outline-kwds))
-  "Regexp used to locate headings")
-
-(defun company-coq-outline-level ()
-  "Function used to determine the current outline level"
-  0)
-
-(defconst company-coq-outline-heading-end-regexp "\\.[ \t\n]\\|\n"
-  "Regexp used to locate the end of a heading")
-
 (defun company-coq-occur ()
   (interactive)
   (let ((same-window-regexps '("\*Occur\*")))
-    (occur (concat "^" company-coq-outline-regexp))
+    (occur company-coq-outline-regexp)
     (with-current-buffer "*Occur*"
       (let ((local-map (copy-keymap (current-local-map))))
         (substitute-key-definition #'occur-mode-goto-occurrence #'company-coq-goto-occurence local-map)
