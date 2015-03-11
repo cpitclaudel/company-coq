@@ -800,15 +800,17 @@ search term and a qualifier."
       (apply #'append completions))))
 
 (defun company-coq-complete-modules (module)
-  (let ((module-atoms (company-coq-split-logical-path module))
-        (completions nil))
-    (mapc (lambda (path-spec)
-            (push (company-coq-complete-module-from-path-spec
-                   module-atoms path-spec)
-                  completions))
-          company-coq-known-path-specs)
-    (apply #'company-coq-union-sort
-           #'string-equal #'string-lessp completions)))
+  (when module
+    (let ((module-atoms (company-coq-split-logical-path module))
+          (completions nil))
+      (mapc (lambda (path-spec)
+              (push (company-coq-complete-module-from-path-spec
+                     module-atoms path-spec)
+                    completions))
+            company-coq-known-path-specs)
+      (apply #'company-coq-union-sort
+             #'string-equal #'string-lessp completions))))
+
 (defun company-coq-complete-block-end (prefix)
   "Find the closest section/chapter/... opening"
   (debug)
