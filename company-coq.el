@@ -1427,6 +1427,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   ;; Enable relevant minor modes
   (company-mode 1)
   (yas-minor-mode 1)
+  (show-paren-mode 1)
   (outline-minor-mode 1)
 
   ;; Set a few company settings
