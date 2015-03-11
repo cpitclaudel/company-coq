@@ -101,7 +101,9 @@
   :group 'company-coq)
 
 (defcustom company-coq-custom-snippets '("Section ${1:SectionName}.\n$0\nEnd $1."
-                                         "Module ${1:ModuleName}.\n$0\nEnd $1.")
+                                         "Chapter ${1:ChapterName}.\n$0\nEnd $1." ;; Commented out in RefMan-ext.v
+                                         "Module ${1:ModuleName}.\n$0\nEnd $1."
+                                         "Module Type ${1:ModuleTypeName}.\n$0\nEnd $1.")
   "Custom YAS snippets")
 
 (defcustom company-coq-autocomplete-symbols-dynamic nil
