@@ -80,12 +80,13 @@
 ;; code, we only execute their body if  we are not currently already waiting for
 ;; an answer from the prover (company-coq-asking-question).
 
-(require 'shr)
-(require 'company)
-(require 'company-math)
-(require 'cl-lib)
-(require 'outline)
-(require 'yasnippet)
+(require 'shr)          ;; HTML rendering
+(require 'company)      ;; Autocompletion
+(require 'company-math) ;; Math symbols
+(require 'cl-lib)       ;; Compatibility
+(require 'outline)      ;; Outlines
+(require 'yasnippet)    ;; Templates
+(require 'paren)        ;; Find matching block start
 
 (require 'company-coq-abbrev)
 
@@ -812,9 +813,8 @@ search term and a qualifier."
              #'string-equal #'string-lessp completions))))
 
 (defun company-coq-complete-block-end (prefix)
-  "Find the closest section/chapter/... opening"
-  (debug)
-  (when prefix
+  "Find the closest section/chapter/... opening, if it matches the prefix at point"
+  (when (and prefix (functionp show-paren-data-function))
     (save-excursion
       ;; Find matching delimiter
       (when (re-search-backward company-coq-block-end-regexp)
@@ -824,8 +824,8 @@ search term and a qualifier."
             (cl-destructuring-bind (_hb _he _tb there-end mismatch) delim-info
                 (when (and (not mismatch) there-end)
                   (goto-char there-end)
-                  (let* ((nearest-section-opening (re-search-backward company-coq-section-regexp nil t))
-                         (nearest-section-name    (match-string-no-properties 2)))
+                  (let* ((_                    (re-search-backward company-coq-section-regexp nil t))
+                         (nearest-section-name (match-string-no-properties 2)))
                     (when (and nearest-section-name
                                (equal prefix (substring nearest-section-name 0 (length prefix))))
                       (list nearest-section-name)))))))))))
@@ -1062,7 +1062,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
 
 (defun company-coq-count-holes (snippet)
   (let* ((count   0)
-         (counter (lambda (match) (setq count (+ 1 count)) ""))
+         (counter (lambda (_) (setq count (+ 1 count)) ""))
          (_       (replace-regexp-in-string company-coq-placeholder-regexp counter snippet)))
     count))
 
@@ -1330,7 +1330,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
     (`match (company-coq-match arg))
     (`require-match 'never)))
 
-(defun company-coq-block-end (command &optional arg &rest ignored)
+(defun company-coq-block-end (command &optional _arg &rest ignored)
   "A company-mode backend for the end of Sections and Chapters."
   (interactive (list 'interactive))
   (company-coq-dbg "section end backend: called with command %s" command)

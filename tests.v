@@ -469,7 +469,11 @@ Proof.
   setoid_rewrite Qclt_minus_iff.
   rewrite Qcplus_comm.
   rewrite Qcplus_assoc.
-Abort.
+  replace (- vvvvv + vvvvv) with 0.
+  
+  reflexivity.
+  ring.
+Qed.
 
 (* vvv shouldn't be available here *)
 test. (* Ideally test shouldn't be available here *)
