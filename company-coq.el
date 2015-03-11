@@ -118,6 +118,10 @@
   "Autocomplete module names by periodically querying coq about the current load path. This is an experimental feature."
   :group 'company-coq)
 
+(defcustom company-coq-autocomplete-block-end t
+  "Autocomplete the name of the last opened block. This is an experimental feature."
+  :group 'company-coq)
+
 (defcustom company-coq-autocomplete-symbols t
   "Autocomplete symbols by searching in the buffer for lemmas and theorems. If company-coq-autocomplete-symbols-dynamic is non-nil, query the proof assistant instead of searching."
   :group 'company-coq)
@@ -135,6 +139,7 @@
   :group 'company-coq)
 
 (defcustom company-coq-sorted-backends '(company-math-symbols-unicode
+                                         company-coq-block-end
                                          company-coq-modules
                                          company-coq-context
                                          company-coq-keywords
@@ -457,6 +462,9 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
            (command-begin (or (search-backward ". " bol t) bol)))
       (goto-char command-begin)
       (looking-at " *\\(Require\\)\\|\\(Import\\)\\|\\(Export\\) *"))))
+
+(defun company-coq-line-is-block-end-p ()
+  (looking-back company-coq-block-end-regexp))
 
 (defun company-coq-parse-path-specs (loadpath-lines)
   "Parse lines of output from company-coq-modules-cmd. Output is
@@ -801,6 +809,24 @@ search term and a qualifier."
           company-coq-known-path-specs)
     (apply #'company-coq-union-sort
            #'string-equal #'string-lessp completions)))
+(defun company-coq-complete-block-end (prefix)
+  "Find the closest section/chapter/... opening"
+  (debug)
+  (when prefix
+    (save-excursion
+      ;; Find matching delimiter
+      (when (re-search-backward company-coq-block-end-regexp)
+        (goto-char (+ 1 (match-beginning 1)))
+        (let ((delim-info (funcall show-paren-data-function)))
+          (when delim-info
+            (cl-destructuring-bind (_hb _he _tb there-end mismatch) delim-info
+                (when (and (not mismatch) there-end)
+                  (goto-char there-end)
+                  (let* ((nearest-section-opening (re-search-backward company-coq-section-regexp nil t))
+                         (nearest-section-name    (match-string-no-properties 2)))
+                    (when (and nearest-section-name
+                               (equal prefix (substring nearest-section-name 0 (length prefix))))
+                      (list nearest-section-name)))))))))))
 
 (defun company-coq-shell-output-is-end-of-def ()
   "Checks whether the output of the last command matches company-coq-end-of-def-regexp"
@@ -920,6 +946,12 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
              (company-coq-in-scripting-mode)
              (company-coq-line-is-import-p))
     (company-coq-grab-prefix)))
+
+(defun company-coq-prefix-block-end ()
+  (interactive)
+  (company-coq-dbg "company-coq-prefix-block-end: Called")
+  (when (company-coq-line-is-block-end-p)
+    (company-coq-prefix-simple)))
 
 (defun company-coq-documentation (name)
   (company-coq-dbg "company-coq-documentation: Called for name %s" name)
@@ -1129,6 +1161,11 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (when (company-coq-init-modules)
     (company-coq-complete-modules (company-coq-prefix-module))))
 
+(defun company-coq-candidates-block-end ()
+  (interactive)
+  (company-coq-dbg "company-coq-cadidates-block-end: Called")
+  (company-coq-complete-block-end (company-coq-prefix-block-end)))
+
 (defun company-coq-match (completion)
   (company-coq-dbg "company-coq-match: matching %s" completion)
   (get-text-property 0 'match-end completion))
@@ -1291,6 +1328,23 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
     (`match (company-coq-match arg))
     (`require-match 'never)))
 
+(defun company-coq-block-end (command &optional arg &rest ignored)
+  "A company-mode backend for the end of Sections and Chapters."
+  (interactive (list 'interactive))
+  (company-coq-dbg "section end backend: called with command %s" command)
+  (pcase command
+    (`interactive (company-begin-backend 'company-coq-block-end))
+    (`prefix (company-coq-prefix-block-end))
+    (`candidates (company-coq-candidates-block-end))
+    (`sorted t)
+    (`duplicates nil)
+    (`ignore-case nil)
+    ;; (`meta (company-coq-meta-simple arg))
+    ;; (`location (company-coq-location-simple arg))
+    ;; (`no-cache t)
+    ;; (`match (company-coq-match arg))
+    (`require-match 'never)))
+
 (defun company-coq-make-backends-alist ()
   (mapcar (lambda (backend) (cons backend ()))
           (append '(nil) company-coq-sorted-backends)))
@@ -1335,6 +1389,9 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
 
   (when company-coq-autocomplete-symbols
     (add-to-list 'company-coq-backends #'company-coq-symbols t))
+
+  (when company-coq-autocomplete-block-end
+    (add-to-list 'company-coq-backends #'company-coq-block-end t))
 
   ;; Symbols backend
   (when (and company-coq-autocomplete-symbols-dynamic (not company-coq-fast))

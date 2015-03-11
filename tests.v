@@ -1,8 +1,6 @@
 Require Import Utf8. (* Start prover *)
 Require Import Omega. (* This should autocomplete *)
 
-Sec
-
 (* Folding should work here *)
 
 Lemma TestLemma : (* This is a template *)
@@ -23,6 +21,11 @@ Proof.
   apply lt_S_n in hypothesis.
   intuition. (* This should have documentation *)  
 Qed.
+
+Section TestSectionName.
+  Section OtherSection.
+  End OtherSection. (* These names should autocomplete *)
+End TestSectionName.
 
 Check TestLemma. (* This name should autocomplete *)
 

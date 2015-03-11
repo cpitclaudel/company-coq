@@ -9,14 +9,14 @@ most advanced features require a patched version of coqtop.
 
 * Auto-completion of theorem names defined in the same buffer, with type annotations.
 
-* Easy access to [Proof-General's templates](img/lemma-completion.png) (using yasnippet)
+* Easy access to [Proof-General's templates](img/lemma-completion.png) (using yasnippet), with smart templates for sections and modules.
 
 * Auto-completion of (most of) Coq's [tactics](img/command-completion-doc.png) and
   [commands](img/symbol-completion-doc.png), with snippets auto-extracted from the manual.
 
 * Fuzzy auto-completion of [module names](img/module-completion.png) in `Import` commands.
 
-* Auto-completion of [identifiers](img/identifiers-completion.png) in proof contexts.
+* Auto-completion of [identifiers](img/identifiers-completion.png) in proof contexts, and of section and modules names.
 
 * [Documentation](img/keyword-completion-doc.png) for (most) auto-completion entries, with excerpts
   from the manual shown directly in Emacs.
