@@ -149,7 +149,7 @@ The procedure above will give you auto-completion and documentation for tactics,
 (setq company-coq-autocomplete-symbols-dynamic t)
 ```
 
-This feature won't work well unless you build and use a patched coq REPL. Users of version 8.4pl2 cal use [this branch](https://github.com/cpitclaudel/coq/tree/V8.4pl2-SearchMinimal); others can apply [this patch](https://github.com/cpitclaudel/company-coq/blob/master/SearchMinimal.patch).
+This feature won't work well unless you build and use a patched coq REPL. [This patch](https://github.com/cpitclaudel/company-coq/blob/master/SearchMinimal.patch) should work well for 8.4pl2 and pl3; [this one](https://github.com/cpitclaudel/company-coq/blob/master/SearchMinimal-trunk.patch) should work on 8.5 and trunk.
 
 ### Disabling some modules
 
