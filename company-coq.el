@@ -827,8 +827,8 @@ search term and a qualifier."
             (cl-destructuring-bind (_hb _he _tb there-end mismatch) delim-info
                 (when (and (not mismatch) there-end)
                   (goto-char there-end)
-                  (let* ((_                    (re-search-backward company-coq-section-regexp nil t))
-                         (nearest-section-name (match-string-no-properties 2)))
+                  (re-search-backward company-coq-section-regexp nil t)
+                  (let ((nearest-section-name (match-string-no-properties 2)))
                     (when (and nearest-section-name
                                (equal prefix (substring nearest-section-name 0 (length prefix))))
                       (list nearest-section-name)))))))))))
