@@ -257,6 +257,9 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
 (defconst company-coq-end-of-def-regexp "is \\(defined\\|assumed\\)"
   "Regexp used to detect signs that new definitions have been added to the context")
 
+(defconst company-coq-error-regexp "\\`Error: "
+  "Regexp used to detect errors (useful in particular to prevent reloading the modules list ater a failed import.")
+
 (defconst company-coq-abort-proof-regexp "Current goals? aborted"
   "Regexp used to detect signs that new definitions have been added to the context")
 
@@ -842,6 +845,10 @@ search term and a qualifier."
   "Checks whether proof-general signaled a finished proof"
   (company-coq-value-or-nil 'proof-shell-proof-completed))
 
+(defun company-coq-shell-output-is-error ()
+  "Checks whether proof-general signaled an error"
+  (company-coq-boundp-string-match company-coq-error-regexp 'proof-shell-last-output))
+
 (defun company-coq-maybe-reload-with-timer (tracker-symbol reload-fun)
   (when (symbol-value tracker-symbol)
     (run-with-idle-timer 0 nil reload-fun)))
@@ -889,11 +896,12 @@ search term and a qualifier."
 completed or if output mentions new symbol, then calls
 company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (interactive)
-  (company-coq-dbg "company-coq-maybe-proof-output-reload-things: Reloading symbols (maybe)")
+  (company-coq-dbg "company-coq-maybe-proof-output-reload-things: Called")
   (unless company-coq-asking-question
-    (let ((is-end-of-def    (company-coq-shell-output-is-end-of-def))
-          (is-end-of-proof  (company-coq-shell-output-is-end-of-proof))
-          (is-aborted       (company-coq-shell-output-proof-aborted)))
+    (let ((is-error         (company-coq-shell-output-is-error))
+          (is-aborted       (company-coq-shell-output-proof-aborted))
+          (is-end-of-def    (company-coq-shell-output-is-end-of-def))
+          (is-end-of-proof  (company-coq-shell-output-is-end-of-proof)))
       (when is-end-of-proof (company-coq-dbg "company-coq-maybe-proof-output-reload-things: At end of proof"))
       (when is-end-of-def   (company-coq-dbg "company-coq-maybe-proof-output-reload-things: At end of definition"))
       (when is-aborted      (company-coq-dbg "company-coq-maybe-proof-output-reload-things: Proof aborted"))
@@ -901,7 +909,8 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
       (setq company-coq-symbols-reload-needed
             (or company-coq-symbols-reload-needed is-end-of-def is-end-of-proof))
       (company-coq-maybe-reload-context (or is-end-of-def is-end-of-proof is-aborted))
-      (company-coq-maybe-reload-things))))
+      (if is-error (company-coq-dbg "Last output was an error; not reloading")
+        (company-coq-maybe-reload-things)))))
 
 (defun company-coq-maybe-proof-input-reload-things ()
   "Reload symbols if input mentions new symbols"
