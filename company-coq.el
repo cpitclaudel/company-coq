@@ -285,10 +285,11 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
 (defconst company-coq-section-kwds '("Chapter" "Module" "Module Type" "Section")
   "Keywords used in outline mode and in company-coq-occur")
 
-(defconst company-coq-outline-kwds `("Chapter" "Corollary" "Definition"
-                                     "Fact" "Fixpoint" "Function" "Goal"
-                                     "Lemma" "Let" "Ltac" "Module" "Record"
-                                     "Remark" "Section" "Theorem" ,@company-coq-section-kwds)
+
+(defconst company-coq-outline-kwds `("Chapter" "Corollary" "Definition" "Equations" "Example"
+                                     "Fact" "Fixpoint" "Function" "Goal" "Instance"
+                                     "Lemma" "Let" "Ltac" "Module"
+				     "Program" "Record" "Remark" "Section" "Theorem" ,@company-coq-section-kwds)
   "Keywords used in outline mode and in company-coq-occur")
 
 (defconst company-coq-section-regexp (company-coq-make-headers-regexp company-coq-section-kwds
