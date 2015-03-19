@@ -9,21 +9,27 @@ Lemma TestLemma : (* This is a template *)
 Proof.
   (* intros! Should works here *)
   intros number hypothesis.
-
+  
   induction number. (* number should be autocompleted here *)
   simpl in *.
   omega. (* Documentation should be available here *)
-
+  
   simpl in *.
-  Require Import Coq.NArith.NArith. (* This should be typeable using C.Na.Na *)
-
+  (* This should be typeable using:
+  Require Import C.NA.NA *)
+  Require Import Coq.NArith.NArith.
+  
   apply lt_n_S.
   apply lt_S_n in hypothesis.
   intuition. (* This should have documentation *)  
 Qed.
 
 Section TestSectionName.
+  Variable A: nat.
+
   Section OtherSection.
+    Hypothesis H: True.
+
   End OtherSection. (* These names should autocomplete *)
 End TestSectionName.
 
@@ -38,9 +44,9 @@ Qed.
 
 (* number and hypothesis shouldn't be available here *)
 
-Let A : False.
+Let AbortedLemma : False.
   apply TestLemma2. (* This should autocomplete. *)
-Defined.
+Abort.
 
 (* This should show a special menu *)
 
@@ -216,7 +222,6 @@ Require Import Arith.
 Require Import Peano_dec.
 Require Import Lt.
 Require Import Minus.
-Require Import Factorial.
 Require Import Div2.
 Require Import Between.
 Require Import Max.
@@ -476,4 +481,3 @@ Proof.
 Qed.
 
 (* vvv shouldn't be available here *)
-test. (* Ideally test shouldn't be available here *)
