@@ -17,10 +17,10 @@ Proof.
   (* This should be typeable using:
   Require Import C.NA.NA *)
   Require Import Coq.NArith.NArith.
-  
+
   apply lt_n_S.
   apply lt_S_n in hypothesis.
-  intuition. (* Typing C-c RET should exit  *)
+  intuition. (* Typing C-c C-RET after C-RET should exit  *)
 
   (* C-x n d here should single this proof out *)
 Qed.

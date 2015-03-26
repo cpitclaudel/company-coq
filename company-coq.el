@@ -87,6 +87,7 @@
 (require 'outline)      ;; Outlines
 (require 'yasnippet)    ;; Templates
 (require 'paren)        ;; Find matching block start
+(require 'smie)         ;; Move around the source code
 
 (require 'company-coq-abbrev)
 
