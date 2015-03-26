@@ -1445,25 +1445,25 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
     feature. Performance won't be good unless you use a patched
     coqtop. If you do, set company-coq-fast to true.")))
 
+(defvar company-coq-map
+  (let ((cc-map (make-sparse-keymap)))
+    (define-key cc-map (kbd "C-c C-/")    #'company-coq-fold)
+    (define-key cc-map (kbd "C-c C-\\")   #'company-coq-unfold)
+    (define-key cc-map (kbd "C-c C-,")    #'company-coq-occur)
+    (define-key cc-map (kbd "C-c C-&")    #'company-coq-grep-symbol)
+    (define-key cc-map (kbd "C-<return>") #'company-manual-begin)
+    cc-map)
+  "Keymap for company-coq keybindings")
+
+(define-minor-mode company-coq--keybindings-minor-mode
+  "Minor mode to provide company-coq keybindings."
+  t nil company-coq-map)
+
 (defun company-coq-setup-keybindings ()
-  ;; Bind C-RET to company's autocompletion
-  (if (and (boundp 'proof-mode-map) (fboundp 'proof-script-complete))
-      (substitute-key-definition #'proof-script-complete #'company-manual-begin proof-mode-map)
-    (local-set-key [\C-return] #'company-manual-begin))
-
-  (local-set-key (kbd "C-c C-/") #'company-coq-fold)
-  (local-set-key (kbd "C-c C-\\") #'company-coq-unfold)
-  (local-set-key (kbd "C-c C-,") #'company-coq-occur))
-
-;; (defun company-coq-skip-to-end-of-block ()
-;;   (re-search-forward "\\.[[:space:]]")
-;;   (let ((block-info (funcall show-paren-data-function)))
-;;     (when block-info
-;;       (destructuring-bind (list ss se es ee _) block-info
-;;         (goto-char es)))))
+  (company-coq--keybindings-minor-mode))
 
 ;;;###autoload
-(defun company-coq-initialize ()
+(defun company-coq-initialize () ;; TODO this could be a minor mode
   (interactive)
   (when (not (company-coq-in-coq-mode))
     (error "company-coq only works with coq-mode."))
@@ -1507,6 +1507,8 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
 
   (setq company-backends     (delete company-coq-backends company-backends))
   (setq company-transformers (delete #'company-coq-sort-in-backends-order company-transformers))
+
+  (company-coq--keybindings-minor-mode -1)
 
   nil)
 
