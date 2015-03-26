@@ -249,7 +249,10 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
   "Regexp matching the extension of compiled Coq files.")
 
 (defconst company-coq-prefix-regexp (concat company-coq-prefix-regexp-base "*")
-  "Regexp used to find symbol prefixes")
+  "Regexp used to find completion prefixes")
+
+(defconst company-coq-symbol-regexp (concat company-coq-rich-id-regexp-base "*")
+  "Regexp used to find symbol at point")
 
 (defconst company-coq-undefined-regexp " not a defined object.$"
   "Regexp used to detect missing documentation (useful if database becomes outdated)")
@@ -945,6 +948,13 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
       (when (looking-back company-coq-prefix-regexp (point-at-bol) t)
         (match-string-no-properties 0)))))
 
+(defun company-coq-symbol-at-point () ;; FIXME could use (coq-id-or-notation-at-point)
+  (let ((before (and (looking-back company-coq-symbol-regexp (point-at-bol) t)
+                     (match-string-no-properties 0)))
+        (after  (and (looking-at company-coq-symbol-regexp)
+                     (match-string-no-properties 0))))
+    (and before after (replace-regexp-in-string "\\`[\\.]*\\(.+?\\)[\\.]*\\'" "\\1" (concat before after)))))
+
 (defun company-coq-prefix-simple ()
   (interactive)
   (company-coq-dbg "company-coq-prefix-simple: Called")
@@ -1240,6 +1250,30 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
         (substitute-key-definition #'occur-mode-goto-occurrence #'company-coq-goto-occurence local-map)
         (substitute-key-definition #'occur-mode-mouse-goto #'company-coq-goto-occurence local-map)
         (use-local-map local-map)))))
+
+(defun company-coq-grep-symbol (regexp)
+  "Find REGEXP in the current directory and subdirectories."
+  (interactive
+   (list (cond
+          ((use-region-p)
+           (buffer-substring-no-properties (region-beginning) (region-end)))
+          (t
+           (let ((symbol (company-coq-symbol-at-point)))
+             (if (> (length symbol) 1) (regexp-quote symbol)
+               (read-from-minibuffer "Regexp to look for: ")))))))
+  (company-coq-dbg "company-coq-grep-symbol: Looking for [%s]" regexp)
+  (grep-compute-defaults)
+  (rgrep regexp "*.v" default-directory)
+  (with-current-buffer next-error-last-buffer
+    (let ((inhibit-read-only t))
+      (save-excursion ;; Prettify buffer title
+        (goto-char (point-min))
+        (when (re-search-forward "\\`[^\0]*?find.*" (point-max) t)
+          (replace-match (replace-quote (format "Searching for [%s] in [%s]\n" regexp default-directory)))
+          (goto-char (point-min))
+          (company-coq-make-title-line))))))
+
+;; TODO It would be nice to get syntax coloring in the grep buffer
 
 ;; TODO this could work better by using information from show-paren-data-function
 
