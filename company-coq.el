@@ -1459,6 +1459,12 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
     (when snippet
       (yas-exit-snippet snippet))))
 
+(defun company-coq-proof-goto-point (&rest args)
+  (interactive)
+  (when (bound-and-true-p company-mode)
+    (company-abort))
+  (apply #'proof-goto-point args))
+
 (defvar company-coq-map
   (let ((cc-map (make-sparse-keymap)))
     (define-key cc-map (kbd "C-c C-/")    #'company-coq-fold)
@@ -1467,6 +1473,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
     (define-key cc-map (kbd "C-c C-&")    #'company-coq-grep-symbol)
     (define-key cc-map (kbd "C-<return>") #'company-manual-begin)
     (define-key cc-map (kbd "SPC")        #'company-coq-maybe-exit-snippet)
+    (substitute-key-definition #'proof-goto-point #'company-coq-proof-goto-point cc-map proof-mode-map)
     cc-map)
   "Keymap for company-coq keybindings")
 
