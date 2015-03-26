@@ -1500,10 +1500,10 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
 
 (defun company-coq-unload-function ()
   (unload-feature 'company-coq-abbrev t)
-  (remove-hook 'proof-shell-insert-hook 'company-coq-maybe-proof-input-reload-things)
-  (remove-hook 'proof-shell-handle-delayed-output-hook 'company-coq-maybe-proof-output-reload-things)
-  (remove-hook 'proof-shell-handle-error-or-interrupt-hook 'company-coq-maybe-reload-context)
-  (remove-hook 'after-save-hook 'company-coq-maybe-reload-things t)
+  (remove-hook 'proof-shell-insert-hook #'company-coq-maybe-proof-input-reload-things)
+  (remove-hook 'proof-shell-handle-delayed-output-hook #'company-coq-maybe-proof-output-reload-things)
+  (remove-hook 'proof-shell-handle-error-or-interrupt-hook #'company-coq-maybe-reload-context)
+  (remove-hook 'after-save-hook #'company-coq-maybe-reload-things t)
 
   (setq company-backends     (delete company-coq-backends company-backends))
   (setq company-transformers (delete #'company-coq-sort-in-backends-order company-transformers))
