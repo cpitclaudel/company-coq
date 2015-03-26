@@ -1445,6 +1445,20 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
     feature. Performance won't be good unless you use a patched
     coqtop. If you do, set company-coq-fast to true.")))
 
+(defvar company-coq-electric-exit-characters '(?\; ?.)
+  "Characters that exist the current snippet.")
+
+;; FIXME this should only happend in the last hole, and only if not in
+;; nested parens, so as to prevent [assert true by (blah;] from
+;; exiting.
+(defun company-coq-maybe-exit-snippet ()
+  (interactive)
+  (let* ((after-exit-char (member (char-before (point)) company-coq-electric-exit-characters))
+	 (snippet         (and after-exit-char (car-safe (yas--snippets-at-point)))))
+    (self-insert-command 1)
+    (when snippet
+      (yas-exit-snippet snippet))))
+
 (defvar company-coq-map
   (let ((cc-map (make-sparse-keymap)))
     (define-key cc-map (kbd "C-c C-/")    #'company-coq-fold)
@@ -1452,6 +1466,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
     (define-key cc-map (kbd "C-c C-,")    #'company-coq-occur)
     (define-key cc-map (kbd "C-c C-&")    #'company-coq-grep-symbol)
     (define-key cc-map (kbd "C-<return>") #'company-manual-begin)
+    (define-key cc-map (kbd "SPC")        #'company-coq-maybe-exit-snippet)
     cc-map)
   "Keymap for company-coq keybindings")
 
