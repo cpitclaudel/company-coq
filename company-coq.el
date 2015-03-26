@@ -1465,15 +1465,41 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
     (company-abort))
   (apply #'proof-goto-point args))
 
+(defmacro company-coq-repeat-until-fixpoint-or-scan-error (body retform)
+  `(save-excursion
+     (condition-case nil
+         (let ((prev-point nil))
+           (while (not (equal prev-point (point)))
+             (setq prev-point (point))
+             ,body))
+       (scan-error nil))
+     ,retform))
+
+(defun company-coq-beginning-of-proof ()
+  (interactive)
+  (company-coq-repeat-until-fixpoint-or-scan-error
+   (smie-backward-sexp-command 1) (point-at-bol)))
+
+(defun company-coq-end-of-proof ()
+  (interactive)
+  (company-coq-repeat-until-fixpoint-or-scan-error
+   (smie-forward-sexp-command 1) (point-at-eol)))
+
+(defun company-coq-narrow-to-defun ()
+  (interactive)
+  (narrow-to-region (company-coq-beginning-of-proof) (company-coq-end-of-proof)))
+
 (defvar company-coq-map
   (let ((cc-map (make-sparse-keymap)))
-    (define-key cc-map (kbd "C-c C-/")    #'company-coq-fold)
-    (define-key cc-map (kbd "C-c C-\\")   #'company-coq-unfold)
-    (define-key cc-map (kbd "C-c C-,")    #'company-coq-occur)
-    (define-key cc-map (kbd "C-c C-&")    #'company-coq-grep-symbol)
-    (define-key cc-map (kbd "C-<return>") #'company-manual-begin)
-    (define-key cc-map (kbd "SPC")        #'company-coq-maybe-exit-snippet)
-    (substitute-key-definition #'proof-goto-point #'company-coq-proof-goto-point cc-map proof-mode-map)
+    (define-key cc-map (kbd "C-c C-/")          #'company-coq-fold)
+    (define-key cc-map (kbd "C-c C-\\")         #'company-coq-unfold)
+    (define-key cc-map (kbd "C-c C-,")          #'company-coq-occur)
+    (define-key cc-map (kbd "C-c C-&")          #'company-coq-grep-symbol)
+    (define-key cc-map (kbd "C-<return>")       #'company-manual-begin)
+    (define-key cc-map (kbd "SPC")              #'company-coq-maybe-exit-snippet)
+    ;; (define-key cc-map (kbd "RET")           #'company-coq-maybe-exit-snippet) ;; FIXME too invasive
+    (define-key cc-map [remap proof-goto-point] #'company-coq-proof-goto-point)
+    (define-key cc-map [remap narrow-to-defun]  #'company-coq-narrow-to-defun) ;; FIXME handle sections properly
     cc-map)
   "Keymap for company-coq keybindings")
 

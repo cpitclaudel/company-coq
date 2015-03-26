@@ -9,7 +9,6 @@ Lemma TestLemma : (* This is a template *)
 Proof.
   (* intros! Should works here *)
   intros number hypothesis.
-  
   induction number. (* number should be autocompleted here *)
   simpl in *.
   omega. (* Documentation should be available here *)
@@ -21,8 +20,13 @@ Proof.
   
   apply lt_n_S.
   apply lt_S_n in hypothesis.
-  intuition. (* This should have documentation *)  
+  intuition. (* Typing C-c RET should exit  *)
+
+  (* C-x n d here should single this proof out *)
 Qed.
+
+(* C-c C-& should lookup symbols *)
+(* C-c C-, should show an occur buffer *)
 
 Section TestSectionName.
   Variable A: nat.
@@ -36,7 +40,7 @@ End TestSectionName.
 Check TestLemma. (* This name should autocomplete *)
 
 Lemma TestLemma2 : False.
-  cutrewrite -> (False = True). (* This should be inserted with holes *)
+  cutrewrite -> (False = True). (* This should be inserted with holes. Typing ";RET" should exit the snippet. *)
   apply I.
   replace False with True by admit.
   reflexivity.
@@ -236,7 +240,6 @@ Require Import Subset.
 Require Import Logic.
 Require Import Logic_Type.
 Require Import Peano.
-Require Import Notations.
 Require Import Tactics.
 Require Import Datatypes.
 Require Import Prelude.
