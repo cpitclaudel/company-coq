@@ -1285,16 +1285,24 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
       ('error t))))
 
 (defun company-coq-fold ()
+  "Hide the body of the current proof or definition. When outside
+a proof, or when repeated, hide the body of all proofs and
+definitions."
   (interactive)
-  (if (or (eq last-command #'company-coq-fold) (company-coq-cant-fold-unfold))
-      (hide-body)
-    (hide-subtree)))
+  (when outline-minor-mode
+    (if (or (eq last-command #'company-coq-fold) (company-coq-cant-fold-unfold))
+        (hide-body)
+      (hide-subtree))))
+
+(unless (plist-member (symbol-plist 'company-coq-fold) 'disabled)
+  (put #'company-coq-fold 'disabled t))
 
 (defun company-coq-unfold ()
   (interactive)
-  (if (or (eq last-command #'company-coq-unfold) (company-coq-cant-fold-unfold))
-      (show-all)
-    (show-subtree)))
+  (when outline-minor-mode
+    (if (or (eq last-command #'company-coq-unfold) (company-coq-cant-fold-unfold))
+        (show-all)
+      (show-subtree))))
 
 ;; TODO completion at end of full symbol
 
