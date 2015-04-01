@@ -1030,7 +1030,8 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (let ((fname (get-text-property 0 'location name)))
     (when (and fname (file-exists-p fname))
       (with-current-buffer (company-coq-prepare-doc-buffer)
-        (insert-file-contents fname)
+        (let ((inhibit-read-only t))
+          (insert-file-contents fname))
         (coq-mode)
         `(,(current-buffer) . 0)))))
 
