@@ -1029,20 +1029,17 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (company-coq-dbg "company-coq-location-simple: Called for name %s" name)
   (let ((fname (get-text-property 0 'location name)))
     (when (and fname (file-exists-p fname))
-      (with-current-buffer (company-coq-prepare-doc-buffer)
-        (let ((inhibit-read-only t))
-          (insert-file-contents fname))
+      (company-coq-with-clean-doc-buffer
+        (insert-file-contents fname)
         (coq-mode)
-        `(,(current-buffer) . 0)))))
+        (cons (current-buffer) 0)))))
 
 (defun company-coq-get-pg-buffer ()
   (get-buffer "*goals*"))
 
 (defun company-coq-get-pg-window ()
   (let ((pg-buffer (company-coq-get-pg-buffer)))
-    (when pg-buffer
-      (let ((window (get-buffer-window pg-buffer)))
-        window))))
+    (and pg-buffer (get-buffer-window pg-buffer))))
 
 (defun company-coq-display-in-pg-window (buffer alist)
   ;; This always displays the buffer, unless no window is available.  This was
@@ -1052,28 +1049,22 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   ;; fixes this.
   (company-coq-dbg "Called company-coq-display-in-pg-buffer with %s %s" buffer alist)
   (let ((pg-window (company-coq-get-pg-window)))
-    (if pg-window
-        (progn
-          ;; Disable dedication; in general, the *goal* buffer isn't dedicated, and
-          ;; if it is it's not worth restoring
-          (set-window-dedicated-p pg-window nil)
-          (set-window-buffer pg-window buffer)
-          pg-window)
-      (display-buffer buffer))))
+    (when pg-window
+      (set-window-dedicated-p pg-window nil)
+      (set-window-buffer pg-window buffer))
+    (or pg-window (display-buffer buffer))))
 
-(defun company-coq-prepare-doc-buffer ()
-  (company-coq-dbg "company-prepare-doc-buffer: Called")
-  ;; Unneeded thanks to fix of company-mode. This ensured that we took control
-  ;; when emacs tried to display the doc buffer TODO should it be buffer-local?
-  ;; (add-to-list 'display-buffer-alist (cons #'company-coq-is-doc-buffer (cons
-  ;; #'company-coq-display-in-pg-buffer nil)))
-  (let ((doc-buffer (get-buffer-create "*company-documentation*")))
-    (with-current-buffer doc-buffer
-      (let ((inhibit-read-only t))
-        (remove-overlays)
-        (erase-buffer)))
-    (company-coq-display-in-pg-window doc-buffer nil)
-    doc-buffer)) ;;TODO make doc buffer read only
+(defmacro company-coq-with-clean-doc-buffer (&rest body)
+  (declare (indent defun))
+  `(progn
+     (company-coq-dbg "company-prepare-doc-buffer: Called")
+     (let ((doc-buffer (get-buffer-create "*company-documentation*")))
+       (company-coq-display-in-pg-window doc-buffer nil)
+       (with-current-buffer doc-buffer
+         (let ((inhibit-read-only t))
+           (remove-overlays)
+           (erase-buffer)
+           ,@body)))))
 
 (defun company-coq-make-title-line ()
   (let ((overlay (make-overlay (point-at-bol) (+ 1 (point-at-eol))))) ;; +1 to cover the full line
@@ -1107,13 +1098,12 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
       (let* ((fontized-name (propertize name 'font-lock-face 'company-coq-doc-i-face))
              (doc-tagline (format company-coq-doc-tagline fontized-name))
              (doc-full (concat doc-tagline "\n\n" doc company-coq-doc-def-sep def)))
-        (with-current-buffer (company-coq-prepare-doc-buffer)
-          (let ((inhibit-read-only t))
-            (insert doc-full)
-            (when (fboundp 'coq-response-mode)
-              (coq-response-mode))
-            (goto-char (point-min))
-            (company-coq-make-title-line))
+        (company-coq-with-clean-doc-buffer
+          (insert doc-full)
+          (when (fboundp 'coq-response-mode)
+            (coq-response-mode))
+          (goto-char (point-min))
+          (company-coq-make-title-line)
           (current-buffer))))))
 
 (defun company-coq-shr-tag-tt (cont)
@@ -1136,8 +1126,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
       (delete-region (point-min) (point)))))
 
 (defun company-coq-doc-keywords-put-html (html-full-path truncate)
-  (let ((inhibit-read-only t)
-        (doc (with-temp-buffer
+  (let ((doc (with-temp-buffer
                (insert-file-contents html-full-path)
                (libxml-parse-html-region (point-min) (point-max))))
         (shr-width most-positive-fixnum)
@@ -1158,7 +1147,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
            (doc-full-path  (and doc-short-path
                                 (concat (file-name-directory script-full-path) "refman/" doc-short-path))))
       (when doc-full-path
-        (with-current-buffer (company-coq-prepare-doc-buffer)
+        (company-coq-with-clean-doc-buffer
           (company-coq-doc-keywords-put-html doc-full-path truncate)
           (cons (current-buffer) (point)))))))
 
