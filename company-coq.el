@@ -822,7 +822,7 @@ search term and a qualifier."
 
 (defun company-coq-complete-block-end (prefix)
   "Find the closest section/chapter/... opening, if it matches the prefix at point"
-  (when (and prefix (functionp show-paren-data-function))
+  (when (and prefix (boundp 'show-paren-data-function) (functionp show-paren-data-function))
     (save-excursion
       ;; Find matching delimiter
       (when (re-search-backward company-coq-block-end-regexp)
