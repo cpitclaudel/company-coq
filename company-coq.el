@@ -1504,7 +1504,7 @@ definitions."
 
 (define-minor-mode company-coq--keybindings-minor-mode
   "Minor mode to provide company-coq keybindings."
-  t nil company-coq-map)
+  nil nil company-coq-map)
 
 (defun company-coq-setup-keybindings ()
   (company-coq--keybindings-minor-mode))
