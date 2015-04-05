@@ -1504,7 +1504,8 @@ definitions."
 
 (define-minor-mode company-coq--keybindings-minor-mode
   "Minor mode to provide company-coq keybindings."
-  nil nil company-coq-map)
+  :lighter nil
+  :keymap company-coq-map)
 
 (defun company-coq-setup-keybindings ()
   (company-coq--keybindings-minor-mode))
@@ -1546,7 +1547,9 @@ definitions."
   (company-coq-setup-keybindings))
 
 (defun company-coq-unload-function ()
-  (unload-feature 'company-coq-abbrev t)
+  (when (featurep 'company-coq-abbrev)
+    (unload-feature 'company-coq-abbrev t))
+
   (remove-hook 'proof-shell-insert-hook #'company-coq-maybe-proof-input-reload-things)
   (remove-hook 'proof-shell-handle-delayed-output-hook #'company-coq-maybe-proof-output-reload-things)
   (remove-hook 'proof-shell-handle-error-or-interrupt-hook #'company-coq-maybe-reload-context)
@@ -1555,7 +1558,9 @@ definitions."
   (setq company-backends     (delete company-coq-backends company-backends))
   (setq company-transformers (delete #'company-coq-sort-in-backends-order company-transformers))
 
-  (company-coq--keybindings-minor-mode -1)
+  (cl-loop for buffer in (buffer-list)
+           do (with-current-buffer buffer
+                (company-coq--keybindings-minor-mode -1)))
 
   nil)
 
