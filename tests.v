@@ -2,6 +2,7 @@ Require Import Utf8. (* Start prover *)
 Require Import Omega. (* This should autocomplete *)
 
 (* Folding should work here *)
+(* It should be possible to type "match goal with" and press enter to go to the next line *)
 
 Lemma TestLemma : (* This is a template *)
   forall number (hypothesis : number + 1 < number),
