@@ -2,7 +2,6 @@ Require Import Utf8. (* Start prover *)
 Require Import Omega. (* This should autocomplete *)
 
 (* Folding should work here *)
-(* It should be possible to type "match goal with" and press enter to go to the next line *)
 
 Lemma TestLemma : (* This is a template *)
   forall number (hypothesis : number + 1 < number),
@@ -25,6 +24,34 @@ Proof.
 
   (* C-x n d here should single this proof out *)
 Qed.
+
+Example NameContaining_with_ : True. (* Dummy Example to add a name containing "with" to the context *)
+apply I.
+Qed.
+
+Inductive AAABBB :=
+| AAA1
+| AAA2 : BBBCCC -> AAABBB
+with BBBCCC :=
+     | BBB1
+     | BBB2 : AAABBB -> BBBCCC.
+
+(* These two should appear in the outline (C-c C-,) and autocomplete *)
+
+Fixpoint TestFixpoint (l: list nat) :=
+  (* It should be possible to type "match ... with" and press enter to go to the next line *)
+  match l with
+  | nil => nil
+  | cons h t => cons h (TestCo t)
+  end
+with TestCo l :=
+  match l with
+  | nil => nil
+  | cons h t => cons h (TestFixpoint t)
+  end.
+
+(* TestFixpoint and testCo should autocomplete here *)
+
 
 (* C-c C-& should lookup symbols *)
 (* C-c C-, should show an occur buffer *)

@@ -213,7 +213,14 @@ same prefix."
   (concat "^[ \t]*\\b\\(" (regexp-opt headers) "\\)"
           "[[:space:]]+\\(" regexp-base "+\\)"))
 
-(defconst company-coq-defuns-regexp (company-coq-make-headers-regexp '("Theorem" "Lemma" "Ltac" "Fact")
+(defconst company-coq-defuns-kwds '("Class" "CoFixpoint" "CoInductive"
+                                    "Corollary" "Definition" "Example"
+                                    "Fact" "Fixpoint" "Function"
+                                    "Inductive" "Instance" "Lemma" "Let"
+                                    "Ltac" "Program"  "Program Fixpoint"
+                                    "Record" "Theorem" "with"))
+
+(defconst company-coq-defuns-regexp (company-coq-make-headers-regexp company-coq-defuns-kwds
                                                                      company-coq-id-regexp-base)
   "Regexp used to locate symbol definitions in the current buffer.
 This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
@@ -301,10 +308,8 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
   "Keywords used in outline mode and in company-coq-occur")
 
 
-(defconst company-coq-outline-kwds `("Chapter" "Corollary" "Definition" "Equations" "Example"
-                                     "Fact" "Fixpoint" "Function" "Goal" "Instance"
-                                     "Lemma" "Let" "Ltac" "Module" "Notation"
-				     "Program" "Record" "Remark" "Section" "Theorem" ,@company-coq-section-kwds)
+(defconst company-coq-outline-kwds `("Equations" "Goal" "Notation" "Remark" "Tactic Notation"
+                                     ,@company-coq-section-kwds ,@company-coq-defuns-kwds)
   "Keywords used in outline mode and in company-coq-occur")
 
 (defconst company-coq-section-regexp (company-coq-make-headers-regexp company-coq-section-kwds
