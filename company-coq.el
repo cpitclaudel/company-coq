@@ -229,6 +229,9 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
 (defconst company-coq-all-symbols-cmd "SearchPattern _"
   "Command used to list all symbols.")
 
+(defvar company-coq-extra-symbols-cmd nil
+  "Command used to list more symbols (SearchPattern _ doesn't search inside modules in 8.4).")
+
 (defun company-coq-all-symbols-coda ()
   "Command to run after listing all symbols, using a patched version of Coq"
   (when company-coq-fast "Unset Search Minimal"))
@@ -436,16 +439,19 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
   "Load symbols by issuing command company-coq-all-symbols-cmd and parsing the results. Do not call if proof process is busy."
   (interactive)
   (with-temp-message "company-coq: Loading symbols..."
-    (let* ((time           (current-time))
+    (let* ((start-time     (current-time))
            (_              (company-coq-ask-prover (company-coq-all-symbols-prelude)))
            (output         (company-coq-ask-prover company-coq-all-symbols-cmd))
+           (extras         (company-coq-ask-prover company-coq-extra-symbols-cmd))
            (_              (company-coq-ask-prover (company-coq-all-symbols-coda)))
-           (lines          (company-coq-split-lines output))
+           (half-time      (current-time))
+           (lines          (nconc (company-coq-split-lines output) (company-coq-split-lines extras)))
            (line-filter    (company-coq-all-symbols-filter-line))
            (line-extractor (company-coq-all-symbols-extract-names))
            (filtered-lines (cl-remove-if-not (lambda (line) (funcall line-filter line)) lines))
-           (names          (sort (funcall line-extractor filtered-lines) 'string<)))
-      (message "Loaded %d symbols (%.03f seconds)" (length names) (float-time (time-since time)))
+           (names          (company-coq-union-sort #'string-equal #'string-lessp (funcall line-extractor filtered-lines))))
+      (message "Loaded %d symbols (%d lines) in %.03f+%.03f seconds"
+               (length names) (length lines) (float-time (time-subtract half-time start-time)) (float-time (time-since half-time)))
       names)))
 
 (defun company-coq-force-reload-symbols ()
