@@ -136,11 +136,19 @@
   "Show holes using explicit placeholders"
   :group 'company-coq)
 
-(defcustom company-coq-backends '(company-math-symbols-unicode company-coq-keywords)
+(defcustom company-coq-backends '(company-math-symbols-unicode company-coq-reserved-keywords company-coq-keywords)
   "List of backends to use for completion."
   :group 'company-coq)
 
+(defcustom company-coq-disabled-patterns '("without loss")
+  "List of patterns that are not imported from Proof General's list."
+  :group 'company-coq)
+
+(defvar company-coq-disabled-patterns-regexp (regexp-opt company-coq-disabled-patterns)
+  "Regexp version of `company-coq-disabled-patterns'")
+
 (defcustom company-coq-sorted-backends '(company-math-symbols-unicode
+                                         company-coq-reserved-keywords
                                          company-coq-block-end
                                          company-coq-modules
                                          company-coq-context
@@ -531,7 +539,8 @@ a list of pairs of paths in the form (LOGICAL . PHYSICAL)"
      kwd))))
 
 (defun company-coq-parse-keywords-pg-entry (menuname _abbrev insert &optional _statech _kwreg insert-fun _hide)
-  (when (or insert insert-fun)
+  (when (or (and insert (not (string-match-p company-coq-disabled-patterns-regexp insert)))
+            (and (not insert) insert-fun))
     (propertize (if insert-fun menuname insert)
                 'source 'pg
                 'insert insert
@@ -837,6 +846,10 @@ search term and a qualifier."
                     (when (and nearest-section-name
                                (equal prefix (substring nearest-section-name 0 (length prefix))))
                       (list nearest-section-name)))))))))))
+
+(defun company-coq-complete-reserved (prefix)
+  (when (and (boundp 'coq-reserved) (member prefix coq-reserved))
+    (list prefix)))
 
 (defun company-coq-shell-output-is-end-of-def ()
   "Checks whether the output of the last command matches company-coq-end-of-def-regexp"
@@ -1176,8 +1189,13 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
 
 (defun company-coq-candidates-block-end ()
   (interactive)
-  (company-coq-dbg "company-coq-cadidates-block-end: Called")
+  (company-coq-dbg "company-coq-candidates-block-end: Called")
   (company-coq-complete-block-end (company-coq-prefix-block-end)))
+
+(defun company-coq-candidates-reserved ()
+  (interactive)
+  (company-coq-dbg "company-coq-candidates-reserved-keywords: Called")
+  (company-coq-complete-reserved (company-coq-prefix-simple)))
 
 (defun company-coq-match (completion)
   (company-coq-dbg "company-coq-match: matching %s" completion)
@@ -1384,10 +1402,22 @@ definitions."
     (`sorted t)
     (`duplicates nil)
     (`ignore-case nil)
-    ;; (`meta (company-coq-meta-simple arg))
-    ;; (`location (company-coq-location-simple arg))
-    ;; (`no-cache t)
-    ;; (`match (company-coq-match arg))
+    (`require-match 'never)))
+
+
+(defun company-coq-reserved-keywords (command &optional _arg &rest ignored)
+  "A company-mode backend for language keywords, to prevent completion from kicking in instead of newline."
+  (interactive (list 'interactive))
+  (company-coq-dbg "reserved keywords backend: called with command %s" command)
+  (pcase command
+    (`interactive (company-begin-backend 'company-coq-reserved-keywords))
+    (`prefix (company-coq-prefix-simple))
+    (`candidates (company-coq-candidates-reserved))
+    (`post-completion (newline 1 t))
+    (`annotation "<reserved>")
+    (`sorted t)
+    (`duplicates nil)
+    (`ignore-case nil)
     (`require-match 'never)))
 
 (defun company-coq-make-backends-alist ()
