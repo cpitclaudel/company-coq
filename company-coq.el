@@ -417,7 +417,8 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
     available))
 
 (defun company-coq-force-reload-with-prover (track-symbol store-symbol load-function)
-  (company-coq-dbg "company-coq-force-reload-from-prover: Reloading (forced)")
+  (company-coq-dbg "company-coq-force-reload-from-prover: %s %s %s"
+                   (symbol-name track-symbol) (symbol-name store-symbol) (symbol-name load-function))
   (if (not (company-coq-prover-available))
       (company-coq-dbg "company-coq-force-reload-from-prover: Reloading aborted; proof process busy")
     (set track-symbol nil)
@@ -867,14 +868,9 @@ search term and a qualifier."
   "Checks whether proof-general signaled an error"
   (company-coq-boundp-string-match company-coq-error-regexp 'proof-shell-last-output))
 
-(defun company-coq-maybe-reload-with-timer (tracker-symbol reload-fun)
-  (when (symbol-value tracker-symbol)
-    (run-with-idle-timer 0 nil reload-fun)))
-
-(defun company-coq-maybe-reload-things ()
-  (company-coq-dbg "company-coq-maybe-reload-things: Reloading symbols (maybe): %s" company-coq-symbols-reload-needed)
-  (company-coq-maybe-reload-with-timer 'company-coq-symbols-reload-needed #'company-coq-force-reload-symbols)
-  (company-coq-maybe-reload-with-timer 'company-coq-modules-reload-needed #'company-coq-force-reload-modules))
+(defun company-coq-maybe-reload-each ()
+  (when company-coq-symbols-reload-needed (company-coq-force-reload-symbols))
+  (when company-coq-modules-reload-needed (company-coq-force-reload-modules)))
 
 (defmacro company-coq-remember-hyp (hyp-cons context)
   `(destructuring-bind (name . type-lines) ,hyp-cons
@@ -924,16 +920,15 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
       (when is-end-of-def   (company-coq-dbg "company-coq-maybe-proof-output-reload-things: At end of definition"))
       (when is-aborted      (company-coq-dbg "company-coq-maybe-proof-output-reload-things: Proof aborted"))
       ;; (message "[%s] [%s] [%s]" company-coq-symbols-reload-needed is-end-of-def is-end-of-proof)
-      (setq company-coq-symbols-reload-needed
-            (or company-coq-symbols-reload-needed is-end-of-def is-end-of-proof))
+      (setq company-coq-symbols-reload-needed (or company-coq-symbols-reload-needed is-end-of-def is-end-of-proof))
       (company-coq-maybe-reload-context (or is-end-of-def is-end-of-proof is-aborted))
       (if is-error (company-coq-dbg "Last output was an error; not reloading")
-        (company-coq-maybe-reload-things)))))
+        (run-with-idle-timer 0 nil #'company-coq-maybe-reload-each)))))
 
 (defun company-coq-maybe-proof-input-reload-things ()
   "Reload symbols if input mentions new symbols"
   (interactive)
-  (company-coq-dbg "company-coq-maybe-proof-input-reload-things: Reloading symbols (maybe)")
+  (company-coq-dbg "company-coq-maybe-proof-input-reload-things: Called")
   (unless company-coq-asking-question
     (let* ((is-advancing  (company-coq-boundp-equal 'action 'proof-done-advancing))
            (is-retracting (company-coq-boundp-equal 'action 'proof-done-retracting))
@@ -1443,17 +1438,13 @@ definitions."
 
 (defun company-coq-setup-hooks () ;; NOTE: This could be made callable at the beginning of every completion.
   ;; PG hooks
+  ;; (add-hook 'proof-state-change-hook (lambda () (message "STATE CHANGE")))
   (add-hook 'proof-shell-insert-hook ;; (lambda () (message "INSERT")))
             'company-coq-maybe-proof-input-reload-things)
   (add-hook 'proof-shell-handle-delayed-output-hook ;; (lambda () (message "DELAYED OUTPUT")))
             'company-coq-maybe-proof-output-reload-things)
   (add-hook 'proof-shell-handle-error-or-interrupt-hook ;; (lambda () (message "ERROR OR INTERRUPT")))
-            'company-coq-maybe-reload-context)
-  ;; (add-hook 'proof-state-change-hook (lambda () (message "STATE CHANGE")))
-
-  ;; General save hook
-  (add-hook 'after-save-hook
-            'company-coq-maybe-reload-things nil t))
+            'company-coq-maybe-reload-context))
 
 (defun company-coq-setup-optional-backends ()
   (when company-coq-autocomplete-context
@@ -1583,7 +1574,6 @@ definitions."
   (remove-hook 'proof-shell-insert-hook #'company-coq-maybe-proof-input-reload-things)
   (remove-hook 'proof-shell-handle-delayed-output-hook #'company-coq-maybe-proof-output-reload-things)
   (remove-hook 'proof-shell-handle-error-or-interrupt-hook #'company-coq-maybe-reload-context)
-  (remove-hook 'after-save-hook #'company-coq-maybe-reload-things t)
 
   (setq company-backends     (delete company-coq-backends company-backends))
   (setq company-transformers (delete #'company-coq-sort-in-backends-order company-transformers))
