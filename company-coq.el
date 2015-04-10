@@ -153,6 +153,7 @@
                                          company-coq-modules
                                          company-coq-context
                                          company-coq-keywords
+                                         company-coq-defuns
                                          company-coq-symbols)
   "List of all backends, listed in the order in which you want
 the results displayed. Note that the first backend that returns a
@@ -213,12 +214,17 @@ same prefix."
   (concat "^[ \t]*\\b\\(" (regexp-opt headers) "\\)"
           "[[:space:]]+\\(" regexp-base "+\\)"))
 
-(defconst company-coq-defuns-kwds '("Class" "CoFixpoint" "CoInductive"
+(defconst company-coq-ltac-kwds '("Ltac"))
+
+(defconst company-coq-defuns-kwds `("Class" "CoFixpoint" "CoInductive"
                                     "Corollary" "Definition" "Example"
-                                    "Fact" "Fixpoint" "Function"
-                                    "Inductive" "Instance" "Lemma" "Let"
-                                    "Ltac" "Program"  "Program Fixpoint"
-                                    "Record" "Theorem" "with"))
+                                    "Fact" "Fixpoint" "Function" "Inductive"
+                                    "Instance" "Lemma" "Let" ,@company-coq-ltac-kwds
+                                    "Program" "Program Fixpoint" "Record" "Theorem" "with"))
+
+(defconst company-coq-ltac-regexp (company-coq-make-headers-regexp company-coq-ltac-kwds
+                                   company-coq-id-regexp-base)
+  "Regexp used to locate ltac definitions in the current buffer.")
 
 (defconst company-coq-defuns-regexp (company-coq-make-headers-regexp company-coq-defuns-kwds
                                                                      company-coq-id-regexp-base)
@@ -306,7 +312,6 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
 
 (defconst company-coq-section-kwds '("Chapter" "Module" "Module Type" "Section")
   "Keywords used in outline mode and in company-coq-occur")
-
 
 (defconst company-coq-outline-kwds `("Equations" "Goal" "Notation" "Remark" "Tactic Notation"
                                      ,@company-coq-section-kwds ,@company-coq-defuns-kwds)
@@ -466,24 +471,33 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
                                           'company-coq-dynamic-symbols
                                           #'company-coq-get-symbols)))
 
-(defun company-coq-init-symbols-or-defuns ()
+(defun company-coq-init-symbols ()
   (interactive)
-  (company-coq-dbg "company-coq-init-symbols-or-defuns: Loading symbols (if never loaded)")
-  (if company-coq-autocomplete-symbols-dynamic
-      (company-coq-init-db 'company-coq-dynamic-symbols 'company-coq-force-reload-symbols)
-    (company-coq-reload-buffer-defuns)))
+  (company-coq-dbg "company-coq-init-symbols: Loading symbols (if never loaded)")
+  (company-coq-init-db 'company-coq-dynamic-symbols 'company-coq-force-reload-symbols))
 
-(defun company-coq-reload-buffer-defuns (&optional start end)
-  (interactive) ;; FIXME should timeout after some time, and should accumulate search results
-  (setq start (or start (point-min)))
-  (setq end   (or end   (point-at-bol)))
+(defun company-coq-init-defuns ()
+  (interactive)
+  (company-coq-dbg "company-coq-init-defuns: Loading symbols from buffer")
+  (company-coq-reload-buffer-defuns))
+
+(defun company-coq-find-all (re beg end)
   (let ((case-fold-search nil)
-        (symbols          nil))
+        (matches          nil))
     (save-excursion
-      (goto-char start)
-      (while (search-forward-regexp company-coq-defuns-regexp end t)
-        (push (match-string-no-properties 2) symbols)))
-    (setq company-coq-buffer-defuns symbols)))
+      (goto-char beg)
+      (while (search-forward-regexp re end t)
+        (push (match-string-no-properties 2) matches)))
+    matches))
+
+(defun company-coq-reload-buffer-defuns ()
+  (interactive) ;; FIXME should timeout after some time, and should accumulate search results
+  (let* ((unproc-beg (proof-unprocessed-begin)))
+    (setq company-coq-buffer-defuns
+          (if (company-coq-dynamic-symbols-available)
+              (nconc (company-coq-find-all company-coq-ltac-regexp (point-min) unproc-beg)
+                     (company-coq-find-all company-coq-defuns-regexp unproc-beg (point-at-bol)))
+            (company-coq-find-all company-coq-defuns-regexp (point-min) (point-at-bol))))))
 
 (defun company-coq-line-is-import-p ()
   (save-excursion
@@ -706,15 +720,20 @@ a list of pairs of paths in the form (LOGICAL . PHYSICAL)"
      (lambda (completion) (company-coq-propertize-match completion 0 prefix-len))
      (all-completions prefix completions))))
 
-(defun company-coq-symbols-or-defuns ()
-  (if (and company-coq-autocomplete-symbols-dynamic (company-coq-in-scripting-mode))
-      company-coq-dynamic-symbols ;; Use actual symbols iff it's enabled and scripting mode is on
-    company-coq-buffer-defuns))
+(defun company-coq-dynamic-symbols-available ()
+  (and company-coq-autocomplete-symbols-dynamic (company-coq-in-scripting-mode)))
 
-(defun company-coq-complete-symbol-or-defun (prefix)
+(defun company-coq-complete-symbol (prefix)
   "List elements of company-coq-dynamic-symbols or company-coq-buffer-defuns containing PREFIX"
   (interactive)
-  (company-coq-complete-prefix-substring prefix (company-coq-symbols-or-defuns)))
+  ;; Use actual symbols iff it's enabled and scripting mode is on
+  (when (company-coq-dynamic-symbols-available)
+    (company-coq-complete-prefix-substring prefix company-coq-dynamic-symbols)))
+
+(defun company-coq-complete-defun (prefix)
+  "List elements of company-coq-dynamic-symbols or company-coq-buffer-defuns containing PREFIX"
+  (interactive)
+  (company-coq-complete-prefix-substring prefix company-coq-buffer-defuns))
 
 (defun company-coq-complete-keyword (prefix)
   "List elements of company-coq-known-keywords starting with PREFIX"
@@ -1173,8 +1192,14 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
 (defun company-coq-candidates-symbols ()
   (interactive)
   (company-coq-dbg "company-coq-candidates-symbols: Called")
-  (when (company-coq-init-symbols-or-defuns)
-    (company-coq-complete-symbol-or-defun (company-coq-prefix-simple))))
+  (when (company-coq-init-symbols)
+    (company-coq-complete-symbol (company-coq-prefix-simple))))
+
+(defun company-coq-candidates-defuns ()
+  (interactive)
+  (company-coq-dbg "company-coq-candidates-defuns: Called")
+  (when (company-coq-init-defuns)
+    (company-coq-complete-defun (company-coq-prefix-simple))))
 
 (defun company-coq-candidates-keywords ()
   (interactive)
@@ -1278,6 +1303,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
                (read-from-minibuffer "Regexp to look for: ")))))))
   (company-coq-dbg "company-coq-grep-symbol: Looking for [%s]" regexp)
   (grep-compute-defaults)
+  (message "Using regexp [%s]" regexp)
   (rgrep regexp "*.v" default-directory)
   (with-current-buffer next-error-last-buffer
     (let ((inhibit-read-only t))
@@ -1321,9 +1347,9 @@ definitions."
 ;; TODO completion at end of full symbol
 
 (defun company-coq-symbols (command &optional arg &rest ignored)
-  "A company-mode backend for known Coq symbols."
+  "A company-mode backend for dynamically known Coq symbols."
   (interactive (list 'interactive))
-  (company-coq-dbg "symbols backend: called with command %s" command)
+  (company-coq-dbg "dynamic symbols backend: called with command %s" command)
   (pcase command
     (`interactive (company-begin-backend 'company-coq-symbols))
     (`prefix (company-coq-prefix-simple))
@@ -1335,6 +1361,25 @@ definitions."
     (`no-cache t)
     (`match (company-coq-match arg))
     (`annotation "<symb>")
+    (`doc-buffer (company-coq-doc-buffer-symbols arg))
+    (`comparison-fun #'company-coq-string-lessp-symbols)
+    (`require-match 'never)))
+
+(defun company-coq-defuns (command &optional arg &rest ignored)
+  "A company-mode backend for statically known Coq symbols."
+  (interactive (list 'interactive))
+  (company-coq-dbg "static symbols backend: called with command %s" command)
+  (pcase command
+    (`interactive (company-begin-backend 'company-coq-defuns))
+    (`prefix (company-coq-prefix-simple))
+    (`candidates (company-coq-candidates-defuns))
+    (`sorted t)
+    (`duplicates nil)
+    (`ignore-case nil)
+    (`meta (company-coq-meta-symbol arg))
+    (`no-cache t)
+    (`match (company-coq-match arg))
+    (`annotation "<lsymb>")
     (`doc-buffer (company-coq-doc-buffer-symbols arg))
     (`comparison-fun #'company-coq-string-lessp-symbols)
     (`require-match 'never)))
@@ -1465,13 +1510,17 @@ definitions."
     (add-to-list 'company-coq-backends #'company-coq-modules t))
 
   (when company-coq-autocomplete-symbols
-    (add-to-list 'company-coq-backends #'company-coq-symbols t))
+    (add-to-list 'company-coq-backends #'company-coq-defuns t)
+    (when company-coq-autocomplete-symbols-dynamic
+      (add-to-list 'company-coq-backends #'company-coq-symbols t)))
 
   (when company-coq-autocomplete-block-end
     (add-to-list 'company-coq-backends #'company-coq-block-end t))
 
   ;; Symbols backend
-  (when (and company-coq-autocomplete-symbols-dynamic (not company-coq-fast))
+  (when (and company-coq-autocomplete-symbols
+             company-coq-autocomplete-symbols-dynamic
+             (not company-coq-fast))
     (message "Warning: Symbols autocompletion is an experimental
     feature. Performance won't be good unless you use a patched
     coqtop. If you do, set company-coq-fast to true.")))
@@ -1485,7 +1534,7 @@ definitions."
 (defun company-coq-maybe-exit-snippet ()
   (interactive)
   (let* ((after-exit-char (member (char-before (point)) company-coq-electric-exit-characters))
-	 (snippet         (and after-exit-char (car-safe (yas--snippets-at-point)))))
+         (snippet         (and after-exit-char (car-safe (yas--snippets-at-point)))))
     (self-insert-command 1)
     (when snippet
       (yas-exit-snippet snippet))))

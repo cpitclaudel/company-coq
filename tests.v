@@ -1,7 +1,20 @@
-Require Import Utf8. (* Start prover *)
-Require Import Omega. (* This should autocomplete *)
+Require Import Utf8.
 
-(* Folding should work here *)
+(* Global folding should work here *)
+
+Ltac TestLtac a b cde := idtac.
+
+Inductive AAABBB :=
+| AAA1
+| AAA2 : BBBCCC -> AAABBB
+with BBBCCC :=
+     | BBB1
+     | BBB2 : AAABBB -> BBBCCC.
+
+(* These should autocomplete without starting the prover and appear in the outline (C-c C-,) *)
+
+(* Start prover *)
+Require Import Omega. (* This should autocomplete *)
 
 Lemma TestLemma : (* This is a template *)
   forall number (hypothesis : number + 1 < number),
@@ -22,21 +35,12 @@ Proof.
   apply lt_S_n in hypothesis.
   intuition. (* Typing C-c C-RET after C-RET should exit  *)
 
-  (* C-x n d here should single this proof out *)
+  (* C-x n d here should single this proof out (C-x n w to exit) *)
 Qed.
 
 Example NameContaining_with_ : True. (* Dummy Example to add a name containing "with" to the context *)
 apply I.
 Qed.
-
-Inductive AAABBB :=
-| AAA1
-| AAA2 : BBBCCC -> AAABBB
-with BBBCCC :=
-     | BBB1
-     | BBB2 : AAABBB -> BBBCCC.
-
-(* These two should appear in the outline (C-c C-,) and autocomplete *)
 
 Fixpoint TestFixpoint (l: list nat) :=
   (* It should be possible to type "match ... with" and press enter to go to the next line *)
@@ -51,7 +55,6 @@ with TestCo l :=
   end.
 
 (* TestFixpoint and testCo should autocomplete here *)
-
 
 (* C-c C-& should lookup symbols *)
 (* C-c C-, should show an occur buffer *)
