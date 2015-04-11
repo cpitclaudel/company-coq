@@ -838,7 +838,7 @@ extension." ;; TODO format directories properly
 This essentially attempts to match MODULE-ATOMS to the logical
 path in PATH-SPEC, and for each matching position computes a
 search term and a qualifier."
-  (destructuring-bind (logical-path . physical-path) path-spec
+  (cl-destructuring-bind (logical-path . physical-path) path-spec
     (let* ((path-atoms   (company-coq-split-logical-path logical-path))
            (completions  (list (company-coq-complete-module-from-atoms module-atoms nil physical-path))))
       (while path-atoms
@@ -860,7 +860,7 @@ search term and a qualifier."
       (apply #'company-coq-union-sort
              #'string-equal #'string-lessp completions))))
 
-(defun company-coq-complete-block-end (prefix)
+(defun company-coq-complete-block-end (prefix) ;; FIXME: See also `coq-end-Section'
   "Find the closest section/chapter/... opening, if it matches the prefix at point"
   (when (and prefix (boundp 'show-paren-data-function) (functionp show-paren-data-function))
     (save-excursion
@@ -903,7 +903,7 @@ search term and a qualifier."
   (when company-coq-modules-reload-needed (company-coq-force-reload-modules)))
 
 (defmacro company-coq-remember-hyp (hyp-cons context)
-  `(destructuring-bind (name . type-lines) ,hyp-cons
+  `(cl-destructuring-bind (name . type-lines) ,hyp-cons
      (when (and name type-lines)
        ;; (message "New hyp: [%s . [%s]]" name type-lines)
        (let ((type (mapconcat #'company-coq-trim (nreverse type-lines) " ")))
