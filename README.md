@@ -5,6 +5,8 @@ most advanced features require a patched version of coqtop.
 
 ## Features
 
+### Completion
+
 * Auto-completion of [math symbols](img/tactic-completion-doc.png) (using company-math)
 
 * Auto-completion of theorem names defined in the same buffer, with type annotations.
@@ -18,12 +20,20 @@ most advanced features require a patched version of coqtop.
 
 * Auto-completion of [identifiers](img/identifiers-completion.png) in proof contexts, and of section and modules names.
 
+### Proof-General Extensions
+
 * [Documentation](img/keyword-completion-doc.png) for (most) auto-completion entries, with excerpts
   from the manual shown directly in Emacs.
 
 * Interactive [proof script outline](img/outline.png) and [in-buffer folding](img/folding.png)
 
-Advanced features (requires a patched version of `coqtop`):
+* Basic project search (search for instances of the word at point in neighboring files)
+
+* Interactive lemma extraction: press <kbd>C-c C-a C-e</kbd> to extract the current goal into a separate lemma.
+
+### Advanced features
+
+(These require a [patched version](https://github.com/coq/coq/pull/56) of `coqtop`)
 
 * Auto-completion of all known [theorem and symbol names](img/symbol-completion-doc.png), with
   [type annotations](img/symbol-completion.png).
@@ -138,6 +148,8 @@ Loading `company-coq` also binds the following keys:
 * <kbd>C-c C-/</kbd> folds the current code block, or all blocs in the file if repeated.
 * <kbd>C-c C-\\</kbd> unfolds the current code block, or all blocs in the file if repeated.
 * <kbd>C-c C-,</kbd> opens an outline of the code in a separate buffer (using `occur`).
+* <kbd>C-c C-&</kbd> looks up (grep) the current word in files in the current directory subtree.
+* <kbd>C-c C-a C-e</kbd> extracts the current goal into a separate lemma.
 
 ## Advanced topics
 
