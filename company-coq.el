@@ -482,13 +482,14 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
   (company-coq-reload-buffer-defuns))
 
 (defun company-coq-find-all (re beg end)
+  (when (< beg end) ;; point-at-bol may be before unproc-beg
   (let ((case-fold-search nil)
         (matches          nil))
     (save-excursion
       (goto-char beg)
       (while (search-forward-regexp re end t)
         (push (match-string-no-properties 2) matches)))
-    matches))
+      matches)))
 
 (defun company-coq-reload-buffer-defuns ()
   (interactive) ;; FIXME should timeout after some time, and should accumulate search results
