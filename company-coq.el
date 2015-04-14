@@ -282,7 +282,7 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
 (defconst company-coq-undefined-regexp " not a defined object.$"
   "Regexp used to detect missing documentation (useful if database becomes outdated)")
 
-(defconst company-coq-end-of-def-regexp "is \\(defined\\|assumed\\)"
+(defconst company-coq-end-of-def-regexp "is \\(recursively \\)?\\(defined\\|assumed\\)"
   "Regexp used to detect signs that new definitions have been added to the context")
 
 (defconst company-coq-error-regexp "\\`Error: "
