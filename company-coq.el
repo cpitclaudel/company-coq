@@ -202,8 +202,11 @@ same prefix."
 (defconst company-coq-goals-hyp-regexp (concat "\\`  \\(" company-coq-id-regexp-base "+\\) : \\(.*\\)\\'")
   "Regexp used to find hypotheses in goals output")
 
-(defconst company-coq-goals-line-regexp (concat "\\`  ============================[= ]*\\'")
+(defconst company-coq-goal-separator-line-regexp (concat "\\`  ============================[= ]*\\'")
   "Regexp used to find hypotheses in goals output")
+
+(defconst company-coq-goal-lines-regexp "\\`   "
+  "Regexp used to find goal lines in goals output")
 
 (defconst company-coq-path-part-regexp  "\\([^ ]+\\)")
 (defconst company-coq-path-begin-regexp (concat "\\`"   company-coq-path-part-regexp " +\\'"))
@@ -333,6 +336,11 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
 (defconst company-coq-outline-heading-end-regexp "\\.[ \t\n]\\|\n"
   "Regexp used to locate the end of a heading")
 
+(defconst company-coq-lemma-introduction-forms
+  '("repeat match goal with H:_ |- _ => clear H end"
+    "repeat match goal with H:_ |- _ => generalize dependent H end")
+  "Forms run after 'generalize dependent ...' to produce a lemma statement")
+
 (defconst script-full-path load-file-name
   "Full path of this script")
 
@@ -400,6 +408,18 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
 
 (defun company-coq-value-or-nil (symbol)
   (and (boundp symbol) (symbol-value symbol)))
+
+(defun company-coq-insert-indented (lines)
+  "Insert LINES into the buffer on a new line (or on the current
+line if empty). Calls `indent-region' on the inserted lines."
+  (save-excursion
+    (unless (and (equal (point-at-bol) (skip-chars-backward " \t"))
+                 (equal (point-at-eol) (skip-chars-forward " \t")))
+      (newline)))
+  (let ((beg (point-at-bol)))
+    (mapc #'insert lines)
+    (indent-region beg (point))
+    (indent-according-to-mode)))
 
 (defun company-coq-extend-path (path components)
   "Contruct a path by appending each element in COMPONENTS to PATH"
@@ -910,18 +930,36 @@ search term and a qualifier."
        (let ((type (mapconcat #'company-coq-trim (nreverse type-lines) " ")))
          (push (propertize name 'meta type) ,context)))))
 
-(defun company-coq-parse-goal-lines (goal-lines)
+(defun company-coq-extract-context (goal-lines)
  (cl-loop for     line
           in      goal-lines
           with    context  = nil
           with    current-hyp = `(nil . nil)
-          while   (not (string-match-p company-coq-goals-line-regexp line))
+          while   (not (string-match-p company-coq-goal-separator-line-regexp line))
           if      (string-match company-coq-goals-hyp-regexp line)
           do      (company-coq-remember-hyp current-hyp context)
           and do  (setq current-hyp `(,(match-string 1 line) . ,(list (match-string 2 line))))
           else do (push line (cdr current-hyp))
           finally (company-coq-remember-hyp current-hyp context)
           finally return context))
+
+(defun company-coq-extract-goal (goal-lines)
+  (while (and goal-lines (not (string-match-p company-coq-goal-separator-line-regexp (car goal-lines))))
+    (pop goal-lines))
+  (cl-loop for     line
+           in      (cdr-safe goal-lines)
+           while   (string-match-p company-coq-goal-lines-regexp line)
+           collect line))
+
+(defun company-coq-run-and-parse-context (command)
+  (let ((output (company-coq-ask-prover command)))
+    (if (or (null output) (string-match-p "^Error:" output))
+        (error (format "company-coq-parse-context: failed with message %s" output))
+      (let* ((lines   (company-coq-split-lines output))
+             (context (company-coq-extract-context lines))
+             (goal    (company-coq-extract-goal lines)))
+        (print lines)
+        (cons context goal)))))
 
 (defun company-coq-maybe-reload-context (&optional end-of-proof)
   "Updates company-coq-current-context."
@@ -932,7 +970,7 @@ search term and a qualifier."
                          (setq company-coq-current-context nil)
                          (setq output nil))
           (is-new-output (company-coq-dbg "company-coq-maybe-reload-context: Reloading context")
-                         (setq company-coq-current-context (company-coq-parse-goal-lines
+                         (setq company-coq-current-context (company-coq-extract-context
                                                             (company-coq-split-lines output)))))
     (setq company-coq-last-goals-output output)))
 
@@ -1570,6 +1608,39 @@ definitions."
   (interactive)
   (narrow-to-region (company-coq-beginning-of-proof) (company-coq-end-of-proof)))
 
+(defun company-coq-lemma-from-goal-interact ()
+  "Interactively ask for a lemma name, and hypothesis from the context."
+  (let ((hyps       nil)
+        (lemma-name "")
+        (candidates (cons "" (car-safe (company-coq-run-and-parse-context "Show")))))
+    (while (string-equal lemma-name "")
+      (setq lemma-name (read-string "Lemma name? ")))
+    (while candidates
+      (let ((hyp (completing-read "Hypothesis to keep? " candidates nil t)))
+        (if (string-equal hyp "")
+            (setq candidates nil)
+          (setq candidates (remove hyp candidates))
+          (push hyp hyps))))
+    (list lemma-name hyps)))
+
+(defun company-coq-lemma-from-goal (lemma-name hyps)
+  "Inserts a new lemma into the buffer, called LEMMA-NAME, with
+hypotheses HYPS, and everything that they depend on."
+  (interactive (company-coq-lemma-from-goal-interact))
+  (let* ((gen-cmds  (mapcar (lambda (hyp) (concat "generalize dependent " hyp)) hyps))
+         (full-cmd  (mapconcat 'identity (nconc gen-cmds company-coq-lemma-introduction-forms) ";"))
+         (ctx-goal  (company-coq-run-and-parse-context full-cmd))
+         (_         (company-coq-ask-prover "Undo 1"))
+         (lemma     (cdr ctx-goal)))
+    (message "Lemma is [%s]" lemma)
+    (message "Extracted from [%s]" ctx-goal)
+    (if lemma
+        (company-coq-insert-indented
+         `(,(concat "Lemma " lemma-name ":\n")
+           ,@(mapconcat #'identity lemma "\n")
+           ".\nProof.\n"))
+      (error "Lemma extraction failed"))))
+
 (defvar company-coq-map
   (let ((cc-map (make-sparse-keymap)))
     (define-key cc-map (kbd "C-c C-/")          #'company-coq-fold)
@@ -1577,6 +1648,7 @@ definitions."
     (define-key cc-map (kbd "C-c C-,")          #'company-coq-occur)
     (define-key cc-map (kbd "C-c C-&")          #'company-coq-grep-symbol)
     (define-key cc-map (kbd "C-<return>")       #'company-manual-begin)
+    (define-key cc-map (kbd "C-c C-a C-e")      #'company-coq-lemma-from-goal)
     (define-key cc-map (kbd "SPC")              #'company-coq-maybe-exit-snippet)
     ;; (define-key cc-map (kbd "RET")           #'company-coq-maybe-exit-snippet) ;; FIXME too invasive
     (define-key cc-map [remap proof-goto-point] #'company-coq-proof-goto-point)
