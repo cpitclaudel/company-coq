@@ -13,8 +13,10 @@ with BBBCCC :=
 
 (* Are symbols correctly prettified? *)
 
+(* Beautified: *)
 Definition PrettySymbols : (nat -> nat -> Prop) :=
-  (fun (n m: nat) => forall p, p <> n -> p >= m -> True \/ False).
+  (fun (n m: nat) =>
+     forall p, p <> n -> p >= m -> True \/ False).
 
 (* AAABBB and BBBCCC should autocomplete without starting the prover, and appear in the outline (C-c C-,) *)
 
