@@ -1,5 +1,7 @@
 SANDBOX := ./sandbox
 
+.PHONY: symbols
+
 all: elc package
 
 clean: clean-elc clean-package clean-sandbox
@@ -35,6 +37,7 @@ sandbox: clean-sandbox package
 		--eval "(add-to-list 'package-archives '(\"melpa\" . \"http://melpa.org/packages/\") t)" \
 		--eval "(package-refresh-contents)" \
 		--eval "(package-initialize)" \
+		--eval "(setq company-coq-prettify-symbols t)" \
 		--eval "(package-install-file \"build/$(PKG).tar\")"
 
 clean-sandbox:
@@ -54,3 +57,6 @@ deep-clean: clean clean-etc
 
 ack:
 	cd refman && ack "hevea_quickhelp.*" -o | cut -c -80
+
+symbols:
+	awk -F'\\s+' -v NL=$$(wc -l < etc/symbols) -f etc/symbols.awk < etc/symbols

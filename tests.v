@@ -11,7 +11,12 @@ with BBBCCC :=
      | BBB1
      | BBB2 : AAABBB -> BBBCCC.
 
-(* These should autocomplete without starting the prover and appear in the outline (C-c C-,) *)
+(* Are symbols correctly prettified? *)
+
+Definition PrettySymbols : (nat -> nat -> Prop) :=
+  (fun (n m: nat) => forall p, p <> n -> p >= m -> True \/ False).
+
+(* AAABBB and BBBCCC should autocomplete without starting the prover, and appear in the outline (C-c C-,) *)
 
 (* Start prover *)
 Require Import Omega. (* This should autocomplete *)

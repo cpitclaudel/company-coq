@@ -9,7 +9,7 @@ most advanced features require a patched version of coqtop.
 
 * Auto-completion of [math symbols](img/tactic-completion-doc.png) (using company-math)
 
-* Auto-completion of theorem names defined in the same buffer, with type annotations.
+* Auto-completion of theorems and tactics defined in the same buffer, with type annotations.
 
 * Easy access to [Proof-General's templates](img/lemma-completion.png) (using yasnippet), with smart templates for sections and modules.
 
@@ -30,6 +30,8 @@ most advanced features require a patched version of coqtop.
 * Basic project search (search for instances of the word at point in neighboring files)
 
 * Interactive lemma extraction: press <kbd>C-c C-a C-e</kbd> to extract the current goal into a separate lemma.
+
+* Extended [font beautification](img/prettify.png): keywords are automatically replaced with the corresponding symbols (`⊢⊤⊥→⇒λ∀∃∧∨¬≠⧺𝓝ℤℕℚℝ𝔹𝓟`)
 
 ### Advanced features
 
@@ -68,6 +70,10 @@ most advanced features require a patched version of coqtop.
 ### Unicode math symbols
 
 <img src="img/math-completion.png" alt="Unicode math symbols" />
+
+### Keyword beautification
+
+<img src="img/prettify.png" alt="Keyword beautification" />
 
 ### Autocompletion of symbol names (w/ patched `coqtop`, see notes)
 
@@ -123,6 +129,9 @@ Add the following to your `.emacs`
 ;; Open .v files with Proof-General's coq-mode
 (require 'proof-site)
 
+;; Transparently replace keywords by symbols (requires math fonts!)
+(setq company-coq-prettify-symbols t)
+
 ;; Load company-coq when opening Coq files
 (add-hook 'coq-mode-hook #'company-coq-initialize)
 ```
@@ -139,9 +148,7 @@ Once auto-completion has started, the following key bindings are available:
 * <kbd>C-M-v</kbd> scrolls down in the documentation window.
 * <kbd>C-w</kbd> opens the relevant section of the documentation, scrolling to the part about the currently highlighted keyword or identifier. Using <kbd>C-w</kbd> allows you scroll up (<kbd>C-M-S-v</kbd>) in the documentation window to see more context.
 
-You can customize these keybindings by editing `company-active-map`.
-
-Selecting a completion generally often a snippet with holes at the current point (`company-coq` uses `yasnippet` as the snippet backend). You can move between holes by using <kbd>&lt;tab></kbd> and <kbd>S-&lt;tab></kbd>.
+Selecting a completion often inserts a snippet with holes at the current point (`company-coq` uses `yasnippet` as the snippet backend). You can move between holes by using <kbd>&lt;tab></kbd> and <kbd>S-&lt;tab></kbd>.
 
 Loading `company-coq` also binds the following keys:
 
@@ -152,6 +159,14 @@ Loading `company-coq` also binds the following keys:
 * <kbd>C-c C-a C-e</kbd> extracts the current goal into a separate lemma.
 
 ## Advanced topics
+
+### Installing a math-enabled font
+
+For font beautification to work properly, you'll need a font with proper symbol support. DejaVu Sans Mono, Symbola, FreeMono, STIX, Unifont, Segoe UI Symbol, Arial Unicode and Cambria Math do. If Emacs doesn't fallback properly, you can use the following snippet:
+
+```elisp
+(set-fontset-font "fontset-default" 'unicode (font-spec :name "Symbola") nil)
+```
 
 ### Autocompleting symbols
 
@@ -173,6 +188,8 @@ Modules, context and symbols auto-completion can be turned off using the followi
 (setq company-coq-autocomplete-symbols nil)
 ```
 
+You can set these variables using `M-x customize-group RET company-coq RET
+
 ### Unloading `company-coq`
 
 `M-x unload-feature RET company-coq RET` should work fine.
@@ -184,15 +201,12 @@ Modules, context and symbols auto-completion can be turned off using the followi
 ```bash
 mkdir -p ~/.emacs.d/lisp/
 git clone https://github.com/cpitclaudel/company-coq.git ~/.emacs.d/lisp/company-coq
+cd ~/.emacs.d/lisp/company-coq && make package
+emacs -Q --eval '(package-install-from-file "~/.emacs.d/lisp/company-coq/company-coq-0.2.tar")'
 ```
 
-#### Dependencies
-
 ```elisp
-M-x package-refresh-contents RET
-M-x package-install RET company RET
-M-x package-install RET company-math RET
-M-x package-install RET yasnippet RET
+M-x package-install-from-file RET company-coq- TAB RET
 ```
 
 ### Configuration

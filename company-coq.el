@@ -126,6 +126,8 @@
 
 (defcustom company-coq-autocomplete-symbols t
   "Autocomplete symbols by searching in the buffer for lemmas and theorems. If company-coq-autocomplete-symbols-dynamic is non-nil, query the proof assistant instead of searching."
+(defcustom company-coq-prettify-symbols nil
+  "Transparently replace keywords by the corresponding symbols (e.g. ∀ for forall). The contents of the buffer are not changed."
   :group 'company-coq)
 
 (defcustom company-coq-fast nil
@@ -336,6 +338,22 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
 (defconst company-coq-outline-heading-end-regexp "\\.[ \t\n]\\|\n"
   "Regexp used to locate the end of a heading")
 
+(defcustom company-coq-prettify-symbols-alist '(("|-" . ?⊢) ("True" . ?⊤) ("False" . ?⊥)
+                                                ("->" . ?→) ("-->" . ?⟶) ("<-" . ?←)
+                                                ("<--" . ?⟵) ("<->" . ?↔) ("<-->" . ?⟷)
+                                                ("=>" . ?⇒) ("==>" . ?⟹) ("<=" . ?⇐)
+                                                ("<==" . ?⟸) ("++>" . ?⟿) ("<++" . ?⬳)
+                                                ("fun" . ?λ) ("forall" . ?∀) ("exists" . ?∃)
+                                                ("/\\" . ?∧) ("\\/" . ?∨) ("~" . ?¬)
+                                                ("not" . ?¬) ("<=" . ?≤) (">=" . ?≥)
+                                                ("<>" . ?≠) ("*" . ?×) ("++" . ?⧺)
+                                                ("nat" . ?𝓝) ("Z" . ?ℤ) ("N" . ?ℕ)
+                                                ("Q" . ?ℚ) ("Real" . ?ℝ) ("bool" . ?𝔹)
+                                                ("Prop" . ?𝓟))
+  "An alist of symbols to prettify. Assigned to `prettify-symbols-alist' in emacs >= 24.4"
+  :group 'company-coq
+  :type 'alist)
+
 (defconst company-coq-lemma-introduction-forms
   '("repeat match goal with H:_ |- _ => clear H end"
     "repeat match goal with H:_ |- _ => generalize dependent H end")
@@ -362,7 +380,7 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
 (when nil
   (defcustom company-coq-symbol-matching-scheme 'substring
     "The strategy used to look for keywords"
-    :group company-coq)
+    :group 'company-coq)
 
   (defun company-coq-symbol-matching-scheme-is-plain ()
     (equal company-coq-symbol-matching-scheme 'plain)))
@@ -1565,7 +1583,7 @@ definitions."
     coqtop. If you do, set company-coq-fast to true.")))
 
 (defvar company-coq-electric-exit-characters '(?\; ?.)
-  "Characters that exist the current snippet.")
+  "Characters that exit the current snippet.")
 
 ;; FIXME this should only happend in the last hole, and only if not in
 ;; nested parens, so as to prevent [assert true by (blah;] from
