@@ -125,7 +125,9 @@
   :group 'company-coq)
 
 (defcustom company-coq-autocomplete-symbols t
-  "Autocomplete symbols by searching in the buffer for lemmas and theorems. If company-coq-autocomplete-symbols-dynamic is non-nil, query the proof assistant instead of searching."
+  "Autocomplete symbols by searching in the buffer for lemmas and theorems. If `company-coq-autocomplete-symbols-dynamic' is non-nil, query the proof assistant instead of searching."
+  :group 'company-coq)
+
 (defcustom company-coq-prettify-symbols nil
   "Transparently replace keywords by the corresponding symbols (e.g. ∀ for forall). The contents of the buffer are not changed."
   :group 'company-coq)
@@ -1549,39 +1551,6 @@ definitions."
                                                     #'company-coq-string-lessp-foldcase)))
                    backends-alist))))
 
-(defun company-coq-setup-hooks () ;; NOTE: This could be made callable at the beginning of every completion.
-  ;; PG hooks
-  ;; (add-hook 'proof-state-change-hook (lambda () (message "STATE CHANGE")))
-  (add-hook 'proof-shell-insert-hook ;; (lambda () (message "INSERT")))
-            'company-coq-maybe-proof-input-reload-things)
-  (add-hook 'proof-shell-handle-delayed-output-hook ;; (lambda () (message "DELAYED OUTPUT")))
-            'company-coq-maybe-proof-output-reload-things)
-  (add-hook 'proof-shell-handle-error-or-interrupt-hook ;; (lambda () (message "ERROR OR INTERRUPT")))
-            'company-coq-maybe-reload-context))
-
-(defun company-coq-setup-optional-backends ()
-  (when company-coq-autocomplete-context
-    (add-to-list 'company-coq-backends #'company-coq-context t))
-
-  (when company-coq-autocomplete-modules
-    (add-to-list 'company-coq-backends #'company-coq-modules t))
-
-  (when company-coq-autocomplete-symbols
-    (add-to-list 'company-coq-backends #'company-coq-defuns t)
-    (when company-coq-autocomplete-symbols-dynamic
-      (add-to-list 'company-coq-backends #'company-coq-symbols t)))
-
-  (when company-coq-autocomplete-block-end
-    (add-to-list 'company-coq-backends #'company-coq-block-end t))
-
-  ;; Symbols backend
-  (when (and company-coq-autocomplete-symbols
-             company-coq-autocomplete-symbols-dynamic
-             (not company-coq-fast))
-    (message "Warning: Symbols autocompletion is an experimental
-    feature. Performance won't be good unless you use a patched
-    coqtop. If you do, set company-coq-fast to true.")))
-
 (defvar company-coq-electric-exit-characters '(?\; ?.)
   "Characters that exit the current snippet.")
 
@@ -1682,6 +1651,66 @@ hypotheses HYPS, and everything that they depend on."
 (defun company-coq-setup-keybindings ()
   (company-coq--keybindings-minor-mode))
 
+(defun company-coq-setup-hooks () ;; NOTE: This could be made callable at the beginning of every completion.
+  ;; PG hooks
+  ;; (add-hook 'proof-state-change-hook (lambda () (message "STATE CHANGE")))
+  (add-hook 'proof-shell-insert-hook ;; (lambda () (message "INSERT")))
+            'company-coq-maybe-proof-input-reload-things)
+  (add-hook 'proof-shell-handle-delayed-output-hook ;; (lambda () (message "DELAYED OUTPUT")))
+            'company-coq-maybe-proof-output-reload-things)
+  (add-hook 'proof-shell-handle-error-or-interrupt-hook ;; (lambda () (message "ERROR OR INTERRUPT")))
+            'company-coq-maybe-reload-context))
+
+(defun company-coq-setup-optional-backends ()
+  (when company-coq-autocomplete-context
+    (add-to-list 'company-coq-backends #'company-coq-context t))
+
+  (when company-coq-autocomplete-modules
+    (add-to-list 'company-coq-backends #'company-coq-modules t))
+
+  (when company-coq-autocomplete-symbols
+    (add-to-list 'company-coq-backends #'company-coq-defuns t)
+    (when company-coq-autocomplete-symbols-dynamic
+      (add-to-list 'company-coq-backends #'company-coq-symbols t)))
+
+  (when company-coq-autocomplete-block-end
+    (add-to-list 'company-coq-backends #'company-coq-block-end t))
+
+  ;; Symbols backend
+  (when (and company-coq-autocomplete-symbols
+             company-coq-autocomplete-symbols-dynamic
+             (not company-coq-fast))
+    (message "Warning: Symbols autocompletion is an experimental
+    feature. Performance won't be good unless you use a patched
+    coqtop. If you do, set company-coq-fast to true.")))
+
+(defun company-coq-setup-company ()
+  (company-mode 1)
+  (set (make-local-variable 'company-idle-delay) 0)
+  (set (make-local-variable 'company-tooltip-align-annotations) t)
+  (set (make-local-variable 'company-abort-manual-when-too-short) t))
+
+(defun company-coq-setup-outline ()
+  (outline-minor-mode 1)
+  (set (make-local-variable 'outline-level) #'company-coq-outline-level)
+  (set (make-local-variable 'outline-regexp) company-coq-outline-regexp)
+  (set (make-local-variable 'outline-heading-end-regexp) company-coq-outline-heading-end-regexp))
+
+(defun company-coq-setup-prettify ()
+  (when (and (display-graphic-p)
+             (fboundp #'prettify-symbols-mode)
+             company-coq-prettify-symbols)
+    (set (make-local-variable 'prettify-symbols-alist)
+         (append prettify-symbols-alist company-coq-prettify-symbols-alist))
+    (prettify-symbols-mode 1)))
+
+(defun company-coq-setup-minor-modes ()
+  (yas-minor-mode 1)
+  (show-paren-mode 1)
+  (company-coq-setup-company)
+  (company-coq-setup-outline)
+  (company-coq-setup-prettify))
+
 ;;;###autoload
 (defun company-coq-initialize () ;; TODO this could be a minor mode
   (interactive)
@@ -1689,20 +1718,7 @@ hypotheses HYPS, and everything that they depend on."
     (error "company-coq only works with coq-mode."))
 
   ;; Enable relevant minor modes
-  (company-mode 1)
-  (yas-minor-mode 1)
-  (show-paren-mode 1)
-  (outline-minor-mode 1)
-
-  ;; Set a few company settings
-  (set (make-local-variable 'company-idle-delay) 0)
-  (set (make-local-variable 'company-tooltip-align-annotations) t)
-  (set (make-local-variable 'company-abort-manual-when-too-short) t)
-
-  ;; And a few outline settings
-  (set (make-local-variable 'outline-level) #'company-coq-outline-level)
-  (set (make-local-variable 'outline-regexp) company-coq-outline-regexp)
-  (set (make-local-variable 'outline-heading-end-regexp) company-coq-outline-heading-end-regexp)
+  (company-coq-setup-minor-modes)
 
   ;; Load keywords
   (company-coq-init-keywords)
