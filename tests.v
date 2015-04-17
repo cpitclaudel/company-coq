@@ -524,3 +524,17 @@ Proof.
 Qed.
 
 (* vvv shouldn't be available here *)
+
+Fixpoint LargeType (n: nat) :=
+  match n with
+  | O => unit
+  | S n => unit -> (LargeType n)
+  end.
+
+Lemma LargeGoal : LargeType 55.
+Proof.
+  simpl.
+  simpl.
+  constructor.
+Defined.
+

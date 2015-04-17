@@ -391,13 +391,25 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
   (when company-coq-debug
     (apply 'message (concat "company-coq: " format) args)))
 
-(defun company-coq-ask-prover (question)
+;; FIXME: This should happen at the PG level. Introduced to fix #8.
+(defmacro company-coq-with-window-start (window &rest body)
+  (declare (indent defun))
+  `(if ,window
+       (let ((wstart (window-start ,window))
+             (output (progn ,@body)))
+         (when (not (equal wstart (window-start ,window)))
+           (set-window-start ,window wstart))
+         output)
+     (progn ,@body)))
+
+(defun company-coq-ask-prover (question &optional preserve-window-start)
   (when question
     (if (and (company-coq-prover-available) (fboundp 'proof-shell-invisible-cmd-get-result))
         (progn
           (setq company-coq-asking-question t)
           (unwind-protect
-              (proof-shell-invisible-cmd-get-result question)
+              (company-coq-with-window-start (and preserve-window-start (company-coq-get-pg-window))
+                (proof-shell-invisible-cmd-get-result question))
             (setq company-coq-asking-question nil)))
       (company-coq-dbg "Prover not available; question discarded"))))
 
@@ -1075,12 +1087,12 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
 (defun company-coq-documentation (name)
   (company-coq-dbg "company-coq-documentation: Called for name %s" name)
   (when (company-coq-prover-available)
-    (company-coq-string-or-undefined (company-coq-ask-prover (format company-coq-doc-cmd name)))))
+    (company-coq-string-or-undefined (company-coq-ask-prover (format company-coq-doc-cmd name) t))))
 
 (defun company-coq-definition (name)
   (company-coq-dbg "company-coq-definition: Called for name %s" name)
   (when (company-coq-prover-available)
-    (company-coq-string-or-undefined (company-coq-ask-prover (format company-coq-def-cmd name)))))
+    (company-coq-string-or-undefined (company-coq-ask-prover (format company-coq-def-cmd name) t))))
 
 (defun company-coq-get-header (doc)
   (when doc
