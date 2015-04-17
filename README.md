@@ -31,7 +31,7 @@ most advanced features require a patched version of coqtop.
 
 * Interactive lemma extraction: press <kbd>C-c C-a C-e</kbd> to extract the current goal into a separate lemma.
 
-* Extended [font beautification](img/prettify.png): keywords are automatically replaced with the corresponding symbols (`⊢⊤⊥→⇒λ∀∃∧∨¬≠⧺𝓝ℤℕℚℝ𝔹𝓟`)
+* Extended [font beautification](img/prettify.png): keywords are automatically replaced with corresponding symbols (`⊢⊤⊥→⇒λ∀∃∧∨¬≠⧺𝓝ℤℕℚℝ𝔹𝓟`)
 
 ### Advanced features
 
@@ -129,9 +129,6 @@ Add the following to your `.emacs`
 ;; Open .v files with Proof-General's coq-mode
 (require 'proof-site)
 
-;; Transparently replace keywords by symbols (requires math fonts!)
-(setq company-coq-prettify-symbols t)
-
 ;; Load company-coq when opening Coq files
 (add-hook 'coq-mode-hook #'company-coq-initialize)
 ```
@@ -158,9 +155,20 @@ Loading `company-coq` also binds the following keys:
 * <kbd>C-c C-&</kbd> looks up (grep) the current word in files in the current directory subtree.
 * <kbd>C-c C-a C-e</kbd> extracts the current goal into a separate lemma.
 
+## Troubleshooting
+
+### Empty squares in place of math operators
+
+If you see blank squares appear where there should be math symbols (`forall`, `exists`, etc.), you may be missing a proper math font. See [Installing a math-enabled font](#math-font), or insert the following snippet in your .emacs to disable symbols beautification:
+
+```elisp
+;; Disable keyword replacement
+(setq company-coq-prettify-symbols t)
+```
+
 ## Advanced topics
 
-### Installing a math-enabled font
+### Installing a math-enabled font {#math-font}
 
 For font beautification to work properly, you'll need a font with proper symbol support. DejaVu Sans Mono, Symbola, FreeMono, STIX, Unifont, Segoe UI Symbol, Arial Unicode and Cambria Math do. If Emacs doesn't fallback properly, you can use the following snippet:
 
@@ -168,7 +176,7 @@ For font beautification to work properly, you'll need a font with proper symbol 
 (set-fontset-font "fontset-default" 'unicode (font-spec :name "Symbola") nil)
 ```
 
-### Autocompleting symbols
+### Autocompleting more symbols
 
 The procedure above will give you auto-completion and documentation for tactics, commands, and theorems that you define locally, but not for theorem names and symbols defined in the libraries you load. To get the latter, add the following to your `.emacs`, before `(company-coq-initialize)`:
 

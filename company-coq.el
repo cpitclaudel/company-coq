@@ -128,7 +128,7 @@
   "Autocomplete symbols by searching in the buffer for lemmas and theorems. If `company-coq-autocomplete-symbols-dynamic' is non-nil, query the proof assistant instead of searching."
   :group 'company-coq)
 
-(defcustom company-coq-prettify-symbols nil
+(defcustom company-coq-prettify-symbols t
   "Transparently replace keywords by the corresponding symbols (e.g. ∀ for forall). The contents of the buffer are not changed."
   :group 'company-coq)
 
@@ -343,15 +343,14 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
 (defcustom company-coq-prettify-symbols-alist '(("|-" . ?⊢) ("True" . ?⊤) ("False" . ?⊥)
                                                 ("->" . ?→) ("-->" . ?⟶) ("<-" . ?←)
                                                 ("<--" . ?⟵) ("<->" . ?↔) ("<-->" . ?⟷)
-                                                ("=>" . ?⇒) ("==>" . ?⟹) ("<=" . ?⇐)
-                                                ("<==" . ?⟸) ("++>" . ?⟿) ("<++" . ?⬳)
-                                                ("fun" . ?λ) ("forall" . ?∀) ("exists" . ?∃)
-                                                ("/\\" . ?∧) ("\\/" . ?∨) ("~" . ?¬)
-                                                ("not" . ?¬) ("<=" . ?≤) (">=" . ?≥)
-                                                ("<>" . ?≠) ("*" . ?×) ("++" . ?⧺)
-                                                ("nat" . ?𝓝) ("Z" . ?ℤ) ("N" . ?ℕ)
-                                                ("Q" . ?ℚ) ("Real" . ?ℝ) ("bool" . ?𝔹)
-                                                ("Prop" . ?𝓟))
+                                                ("=>" . ?⇒) ("==>" . ?⟹) ("<==" . ?⟸)
+                                                ("++>" . ?⟿) ("<++" . ?⬳) ("fun" . ?λ)
+                                                ("forall" . ?∀) ("exists" . ?∃) ("/\\" . ?∧)
+                                                ("\\/" . ?∨) ("~" . ?¬) ("not" . ?¬)
+                                                ("<=" . ?≤) (">=" . ?≥) ("<>" . ?≠)
+                                                ("*" . ?×) ("++" . ?⧺) ("nat" . ?𝓝)
+                                                ("Z" . ?ℤ) ("N" . ?ℕ) ("Q" . ?ℚ)
+                                                ("Real" . ?ℝ) ("bool" . ?𝔹) ("Prop" . ?𝓟))
   "An alist of symbols to prettify. Assigned to `prettify-symbols-alist' in emacs >= 24.4"
   :group 'company-coq
   :type 'alist)
