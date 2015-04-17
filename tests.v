@@ -20,6 +20,8 @@ Definition PrettySymbols : (nat -> nat -> Prop) :=
 
 (* AAABBB and BBBCCC should autocomplete without starting the prover, and appear in the outline (C-c C-,) *)
 
+Typeclasses eauto := debug dfs.
+
 (* Start prover *)
 Require Import Omega. (* This should autocomplete *)
 
