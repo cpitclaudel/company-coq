@@ -13,7 +13,6 @@ with BBBCCC :=
 
 (* Are symbols correctly prettified? *)
 
-(* Beautified: *)
 Definition PrettySymbols : (nat -> nat -> Prop) :=
   (fun (n m: nat) =>
      forall p, p <> n -> p >= m -> True \/ False).
@@ -28,6 +27,7 @@ Require Import Omega. (* This should autocomplete *)
 Lemma TestSubscripts :
   forall x: True, True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> nat.
 Proof.
+  intros.
   constructor.
 Qed.
 
@@ -47,7 +47,7 @@ Proof.
   (* This should be typeable using:
   Require Import C.NA.NA *)
   Require Import Coq.NArith.NArith.
-
+  
   apply lt_n_S.
   apply lt_S_n in hypothesis.
   intuition. (* Typing C-c C-RET after C-RET should exit  *)
@@ -88,6 +88,7 @@ End TestSectionName.
 Check TestLemma. (* This name should autocomplete *)
 
 Lemma TestLemma2 : False.
+Proof.
   cutrewrite -> (False = True). (* This should be inserted with holes. Typing ";RET" should exit the snippet. *)
   apply I.
   replace False with True by admit.
@@ -543,6 +544,7 @@ Lemma LargeGoal : LargeType 55.
 Proof.
   simpl.
   simpl.
+  (* Position in the goals buffer shouldn't change when thorem names are autocompleted. *)
   constructor.
 Defined.
 
