@@ -25,6 +25,14 @@ Typeclasses eauto := debug dfs.
 (* Start prover *)
 Require Import Omega. (* This should autocomplete *)
 
+Lemma TestSubscripts :
+  forall x: True, True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> nat.
+Proof.
+  constructor.
+Qed.
+
+Print TestSubscripts.
+
 Lemma TestLemma : (* This is a template *)
   forall number (hypothesis : number + 1 < number),
     number + 2 < number + 1.
@@ -34,7 +42,7 @@ Proof.
   induction number. (* number should be autocompleted here *)
   simpl in *.
   omega. (* Documentation should be available here *)
-  
+
   simpl in *.
   (* This should be typeable using:
   Require Import C.NA.NA *)
@@ -46,7 +54,7 @@ Proof.
 
   (* C-x n d here should single this proof out (C-x n w to exit) *)
 Qed.
-
+  
 Example NameContaining_with_ : True. (* Dummy Example to add a name containing "with" to the context *)
 apply I.
 Qed.

@@ -166,6 +166,8 @@ If you see blank squares appear where there should be math symbols (`forall`, `e
 (setq company-coq-prettify-symbols nil)
 ```
 
+Technical note: Proof-General [also offers](http://proofgeneral.inf.ed.ac.uk/htmlshow.php?title=Proof+General+user+manual+%28latest+release%29&file=releases%2FProofGeneral-latest%2Fdoc%2FProofGeneral%2FProofGeneral_5.html#Unicode-Tokens-mode) a Unicode keywords facility. `company-coq`'s implementation is based on the `prettify-symbols-mode` facility found in Emacs 24.4+, yielding a more compact (and faster?) implementation.
+
 ## Advanced topics
 
 ### Installing a math-enabled font {#math-font}
@@ -174,6 +176,18 @@ For font beautification to work properly, you'll need a font with proper symbol 
 
 ```elisp
 (set-fontset-font "fontset-default" 'unicode (font-spec :name "Symbola") nil)
+```
+
+### Registering your own symbols and math operators
+
+Adjust and use the following snippet to register your own keywords to prettify:
+
+```elisp
+(add-hook 'coq-mode-hook
+          (lambda ()
+            (setq-local prettify-symbols-alist
+                        '((":=" . ?≜) ("Proof." . ?∵) ("Qed." . ?■)
+                          ("Defined." . ?□) ("Time" . ?⏱)))))
 ```
 
 ### Autocompleting more symbols

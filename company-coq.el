@@ -206,7 +206,9 @@ same prefix."
 (defconst company-coq-goals-hyp-regexp (concat "\\`  \\(" company-coq-id-regexp-base "+\\) : \\(.*\\)\\'")
   "Regexp used to find hypotheses in goals output")
 
-(defconst company-coq-goal-separator-line-regexp (concat "\\`  ============================[= ]*\\'")
+(defconst company-coq-goal-separator-regexp "  \\(=============================*\\)")
+
+(defconst company-coq-goal-separator-line-regexp (concat "\\`" company-coq-goal-separator-regexp " *\\'")
   "Regexp used to find hypotheses in goals output")
 
 (defconst company-coq-goal-lines-regexp "\\`   "
@@ -355,6 +357,9 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
   :group 'company-coq
   :type 'alist)
 
+(defconst company-coq-numeric-hypothesis-regexp "  .*[^0-9]\\([0-9]+\\) :"
+  "Regexp used to detect hypotheses of the form Hyp25 and change them into Hyp_25")
+
 (defconst company-coq-lemma-introduction-forms
   '("repeat match goal with H:_ |- _ => clear H end"
     "repeat match goal with H:_ |- _ => generalize dependent H end")
@@ -370,13 +375,27 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
 
 (defface company-coq-doc-tt-face
   '((t :inherit font-lock-keyword-face :weight bold))
-  "Face used to highlight the keywords in the docs"
+  "Face used to highlight keywords in the docs"
   :group 'defaut)
 
 (defface company-coq-doc-i-face
   '((t :inherit font-lock-variable-name-face :weight bold :slant italic))
-  "Face used to highlight the symbol names in the docs"
+  "Face used to highlight symbol names in the docs"
   :group 'defaut)
+
+(defface company-coq-subscript-face
+  '((t :height 0.9))
+  "Face used to change nubers to subscripts in hypothese names"
+  :group 'defaut)
+
+(defconst company-coq-subscript-spec
+  `((,company-coq-numeric-hypothesis-regexp 1 '(face 'company-coq-subscript-face display (raise -0.1)) append))
+  "Create a face specification for subscripts, suitable for use with `font-lock-add-keywords'.")
+
+(defconst company-coq-goal-separator-spec
+  `((,(concat "^" company-coq-goal-separator-regexp) 1
+     '(face nil display "════════════════════════════") append))
+  "Create a face specification for a sequence of '=' signs, suitable for use with `font-lock-add-keywords'.")
 
 (when nil
   (defcustom company-coq-symbol-matching-scheme 'substring
@@ -1666,11 +1685,13 @@ hypotheses HYPS, and everything that they depend on."
   ;; PG hooks
   ;; (add-hook 'proof-state-change-hook (lambda () (message "STATE CHANGE")))
   (add-hook 'proof-shell-insert-hook ;; (lambda () (message "INSERT")))
-            'company-coq-maybe-proof-input-reload-things)
+            #'company-coq-maybe-proof-input-reload-things)
   (add-hook 'proof-shell-handle-delayed-output-hook ;; (lambda () (message "DELAYED OUTPUT")))
-            'company-coq-maybe-proof-output-reload-things)
+            #'company-coq-maybe-proof-output-reload-things)
   (add-hook 'proof-shell-handle-error-or-interrupt-hook ;; (lambda () (message "ERROR OR INTERRUPT")))
-            'company-coq-maybe-reload-context))
+            #'company-coq-maybe-reload-context)
+  (add-hook 'coq-goals-mode-hook
+            #'company-coq-setup-goals-buffer))
 
 (defun company-coq-setup-optional-backends ()
   (when company-coq-autocomplete-context
@@ -1721,6 +1742,13 @@ hypotheses HYPS, and everything that they depend on."
   (company-coq-setup-company)
   (company-coq-setup-outline)
   (company-coq-setup-prettify))
+
+(defun company-coq-setup-goals-buffer ()
+  (company-coq-setup-prettify)
+  ;; Transform H1 into H_1
+  (add-to-list (make-local-variable 'font-lock-extra-managed-props) 'display)
+  (font-lock-add-keywords nil company-coq-goal-separator-spec t)
+  (font-lock-add-keywords nil company-coq-subscript-spec t))
 
 ;;;###autoload
 (defun company-coq-initialize () ;; TODO this could be a minor mode
