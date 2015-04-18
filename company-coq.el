@@ -1060,9 +1060,9 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
       (setq company-coq-modules-reload-needed (or company-coq-modules-reload-needed is-import is-load))
       (when is-retracting (company-coq-maybe-reload-context t)))))
 
-(defun company-coq-in-coq-mode ()
+(defun company-coq-in-coq-mode (&optional silent)
   (or (derived-mode-p 'coq-mode)
-      (ignore (company-coq-dbg "Not in Coq mode"))))
+      (ignore (or silent (company-coq-dbg "Not in Coq mode")))))
 
 (defun company-coq-in-scripting-mode ()
   (or (company-coq-value-or-nil 'proof-script-buffer)
@@ -1780,13 +1780,19 @@ hypotheses HYPS, and everything that they depend on."
   (remove-hook 'proof-shell-insert-hook #'company-coq-maybe-proof-input-reload-things)
   (remove-hook 'proof-shell-handle-delayed-output-hook #'company-coq-maybe-proof-output-reload-things)
   (remove-hook 'proof-shell-handle-error-or-interrupt-hook #'company-coq-maybe-reload-context)
+  (remove-hook 'coq-goals-mode-hook #'company-coq-setup-goals-buffer)
 
   (setq company-backends     (delete company-coq-backends company-backends))
   (setq company-transformers (delete #'company-coq-sort-in-backends-order company-transformers))
 
   (cl-loop for buffer in (buffer-list)
            do (with-current-buffer buffer
-                (company-coq--keybindings-minor-mode -1)))
+                (when (company-coq-in-coq-mode t)
+                  (company-mode -1)
+                  (yas-minor-mode -1)
+                  (outline-minor-mode -1)
+                  (prettify-symbols-mode -1)
+                  (company-coq--keybindings-minor-mode -1))))
 
   nil)
 
