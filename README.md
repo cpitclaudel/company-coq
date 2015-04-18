@@ -163,7 +163,7 @@ If you see blank squares appear where there should be math symbols (`forall`, `e
 
 ```elisp
 ;; Disable keyword replacement
-(setq company-coq-prettify-symbols t)
+(setq company-coq-prettify-symbols nil)
 ```
 
 ## Advanced topics
