@@ -37,7 +37,6 @@ sandbox: clean-sandbox package
 		--eval "(add-to-list 'package-archives '(\"melpa\" . \"http://melpa.org/packages/\") t)" \
 		--eval "(package-refresh-contents)" \
 		--eval "(package-initialize)" \
-		--eval "(setq company-coq-prettify-symbols t)" \
 		--eval "(package-install-file \"build/$(PKG).tar\")"
 
 clean-sandbox:
