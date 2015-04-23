@@ -1390,11 +1390,15 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (interactive)
   (let ((same-window-regexps '("\*Occur\*")))
     (occur company-coq-outline-regexp)
-    (with-current-buffer "*Occur*"
+    (let ((occur-buffer (get-buffer "*Occur*")))
+      (when occur-buffer
+        (with-current-buffer occur-buffer
       (let ((local-map (copy-keymap (current-local-map))))
-        (substitute-key-definition #'occur-mode-goto-occurrence #'company-coq-goto-occurence local-map)
-        (substitute-key-definition #'occur-mode-mouse-goto #'company-coq-goto-occurence local-map)
-        (use-local-map local-map)))))
+            (substitute-key-definition #'occur-mode-goto-occurrence
+                                       #'company-coq-goto-occurence local-map)
+            (substitute-key-definition #'occur-mode-mouse-goto
+                                       #'company-coq-goto-occurence local-map)
+            (use-local-map local-map)))))))
 
 (defun company-coq-grep-symbol (regexp)
   "Find REGEXP in the current directory and subdirectories."
