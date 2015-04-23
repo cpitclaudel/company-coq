@@ -244,19 +244,35 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
                                                                           company-coq-id-regexp-base)
   "Regexp used to find section endings")
 
+(defcustom company-coq-search-blacklist '("_ind" "_rec" "_rect" "Raw" "Proofs") ;; "_refl" "_sym" "_trans"
+  "List of strings to add to Coq's search blacklist when loading completion candidates")
+
+(defconst company-coq-search-blacklist-str (mapconcat (lambda (str) (concat "\"" str "\""))
+                                                      company-coq-search-blacklist " "))
+
+(defconst company-coq-search-blacklist-add-cmd (concat "Add Search Blacklist "
+                                                       company-coq-search-blacklist-str))
+
+(defconst company-coq-search-blacklist-rem-cmd (concat "Remove Search Blacklist "
+                                                       company-coq-search-blacklist-str))
+
 (defun company-coq-all-symbols-prelude ()
   "Command to run before listing all symbols, using a patched version of Coq"
-  (when company-coq-fast "Set Search Minimal"))
+  (cons company-coq-search-blacklist-add-cmd
+        (when company-coq-fast
+          '("Set Search Output Name Only")))) ;; "Set Search Write To File"
 
 (defconst company-coq-all-symbols-cmd "SearchPattern _"
   "Command used to list all symbols.")
 
 (defvar company-coq-extra-symbols-cmd nil
-  "Command used to list more symbols (SearchPattern _ doesn't search inside modules in 8.4).")
+  "Command used to list more symbols ([SearchPattern _] doesn't search inside modules in 8.4).")
 
 (defun company-coq-all-symbols-coda ()
   "Command to run after listing all symbols, using a patched version of Coq"
-  (when company-coq-fast "Unset Search Minimal"))
+  (cons company-coq-search-blacklist-rem-cmd
+        (when company-coq-fast
+          '("Unset Search Output Name Only")))) ;; "Unset Search Write To File"
 
 (defun company-coq-all-symbols-filter-line ()
   "Lambda used to filter each output line"
@@ -520,10 +536,10 @@ line if empty). Calls `indent-region' on the inserted lines."
   (interactive)
   (with-temp-message "company-coq: Loading symbols..."
     (let* ((start-time     (current-time))
-           (_              (company-coq-ask-prover (company-coq-all-symbols-prelude)))
+           (_              (mapc #'company-coq-ask-prover (company-coq-all-symbols-prelude)))
            (output         (company-coq-ask-prover company-coq-all-symbols-cmd))
            (extras         (company-coq-ask-prover company-coq-extra-symbols-cmd))
-           (_              (company-coq-ask-prover (company-coq-all-symbols-coda)))
+           (_              (mapc #'company-coq-ask-prover (company-coq-all-symbols-coda)))
            (half-time      (current-time))
            (lines          (nconc (company-coq-split-lines output) (company-coq-split-lines extras)))
            (line-filter    (company-coq-all-symbols-filter-line))
