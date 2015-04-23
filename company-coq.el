@@ -421,10 +421,10 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
   (defun company-coq-symbol-matching-scheme-is-plain ()
     (equal company-coq-symbol-matching-scheme 'plain)))
 
-(defun company-coq-dbg (format &rest args)
+(defmacro company-coq-dbg (format &rest args)
   "Print a message if company-coq-debug is non-nil"
-  (when company-coq-debug
-    (apply 'message (concat "company-coq: " format) args)))
+  `(when company-coq-debug
+     (apply 'message (concat "company-coq: " ,format) ,@args)))
 
 ;; FIXME: This should happen at the PG level. Introduced to fix #8.
 (defmacro company-coq-with-window-start (window &rest body)
