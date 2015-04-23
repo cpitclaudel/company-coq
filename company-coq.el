@@ -616,13 +616,12 @@ a list of pairs of paths in the form (LOGICAL . PHYSICAL)"
 (defun company-coq-get-path-specs ()
   "Load modules by issuing command company-coq-modules-cmd and parsing the results. Do not call if proof process is busy."
   (interactive)
-  (with-temp-message "company-coq: Loading module names..."
     (let* ((time       (current-time))
            (output     (company-coq-ask-prover company-coq-modules-cmd))
            (lines      (cdr-safe (company-coq-split-lines output)))
            (path-specs (company-coq-parse-path-specs lines)))
-      (message "Loaded %d modules paths (%.03f seconds)" (length path-specs) (float-time (time-since time)))
-      path-specs)))
+    (company-coq-dbg "Loaded %d modules paths (%.03f seconds)" (length path-specs) (float-time (time-since time)))
+    path-specs))
 
 (defun company-coq-force-reload-modules ()
   (interactive)
