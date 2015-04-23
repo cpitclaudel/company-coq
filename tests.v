@@ -31,6 +31,12 @@ Proof.
   constructor.
 Qed.
 
+(*
+(progn
+  (setq coq-prog-name "/build/coq-trunk-pr/bin/coqtop")
+  (setq coq-prog-args '("-emacs-U" "-coqlib" "/build/coq-trunk-pr/")))
+ *)
+
 Print TestSubscripts.
 
 Lemma TestLemma : (* This is a template *)
@@ -91,9 +97,9 @@ Lemma TestLemma2 : False.
 Proof.
   cutrewrite -> (False = True). (* This should be inserted with holes. Typing ";RET" should exit the snippet. *)
   apply I.
-  replace False with True by admit.
+  replace False with True.
   reflexivity.
-Qed.
+Admitted.
 
 (* number and hypothesis shouldn't be available here *)
 
@@ -237,7 +243,6 @@ Require Import Zeuclid.
 Require Import ZArith_base.
 Require Import Zminmax.
 Require Import Wf_Z.
-Require Import ZOdiv.
 Require Import Zpow_alt.
 Require Import BinIntDef.
 Require Import Zorder.
@@ -250,7 +255,6 @@ Require Import Zquot.
 Require Import Zdigits.
 Require Import Zabs.
 Require Import Zmin.
-Require Import ZOdiv_def.
 Require Import Zhints.
 Require Import ZArith_dec.
 Require Import Zpow_def.
@@ -357,9 +361,7 @@ Require Import Eqdep_dec.
 Require Import Decidable.
 Require Import Diaconescu.
 Require Import Epsilon.
-Require Import Classical_Type.
 Require Import SetIsType.
-Require Import Classical_Pred_Set.
 Require Import ProofIrrelevance.
 Require Import FunctionalExtensionality.
 Require Import Classical_Pred_Type.
@@ -459,7 +461,6 @@ Require Import DiscrR.
 Require Import Integration.
 Require Import PSeries_reg.
 Require Import Rdefinitions.
-Require Import LegacyRfield.
 Require Import Rlimit.
 Require Import Rprod.
 Require Import Ranalysis5.
@@ -513,6 +514,8 @@ Require Import Morphisms.
 Require Import Equivalence.
 Require Import RelationClasses.
 Require Import RelationPairs.
+
+(* (setq company-coq-extra-symbols-cmd nil) (setq company-coq-extra-symbols-cmd "SearchAbout -\"_ind\"") *)
 
 (* Loaded 8092 symbols (0.088 seconds) With optimized proof-general search *)
 (* Loaded 8092 symbols (0.136 seconds) With plain proof-general search *)
