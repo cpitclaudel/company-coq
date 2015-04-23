@@ -1600,16 +1600,25 @@ definitions."
 (defvar company-coq-electric-exit-characters '(?\; ?.)
   "Characters that exit the current snippet.")
 
+(defun company-coq-after-exit-char ()
+  (member (char-before (point)) company-coq-electric-exit-characters))
+
+(defun company-coq-snippet-at-point ()
+  (car-safe (yas--snippets-at-point)))
+
 ;; FIXME this should only happend in the last hole, and only if not in
 ;; nested parens, so as to prevent [assert true by (blah;] from
 ;; exiting.
 (defun company-coq-maybe-exit-snippet ()
   (interactive)
-  (let* ((after-exit-char (member (char-before (point)) company-coq-electric-exit-characters))
-         (snippet         (and after-exit-char (car-safe (yas--snippets-at-point)))))
-    (self-insert-command 1)
+  (let* ((after-exit-char (company-coq-after-exit-char))
+         (snippet         (and after-exit-char (company-coq-snippet-at-point)))
+         (company-coq--keybindings-minor-mode nil)
+         (original-func   (key-binding (this-command-keys-vector))))
     (when snippet
-      (yas-exit-snippet snippet))))
+      (yas-exit-snippet snippet))
+    (if original-func (call-interactively original-func)
+      (self-insert-command 1))))
 
 (defun company-coq-proof-goto-point (&rest args)
   (interactive)
@@ -1683,7 +1692,7 @@ hypotheses HYPS, and everything that they depend on."
     (define-key cc-map (kbd "C-<return>")       #'company-manual-begin)
     (define-key cc-map (kbd "C-c C-a C-e")      #'company-coq-lemma-from-goal)
     (define-key cc-map (kbd "SPC")              #'company-coq-maybe-exit-snippet)
-    ;; (define-key cc-map (kbd "RET")           #'company-coq-maybe-exit-snippet) ;; FIXME too invasive
+    (define-key cc-map (kbd "RET")              #'company-coq-maybe-exit-snippet)
     (define-key cc-map [remap proof-goto-point] #'company-coq-proof-goto-point)
     (define-key cc-map [remap narrow-to-defun]  #'company-coq-narrow-to-defun) ;; FIXME handle sections properly
     cc-map)
