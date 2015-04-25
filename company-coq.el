@@ -1105,7 +1105,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
       (when is-retracting (company-coq-dbg "company-coq-maybe-proof-input-reload-things: Rewinding"))
       (when is-import     (company-coq-dbg "company-coq-maybe-proof-input-reload-things: New import"))
       (when is-load       (company-coq-dbg "company-coq-maybe-proof-input-reload-things: Touching load path"))
-      (setq company-coq-symbols-reload-needed (or company-coq-symbols-reload-needed is-retracting is-import))
+      (setq company-coq-symbols-reload-needed (or company-coq-symbols-reload-needed is-import)) ;; is-retracting
       (setq company-coq-modules-reload-needed (or company-coq-modules-reload-needed is-import is-load))
       (when is-retracting (company-coq-maybe-reload-context t)))))
 
