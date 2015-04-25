@@ -81,8 +81,8 @@ most advanced features require a patched version of coqtop.
 
 ### Neat snippets
 
-<img src="img/match-function.png" alt="Insert new match cases" />
-<img src="img/match-goal.png" alt="Insert new match goal rules" />
+<img src="img/match-function.gif" alt="Insert new match cases" />
+<img src="img/match-goal.gif" alt="Insert new match goal rules" />
 
 ### Diffs of unification errors
 
