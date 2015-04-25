@@ -562,7 +562,7 @@ line if empty). Calls `indent-region' on the inserted lines."
            (answer   (company-coq-ask-prover question)))
       (company-coq-dbg "Asking coq to redirect output of [%s] to [%s]" cmd prefix)
       (if company-coq-fast
-          (company-coq-read-and-delete fname)
+          (company-coq-read-and-delete (concat fname ".out"))
         answer))))
 
 (defun company-coq-get-symbols ()
