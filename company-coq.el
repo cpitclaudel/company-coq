@@ -380,22 +380,22 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
 (defface company-coq-doc-header-face
   '((t :inherit highlight :height 1.2))
   "Face used to highlight the target line in the docs"
-  :group 'defaut)
+  :group 'company-coq)
 
 (defface company-coq-doc-tt-face
   '((t :inherit font-lock-keyword-face :weight bold))
   "Face used to highlight keywords in the docs"
-  :group 'defaut)
+  :group 'company-coq)
 
 (defface company-coq-doc-i-face
   '((t :inherit font-lock-variable-name-face :weight bold :slant italic))
   "Face used to highlight symbol names in the docs"
-  :group 'defaut)
+  :group 'company-coq)
 
 (defface company-coq-subscript-face
   '((t :height 0.9))
   "Face used to change nubers to subscripts in hypothese names"
-  :group 'defaut)
+  :group 'company-coq)
 
 (defconst company-coq-subscript-spec
   `((,company-coq-numeric-hypothesis-regexp 1 '(face 'company-coq-subscript-face display (raise -0.1)) append))
