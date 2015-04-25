@@ -239,6 +239,8 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
         (when company-coq-fast
           '("Set Search Output Name Only")))) ;; "Set Search Write To File"
 
+(defconst company-coq-redirection-template "Redirect \"%s\" %s")
+
 (defconst company-coq-all-symbols-cmd "SearchPattern _"
   "Command used to list all symbols.")
 
@@ -539,15 +541,29 @@ line if empty). Calls `indent-region' on the inserted lines."
         (company-coq-dbg "company-coq-init-db: reloading")
         (funcall initfun))))
 
-(when nil
-  (defun company-coq-read-symbols (cmd)
-    (let ((answer (company-coq-ask-prover cmd)))
-      (when cmd
-        (if company-coq-fast
-            (with-temp-buffer
-              (insert-file-contents (replace-regexp-in-string "\n*\\'" "" answer))
-              (buffer-string))
-          answer)))))
+(defun company-coq-maybe-format-redirection (cmd fname)
+  (if company-coq-fast
+      (format company-coq-redirection-template fname cmd)
+    cmd))
+
+(defun company-coq-read-and-delete (fname)
+  (ignore-errors
+    (let ((contents (with-temp-buffer
+                      (insert-file-contents fname nil nil nil t)
+                      (buffer-string))))
+      (delete-file fname)
+      contents)))
+
+(defun company-coq-ask-prover-maybe-redirect (cmd)
+  (when cmd
+    (let* ((prefix   (expand-file-name "coq" temporary-file-directory))
+           (fname    (make-temp-name prefix))
+           (question (company-coq-maybe-format-redirection cmd fname))
+           (answer   (company-coq-ask-prover question)))
+      (company-coq-dbg "Asking coq to redirect output of [%s] to [%s]" cmd prefix)
+      (if company-coq-fast
+          (company-coq-read-and-delete fname)
+        answer))))
 
 (defun company-coq-get-symbols ()
   "Load symbols by issuing command company-coq-all-symbols-cmd and parsing the results. Do not call if proof process is busy."
@@ -555,8 +571,8 @@ line if empty). Calls `indent-region' on the inserted lines."
   (with-temp-message "company-coq: Loading symbols..."
     (let* ((start-time     (current-time))
            (_              (mapc #'company-coq-ask-prover (company-coq-all-symbols-prelude)))
-           (output         (company-coq-ask-prover company-coq-all-symbols-cmd))
-           (extras         (company-coq-ask-prover company-coq-extra-symbols-cmd))
+           (output         (company-coq-ask-prover-maybe-redirect company-coq-all-symbols-cmd))
+           (extras         (company-coq-ask-prover-maybe-redirect company-coq-extra-symbols-cmd))
            (_              (mapc #'company-coq-ask-prover (company-coq-all-symbols-coda)))
            (half-time      (current-time))
            (lines          (nconc (company-coq-split-lines output) (company-coq-split-lines extras)))
@@ -1408,11 +1424,11 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (let ((same-window-buffer-names '("*Occur*")))
     (occur company-coq-outline-regexp)
     (company-coq-with-current-buffer-maybe "*Occur*"
-          (let ((local-map (copy-keymap (current-local-map))))
-            (substitute-key-definition #'occur-mode-goto-occurrence
-                                       #'company-coq-goto-occurence local-map)
-            (substitute-key-definition #'occur-mode-mouse-goto
-                                       #'company-coq-goto-occurence local-map)
+      (let ((local-map (copy-keymap (current-local-map))))
+        (substitute-key-definition #'occur-mode-goto-occurrence
+                                   #'company-coq-goto-occurence local-map)
+        (substitute-key-definition #'occur-mode-mouse-goto
+                                   #'company-coq-goto-occurence local-map)
         (use-local-map local-map)))))
 
 (defun company-coq-grep-symbol (regexp)
