@@ -1455,8 +1455,8 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
           (company-coq-make-title-line))))))
 
 (defun company-coq-diff-unification-warning (&optional context)
-  (interactive "p")
-  (setq context (or context 10))
+  (interactive "P")
+  (unless (numberp context) (setq context 10))
   (with-current-buffer "*response*"
     (save-match-data
       (save-excursion
@@ -1467,7 +1467,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
                   (b2 "*company-coq-unification-B*"))
               (diff (company-coq-insert-match-in-buffer b1 1 " " #'newline)
                     (company-coq-insert-match-in-buffer b2 2 " " #'newline)
-                    `(,(concat "--unified=" (int-to-string context)) "--minimal" "--ignore-all-space")
+                    (list (concat "--unified=" (int-to-string context)) "--minimal" "--ignore-all-space")
                     'noasync)
               (company-coq-with-current-buffer-maybe "*Diff*"
                 (diff-refine-hunk))

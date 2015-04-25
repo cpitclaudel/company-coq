@@ -157,9 +157,9 @@ Loading `company-coq` also binds the following keys:
 
 ## Troubleshooting
 
-### Empty squares in place of math operators
+### Empty squares in place of math operators, or incorrect line spacing
 
-If you see blank squares appear where there should be math symbols (`forall`, `exists`, etc.), you may be missing a proper math font. See [Installing a math-enabled font](#math-font), or insert the following snippet in your .emacs to disable symbols beautification:
+If you see blank squares appear where there should be math symbols (`forall`, `exists`, etc.), or if some lines suddenly become very tall, you may be missing a proper math font. See [Installing a math-enabled font](#math-font), or insert the following snippet in your .emacs to disable symbols beautification:
 
 ```elisp
 ;; Disable keyword replacement
