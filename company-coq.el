@@ -1610,6 +1610,26 @@ definitions."
                                                     #'company-coq-string-lessp-foldcase)))
                    backends-alist))))
 
+(defvar company-coq-map
+  (let ((cc-map (make-sparse-keymap)))
+    (define-key cc-map (kbd "C-c C-/")          #'company-coq-fold)
+    (define-key cc-map (kbd "C-c C-\\")         #'company-coq-unfold)
+    (define-key cc-map (kbd "C-c C-,")          #'company-coq-occur)
+    (define-key cc-map (kbd "C-c C-&")          #'company-coq-grep-symbol)
+    (define-key cc-map (kbd "C-<return>")       #'company-manual-begin)
+    (define-key cc-map (kbd "C-c C-a C-e")      #'company-coq-lemma-from-goal)
+    (define-key cc-map (kbd "SPC")              #'company-coq-maybe-exit-snippet)
+    (define-key cc-map (kbd "RET")              #'company-coq-maybe-exit-snippet)
+    (define-key cc-map [remap proof-goto-point] #'company-coq-proof-goto-point)
+    (define-key cc-map [remap narrow-to-defun]  #'company-coq-narrow-to-defun) ;; FIXME handle sections properly
+    cc-map)
+  "Keymap for company-coq keybindings")
+
+(define-minor-mode company-coq--keybindings-minor-mode
+  "Minor mode to provide company-coq keybindings."
+  :lighter nil
+  :keymap company-coq-map)
+
 (defvar company-coq-electric-exit-characters '(?\; ?.)
   "Characters that exit the current snippet.")
 
@@ -1695,26 +1715,6 @@ hypotheses HYPS, and everything that they depend on."
            ,@(mapconcat #'identity lemma "\n")
            ".\nProof.\n"))
       (error "Lemma extraction failed"))))
-
-(defvar company-coq-map
-  (let ((cc-map (make-sparse-keymap)))
-    (define-key cc-map (kbd "C-c C-/")          #'company-coq-fold)
-    (define-key cc-map (kbd "C-c C-\\")         #'company-coq-unfold)
-    (define-key cc-map (kbd "C-c C-,")          #'company-coq-occur)
-    (define-key cc-map (kbd "C-c C-&")          #'company-coq-grep-symbol)
-    (define-key cc-map (kbd "C-<return>")       #'company-manual-begin)
-    (define-key cc-map (kbd "C-c C-a C-e")      #'company-coq-lemma-from-goal)
-    (define-key cc-map (kbd "SPC")              #'company-coq-maybe-exit-snippet)
-    (define-key cc-map (kbd "RET")              #'company-coq-maybe-exit-snippet)
-    (define-key cc-map [remap proof-goto-point] #'company-coq-proof-goto-point)
-    (define-key cc-map [remap narrow-to-defun]  #'company-coq-narrow-to-defun) ;; FIXME handle sections properly
-    cc-map)
-  "Keymap for company-coq keybindings")
-
-(define-minor-mode company-coq--keybindings-minor-mode
-  "Minor mode to provide company-coq keybindings."
-  :lighter nil
-  :keymap company-coq-map)
 
 (defun company-coq-setup-keybindings ()
   (company-coq--keybindings-minor-mode))
