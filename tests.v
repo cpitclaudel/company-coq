@@ -28,6 +28,7 @@ Lemma TestSubscripts :
   forall x: True, True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> nat.
 Proof.
   intros.
+  (* Are subscripts displaying properly? *)
   constructor.
 Qed.
 
@@ -116,6 +117,57 @@ Lemma MathCompletion : ∀ x, x > 1 → x > 0. (* This can be typed using \foral
   intros x H.
   info_auto with arith.
 Qed.
+
+Goal True = True.
+  (* (company-coq-diff-unification-warning) should show diffs for all these errors *)
+  Fail apply 1.
+  Fail (apply (@eq_refl Type)). 
+  Set Printing All.
+  Fail (apply (@eq_refl Type)).
+  Unset Printing All.
+  reflexivity.
+Qed.
+
+Inductive Tree {T} :=
+| Leaf : T -> Tree
+| Branch : Tree -> Tree -> Tree.
+
+Fixpoint MakeLargeTree {A} depth (leaf lastleaf:A) :=
+  match depth with
+  | O => Leaf lastleaf
+  | S n => Branch (MakeLargeTree n leaf leaf) (MakeLargeTree n leaf lastleaf)
+  end.
+
+Inductive TypedTree : @Tree Type -> Type :=
+| TypedLeaf : forall A, A -> TypedTree (Leaf A)
+| TypedBranch : forall t1 t2, TypedTree t1 -> TypedTree t2 -> TypedTree (Branch t1 t2).
+
+Eval compute in (MakeLargeTree 7 unit nat).
+
+Lemma inhabited_homogeneous:
+  forall T n (t: T),
+    inhabited (TypedTree (@MakeLargeTree Type n T T)).
+Proof.
+  intros; constructor.
+  induction n; simpl; constructor; eauto.
+Qed.
+  
+Set Printing All.
+
+Definition Depth := 5.
+
+Lemma LargeGoal : inhabited (TypedTree (@MakeLargeTree Type Depth unit nat)).
+Proof.
+  pose proof (inhabited_homogeneous unit Depth tt) as pr.
+  simpl in *.
+
+  (* (company-coq-diff-unification-warning) *)
+  Fail exact pr.
+  Unset Printing All.
+  
+  (* Position in the goals buffer shouldn't change when thorem names are autocompleted. *)
+Admitted.
+
 
 Require Import Bvector.
 Require Import DecBool.
@@ -536,18 +588,4 @@ Proof.
 Qed.
 
 (* vvv shouldn't be available here *)
-
-Fixpoint LargeType (n: nat) :=
-  match n with
-  | O => unit
-  | S n => unit -> (LargeType n)
-  end.
-
-Lemma LargeGoal : LargeType 55.
-Proof.
-  simpl.
-  simpl.
-  (* Position in the goals buffer shouldn't change when thorem names are autocompleted. *)
-  constructor.
-Defined.
 

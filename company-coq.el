@@ -20,35 +20,11 @@
 
 ;;; Commentary:
 ;;
-;; This package offers a company backend for Proof-General's Coq mode.
+;; This package includes a company backend for Proof-General's Coq mode, and
+;; many useful extensions to Proof-General.
 ;;
-;; Features
-;; ========
-;;
-;; * Auto-completion of math symbols using company-math
-;;
-;; * Auto-completion of theorem names from the same buffer, with type
-;;   annotations.
-;;
-;; * Easy access to Proof-General's templates (using yasnippet)
-;;
-;; * Auto-completion of (most of) Coq's tactics and commands, with snippets
-;;   auto-extracted from the manual.
-;;
-;; * Auto-completion of module names in [Import] commands.
-;;
-;; * Auto-completion of identifiers in proof contexts.
-;;
-;; * Documentation for (most) tactics and commands, with excerpts from the
-;;   manual shown directly in Emacs.
-;;
-;; Advanced features (requires a patched version of `coqtop`)
-;; ==========================================================
-;;
-;; * Auto-completion of all known theorem and symbol names, with type
-;;   annotations.
-;;
-;; See https://github.com/cpitclaudel/company-coq/ for further documentation
+;; See https://github.com/cpitclaudel/company-coq/ for a full description,
+;; including screenshots and documentation.
 ;;
 
 ;;; Code:
@@ -88,6 +64,7 @@
 (require 'yasnippet)    ;; Templates
 (require 'paren)        ;; Find matching block start
 (require 'smie)         ;; Move around the source code
+(require 'diff-mode)    ;; Browsing through large error messages
 
 (require 'company-coq-abbrev)
 
@@ -381,6 +358,20 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
     "repeat match goal with H:_ |- _ => generalize dependent H end")
   "Forms run after 'generalize dependent ...' to produce a lemma statement")
 
+(defconst company-coq-unification-error-messages
+  '("\\(?:Error: Refiner was given an argument \".*\" of type \"\\(?1:.*\\)\" instead of \"\\(?2:.*\\)\".\\)"
+    "\\(?:Error: Unable to unify \"\\(?1:.*\\)\" with \"\\(?2:.*\\)\".\\)"
+    "\\(?:Error: Impossible to unify \"\\(?1:.*\\)\" with \"\\(?2:.*\\)\".\\)"
+    "\\(?:Error: In environment.*The term \".*\" has type \"\\(?1:.*\\)\" while it is expected to have type \"\\(?2:.*\\)\".\\)"))
+
+(defconst company-coq-unification-error-message
+  (replace-regexp-in-string
+   (regexp-quote ".") (replace-quote "\\(?:.\\|[\n]\\)")
+   (replace-regexp-in-string
+    (regexp-quote " ") (replace-quote "\\s-*")
+    (concat (mapconcat #'identity company-coq-unification-error-messages "\\|")
+            "\\s-*"))))
+
 (defconst script-full-path load-file-name
   "Full path of this script")
 
@@ -424,7 +415,7 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
 (defmacro company-coq-dbg (format &rest args)
   "Print a message if company-coq-debug is non-nil"
   `(when company-coq-debug
-     (apply 'message (concat "company-coq: " ,format) ,@args)))
+     (message (concat "company-coq: " ,format) ,@args)))
 
 ;; FIXME: This should happen at the PG level. Introduced to fix #8.
 (defmacro company-coq-with-window-start (window &rest body)
@@ -486,6 +477,23 @@ line if empty). Calls `indent-region' on the inserted lines."
     (mapc #'insert lines)
     (indent-region beg (point))
     (indent-according-to-mode)))
+
+(defmacro company-coq-with-current-buffer-maybe (bufname &rest body)
+  (declare (indent defun))
+  `(let ((buf (get-buffer ,bufname)))
+     (when buf
+       (with-current-buffer buf
+         ,@body))))
+
+(defun company-coq-insert-match-in-buffer (bufname subgroup &optional prefix postprocess)
+  (let ((str (match-string-no-properties subgroup)))
+    (with-current-buffer (get-buffer-create bufname)
+      (let ((inhibit-read-only t))
+        (erase-buffer)
+        (when prefix (insert prefix))
+        (insert str)
+        (when postprocess (funcall postprocess)))
+      (current-buffer))))
 
 (defun company-coq-extend-path (path components)
   "Contruct a path by appending each element in COMPONENTS to PATH"
@@ -1429,6 +1437,27 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
           (replace-match (replace-quote (format "Searching for [%s] in [%s]\n" regexp default-directory)))
           (goto-char (point-min))
           (company-coq-make-title-line))))))
+
+(defun company-coq-diff-unification-warning (&optional context)
+  (interactive "p")
+  (setq context (or context 10))
+  (with-current-buffer "*response*"
+    (save-match-data
+      (save-excursion
+        (goto-char (point-min))
+        (if (re-search-forward company-coq-unification-error-message nil t)
+            (let ((same-window-buffer-names '("*Diff*"))
+                  (b1 "*company-coq-unification-A*")
+                  (b2 "*company-coq-unification-B*"))
+              (diff (company-coq-insert-match-in-buffer b1 1 " " #'newline)
+                    (company-coq-insert-match-in-buffer b2 2 " " #'newline)
+                    `(,(concat "--unified=" (int-to-string context)) "--minimal" "--ignore-all-space")
+                    'noasync)
+              (company-coq-with-current-buffer-maybe "*Diff*"
+                (diff-refine-hunk))
+              (kill-buffer b1)
+              (kill-buffer b2))
+          (error "Buffer *response* does not match the format of a unification error message."))))))
 
 ;; TODO It would be nice to get syntax coloring in the grep buffer
 

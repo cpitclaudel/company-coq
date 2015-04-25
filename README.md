@@ -33,6 +33,8 @@ most advanced features require a patched version of coqtop.
 
 * Extended [font beautification](img/prettify.png): keywords are automatically replaced with corresponding symbols (`⊢⊤⊥→⇒λ∀∃∧∨¬≠⧺𝓝ℤℕℚℝ𝔹𝓟`)
 
+* Visual [word diff](img/unification.png) of large unification error messages (<samp>The term "<i>blah</i>" has type "<i>huge blob</i>" while it is expected to have type "<i>slightly different blob</i>"</samp>)
+
 ### Advanced features
 
 (These require a [patched version](https://github.com/coq/coq/pull/56) of `coqtop`)
@@ -75,6 +77,10 @@ most advanced features require a patched version of coqtop.
 
 <img src="img/prettify.png" alt="Keyword beautification" />
 
+### Diffs of unification errors
+
+<img src="img/unification.png" alt="Diffs of unification errors" />
+
 ### Autocompletion of symbol names (w/ patched `coqtop`, see notes)
 
 <img src="img/symbol-completion.png" alt="Autocompletion of symbol names" />
@@ -87,13 +93,13 @@ most advanced features require a patched version of coqtop.
 
 Note: You need a version of Emacs >= 24 for this to work properly. You can check which version you are running with <kbd>M-x emacs-version RET</kbd>
 
-### `Coq`
+### Coq
 
 ```bash
 sudo apt-get install coq
 ```
 
-### `Proof-General`
+### Proof-General
 
 ```bash
 sudo apt-get install proof-general
@@ -101,23 +107,17 @@ sudo apt-get install proof-general
 
 (or [from source](http://proofgeneral.inf.ed.ac.uk/releases/ProofGeneral-4.2.tgz))
 
-### `company-coq`
+### company-coq
 
-```elisp
-M-x package-install RET company-coq RET
-```
-
-<small>
-Note that `company-coq` is on [MELPA](http://melpa.org/#/getting-started). If you don't have it, add the following to your `.emacs` and reload it before running the commands above:
+`company-coq` is on [MELPA](http://melpa.org/#/getting-started). First add the following to your `.emacs` and restart emacs.
 
 ```elisp
 (require 'package)
 (add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/") t)
 (package-initialize)
 ```
-</small>
 
-Compiling the dependencies of `company-coq` will produce a few warnings. That's ok.
+Then type `M-x package-refresh-contents RET` followed by `M-x package-install RET company-coq RET` to install and byte-compile `company-coq` and its dependencies. Some of them will produce a few warnings. That's ok.
 
 ## Configuration
 
@@ -212,7 +212,7 @@ Modules, context and symbols auto-completion can be turned off using the followi
 
 You can set these variables using `M-x customize-group RET company-coq RET
 
-### Unloading `company-coq`
+### Disabling company-coq
 
 `M-x unload-feature RET company-coq RET` should work fine.
 
