@@ -35,6 +35,8 @@ most advanced features require a patched version of coqtop.
 
 * Visual [word diff](img/unification.png) of large unification error messages (<samp>The term "<i>blah</i>" has type "<i>huge blob</i>" while it is expected to have type "<i>slightly different blob</i>"</samp>)
 
+* Convenient snippets: easily insert [new `match` cases](img/match-function.gif) and [`match goal` rules](img/match-goal.gif).
+
 ### Advanced features
 
 (These require a [patched version](https://github.com/coq/coq/pull/56) of `coqtop`)
@@ -76,6 +78,11 @@ most advanced features require a patched version of coqtop.
 ### Keyword beautification
 
 <img src="img/prettify.png" alt="Keyword beautification" />
+
+### Neat snippets
+
+<img src="img/match-function.png" alt="Insert new match cases" />
+<img src="img/match-goal.png" alt="Insert new match goal rules" />
 
 ### Diffs of unification errors
 
@@ -149,11 +156,13 @@ Selecting a completion often inserts a snippet with holes at the current point (
 
 Loading `company-coq` also binds the following keys:
 
+* <kbd>M-RET</kbd> inserts a new `match` case (`| _ => _`).
+* <kbd>M-S-RET</kbd> inserts a new `match goal` rule (`| [ H: _ |- _ ] => _`).
+* <kbd>C-c C-a C-e</kbd> extracts the current goal into a separate lemma.
+* <kbd>C-c C-,</kbd> opens an outline of the code in a separate buffer (using `occur`).
 * <kbd>C-c C-/</kbd> folds the current code block, or all blocs in the file if repeated.
 * <kbd>C-c C-\\</kbd> unfolds the current code block, or all blocs in the file if repeated.
-* <kbd>C-c C-,</kbd> opens an outline of the code in a separate buffer (using `occur`).
 * <kbd>C-c C-&</kbd> looks up (grep) the current word in files in the current directory subtree.
-* <kbd>C-c C-a C-e</kbd> extracts the current goal into a separate lemma.
 
 ## Troubleshooting
 

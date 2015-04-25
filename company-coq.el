@@ -1661,6 +1661,8 @@ definitions."
     (define-key cc-map (kbd "C-c C-&")          #'company-coq-grep-symbol)
     (define-key cc-map (kbd "C-<return>")       #'company-manual-begin)
     (define-key cc-map (kbd "C-c C-a C-e")      #'company-coq-lemma-from-goal)
+    (define-key cc-map (kbd "<M-return>")       #'company-coq-insert-match-rule-simple)
+    (define-key cc-map (kbd "<M-S-return>")     #'company-coq-insert-match-rule-complex)
     (define-key cc-map (kbd "SPC")              #'company-coq-maybe-exit-snippet)
     (define-key cc-map (kbd "RET")              #'company-coq-maybe-exit-snippet)
     (define-key cc-map [remap proof-goto-point] #'company-coq-proof-goto-point)
@@ -1725,6 +1727,34 @@ definitions."
 (defun company-coq-narrow-to-defun ()
   (interactive)
   (narrow-to-region (company-coq-beginning-of-proof) (company-coq-end-of-proof)))
+
+(defun company-coq-region-whitespace-p (beg end)
+  (interactive "r")
+  (save-excursion
+    (goto-char beg)
+    (skip-chars-forward " \t\r\n" end)
+    (equal (point) end)))
+
+(defun company-coq-insert-match-rule (snippet)
+  (when (featurep 'yasnippet)
+    (let ((empty-before (company-coq-region-whitespace-p (point-at-bol) (point)))
+          (empty-after  (company-coq-region-whitespace-p (point) (point-at-eol))))
+      (when (not empty-before) (newline))
+      (when (not empty-after)  (just-one-space))
+      (yas-expand-snippet snippet)
+      (indent-according-to-mode))))
+
+(defun company-coq-insert-match-rule-simple (&optional arg)
+  (interactive "P")
+  (if (consp arg)
+      (company-coq-insert-match-rule "| ${constructor} : $0")
+    (company-coq-insert-match-rule "| ${_} => $0")))
+
+(defun company-coq-insert-match-rule-complex (&optional arg)
+  (interactive "P")
+  (if (consp arg)
+      (company-coq-insert-match-rule "| ${constructor} : ${args} -> $0")
+    (company-coq-insert-match-rule "| [ ${H: ${hyps}} |- ${_} ] => $0")))
 
 (defun company-coq-lemma-from-goal-interact ()
   "Interactively ask for a lemma name, and hypothesis from the context."
@@ -1826,9 +1856,10 @@ hypotheses HYPS, and everything that they depend on."
 
 (defun company-coq-setup-goals-buffer ()
   (company-coq-setup-prettify)
-  ;; Transform H1 into H_1
   (add-to-list (make-local-variable 'font-lock-extra-managed-props) 'display)
+  ;; Prettify the goals line ("=====")
   (font-lock-add-keywords nil company-coq-goal-separator-spec t)
+  ;; Transform H1 into H_1
   (font-lock-add-keywords nil company-coq-subscript-spec t))
 
 ;;;###autoload
