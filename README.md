@@ -218,23 +218,22 @@ You can set these variables using `M-x customize-group RET company-coq RET
 
 ### Installing from source
 
-#### `company-coq`
+#### Setup
+
+[MELPA](http://melpa.org/#/getting-started)
+
+#### company-coq
 
 ```bash
 mkdir -p ~/.emacs.d/lisp/
 git clone https://github.com/cpitclaudel/company-coq.git ~/.emacs.d/lisp/company-coq
-cd ~/.emacs.d/lisp/company-coq && make package
-emacs -Q --eval '(package-install-from-file "~/.emacs.d/lisp/company-coq/company-coq-0.2.tar")'
+cd ~/.emacs.d/lisp/company-coq
+make package && make install
 ```
 
-```elisp
-M-x package-install-from-file RET company-coq- TAB RET
-```
-
-### Configuration
+#### Configuration
 
 ```elisp
-(add-to-list 'load-path "~/.emacs.d/lisp/ProofGeneral/generic/")
 (add-to-list 'load-path "~/.emacs.d/lisp/company-coq/")
 (require 'company-coq)
 ```

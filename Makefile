@@ -15,14 +15,24 @@ elc:
 clean-elc:
 	rm -rf *.elc
 
-package: clean-package
+package-name:
 	$(eval PKG := company-coq-$(shell sed -n -e 's/.*"\(.*\)".*/\1/' -e 3p company-coq-pkg.el))
+
+package: clean-package package-name
 	mkdir -p build/$(PKG)
 	cp -R *.el refman build/$(PKG)
 	cd build && tar -cf $(PKG).tar $(PKG)
 
 clean-package:
 	rm -rf build
+
+install:
+	emacs \
+		-l package \
+		--eval "(add-to-list 'package-archives '(\"melpa\" . \"http://melpa.org/packages/\") t)" \
+		--eval "(package-refresh-contents)" \
+		--eval "(package-initialize)" \
+		--eval "(package-install-file \"build/$(PKG).tar\")"
 
 sandbox: clean-sandbox package
 	mkdir -p $(SANDBOX)
