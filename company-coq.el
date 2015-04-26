@@ -290,7 +290,7 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
   "Regexp used to detect signs that new definitions have been added to the context")
 
 (defconst company-coq-error-regexp "\\`Error: "
-  "Regexp used to detect errors (useful in particular to prevent reloading the modules list ater a failed import.")
+  "Regexp used to detect errors (useful in particular to prevent reloading the modules list after a failed import.")
 
 (defconst company-coq-abort-proof-regexp "Current goals? aborted"
   "Regexp used to detect signs that new definitions have been added to the context")
@@ -360,19 +360,23 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
     "repeat match goal with H:_ |- _ => generalize dependent H end")
   "Forms run after 'generalize dependent ...' to produce a lemma statement")
 
+(defconst company-coq-unification-error-header
+  "\\(?:The command has indeed failed with message:\\|Error:\\)")
+
 (defconst company-coq-unification-error-messages
-  '("\\(?:Error: Refiner was given an argument \".*\" of type \"\\(?1:.*\\)\" instead of \"\\(?2:.*\\)\".\\)"
-    "\\(?:Error: Unable to unify \"\\(?1:.*\\)\" with \"\\(?2:.*\\)\".\\)"
-    "\\(?:Error: Impossible to unify \"\\(?1:.*\\)\" with \"\\(?2:.*\\)\".\\)"
-    "\\(?:Error: In environment.*The term \".*\" has type \"\\(?1:.*\\)\" while it is expected to have type \"\\(?2:.*\\)\".\\)"))
+  '("Refiner was given an argument \".*\" of type \"\\(?1:.*\\)\" instead of \"\\(?2:.*\\)\"."
+    "Unable to unify \"\\(?1:.*\\)\" with \"\\(?2:.*\\)\"."
+    "Impossible to unify \"\\(?1:.*\\)\" with \"\\(?2:.*\\)\"."
+    "In environment.*The term \".*\" has type \"\\(?1:.*\\)\" while it is expected to have type \"\\(?2:.*\\)\"."))
 
 (defconst company-coq-unification-error-message
   (replace-regexp-in-string
    (regexp-quote ".") (replace-quote "\\(?:.\\|[\n]\\)")
    (replace-regexp-in-string
     (regexp-quote " ") (replace-quote "\\s-*")
-    (concat (mapconcat #'identity company-coq-unification-error-messages "\\|")
-            "\\s-*"))))
+    (concat company-coq-unification-error-header " " "\\(?:"
+            (mapconcat #'identity company-coq-unification-error-messages "\\|")
+            "\\)\\s-*"))))
 
 (defconst script-full-path load-file-name
   "Full path of this script")
