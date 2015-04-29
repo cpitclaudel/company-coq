@@ -583,3 +583,20 @@ Qed.
 
 (* vvv shouldn't be available here *)
 
+(** Error messages **)
+
+(* Require Import NonExistentModule. *)
+
+Goal True -> True -> True.
+  (* intros a a a. *)
+  (* intros; intro. *)
+  (* intro before NonExistent. (* Far at the bottom of the page *) *)
+  (* exists 1. *)
+  (* apply False. (* unsupported *) *)
+  constructor.
+Qed.
+
+
+
+
+  

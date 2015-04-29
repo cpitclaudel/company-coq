@@ -7,7 +7,7 @@ all: elc package
 clean: clean-elc clean-package clean-sandbox
 
 test:
-	emacs -mm tests.v
+	emacs -mm -L . -l company-coq.el tests.v
 
 test24:
 	emacs24 -mm tests.v

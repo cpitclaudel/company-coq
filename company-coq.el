@@ -754,6 +754,17 @@ a list of pairs of paths in the form (LOGICAL . PHYSICAL)"
         (setq prev top)))
     deduped))
 
+(defun company-coq-sorted-intersection (l1 l2)
+  (let ((inter nil))
+    (while (and l1 l2)
+      (cond
+       ((string< (car l1) (car l2)) (pop l1))
+       ((string< (car l2) (car l1)) (pop l2))
+       ((string= (car l1) (car l2))
+        (push (car l1) inter)
+        (pop l1) (pop l2))))
+    inter))
+
 (defun company-coq-number (ls)
   (let ((num 0))
     (mapc (lambda (x)
@@ -1880,6 +1891,33 @@ hypotheses HYPS, and everything that they depend on."
            ,@(mapconcat #'identity lemma "\n")
            ".\nProof.\n"))
       (error "Lemma extraction failed"))))
+
+(defun company-coq-normalize-error (message)
+  (let* ((truncated (replace-regexp-in-string "\\(?:.\\|[\n]\\)*Error:\s-" "" message))
+         (cleaned   (replace-regexp-in-string "\"[^\"]+\"" "" truncated))
+         (upped     (upcase cleaned))
+         (split     (split-string upped "[^[:word:]0-9]+" t))
+         (sorted    (sort split #'string<)))
+    sorted))
+
+(defun company-coq-find-errors-overlap (reference message)
+  (let ((inter (company-coq-sorted-intersection
+                message (company-coq-normalize-error (car reference)))))
+    (cons (length inter) reference)))
+
+(defun company-coq-find-closest-error (message)
+  (let* ((normalized    (company-coq-normalize-error message))
+         (intersections (cl-loop for reference in company-coq-errors
+                                 collect (company-coq-find-errors-overlap reference normalized))))
+    (car (sort intersections (lambda (x y) (> (car x) (car y)))))))
+
+(defun company-coq-document-error ()
+  (interactive)
+  (let* ((err (company-coq-with-current-buffer-maybe "*response*" (buffer-string)))
+         (hit (and err (cdr-safe (company-coq-find-closest-error err)))))
+    (when hit
+      (message "Found error reference [%s]" (car hit))
+      (company-coq-doc-buffer-keywords (cdr hit)))))
 
 (defun company-coq-setup-keybindings ()
   (company-coq--keybindings-minor-mode))
