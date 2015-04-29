@@ -199,7 +199,7 @@ same prefix."
 
 (defun company-coq-make-headers-regexp (headers regexp-base)
   (concat "^[ \t]*\\b\\(" (regexp-opt headers) "\\)"
-          "[[:space:]]+\\(" regexp-base "+\\)"))
+          (when regexp-base (concat "[[:space:]]+\\(" regexp-base "+\\)"))))
 
 (defconst company-coq-ltac-kwds '("Ltac"))
 
@@ -296,7 +296,7 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
 (defconst company-coq-abort-proof-regexp "Current goals? aborted"
   "Regexp used to detect signs that new definitions have been added to the context")
 
-(defconst company-coq-import-regexp "\\(Require\\)\\|\\(Import\\)"
+(defconst company-coq-import-regexp (regexp-opt '("From" "Require" "Import" "Export"))
   "Regexp used to detect signs that new definitions will be added to the context")
 
 (defconst company-coq-load-regexp "\\(LoadPath\\)"
@@ -636,7 +636,7 @@ line if empty). Calls `indent-region' on the inserted lines."
     (let* ((bol           (point-at-bol))
            (command-begin (or (search-backward ". " bol t) bol)))
       (goto-char command-begin)
-      (looking-at " *\\(Require\\)\\|\\(Import\\)\\|\\(Export\\) *"))))
+      (looking-at (concat " *" company-coq-import-regexp " *")))))
 
 (defun company-coq-line-is-block-end-p ()
   (looking-back company-coq-block-end-regexp (point-at-bol)))
