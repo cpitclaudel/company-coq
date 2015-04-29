@@ -98,7 +98,7 @@ most advanced features require a patched version of coqtop.
 
 ## Setup
 
-Note: You need a version of Emacs >= 24 for this to work properly. You can check which version you are running with <kbd>M-x emacs-version RET</kbd>
+Note: You need a version of Emacs >= 24 for this to work properly. You can check which version you are running with <kbd>M-x emacs-version RET</kbd>. Note that some features, like beautification of symbols or syntax highlighting in the manual, only work with emacs >= 24.4.
 
 ### Coq
 
