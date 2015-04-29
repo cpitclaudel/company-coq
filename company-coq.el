@@ -862,10 +862,20 @@ a list of pairs of paths in the form (LOGICAL . PHYSICAL)"
   (interactive)
   (company-coq-complete-prefix-substring prefix company-coq-buffer-defuns))
 
+(defun company-coq-complete-sub-re (prefix candidates)
+  (let* ((chars (string-to-list prefix)) ;; The regexp says: skip stuff before beginning a new word, or skip nothing
+         (re    (concat "\\`" (mapconcat (lambda (c) (regexp-quote (char-to-string c))) chars "\\(\\|.+?\\<\\)")))
+         (case-fold-search nil))
+    (save-match-data
+      (cl-loop for     candidate
+               in      candidates
+               when    (string-match re candidate)
+               collect (company-coq-propertize-match candidate 0 (match-end 0))))))
+
 (defun company-coq-complete-keyword (prefix)
   "List elements of company-coq-known-keywords starting with PREFIX"
   (interactive)
-  (company-coq-complete-prefix prefix company-coq-known-keywords))
+  (company-coq-complete-sub-re prefix company-coq-known-keywords))
 
 (defun company-coq-complete-context (prefix)
   "List elements of company-coq-current-context containing PREFIX"
