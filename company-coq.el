@@ -1112,7 +1112,8 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
       (setq company-coq-symbols-reload-needed (or company-coq-symbols-reload-needed is-end-of-def is-end-of-proof))
       (company-coq-maybe-reload-context (or is-end-of-def is-end-of-proof is-aborted))
       (if is-error (company-coq-dbg "Last output was an error; not reloading")
-        (run-with-idle-timer 0 nil #'company-coq-maybe-reload-each))))) ;; FIXME idle timer
+        ;; Delay call until after we have returned to the command loop
+        (run-with-idle-timer 0 nil #'company-coq-maybe-reload-each)))))
 
 (defun company-coq-maybe-proof-input-reload-things ()
   "Reload symbols if input mentions new symbols"

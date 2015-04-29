@@ -13,10 +13,10 @@ most advanced features require a patched version of coqtop.
 
 * Easy access to [Proof-General's templates](img/lemma-completion.png) (using yasnippet), with smart templates for sections and modules.
 
-* Auto-completion of (most of) Coq's [tactics](img/command-completion-doc.png) and
+* Fuzzy auto-completion of (most of) Coq's [tactics](img/command-completion-doc.png) and
   [commands](img/symbol-completion-doc.png), with snippets auto-extracted from the manual.
 
-* Fuzzy auto-completion of [module names](img/module-completion.png) in `Import` commands.
+* Fuzzy auto-completion of library [module names](img/module-completion.png) in `Import` commands.
 
 * Auto-completion of [identifiers](img/identifiers-completion.png) in proof contexts, and of section and modules names.
 
@@ -31,7 +31,7 @@ most advanced features require a patched version of coqtop.
 
 * Interactive lemma extraction: press <kbd>C-c C-a C-e</kbd> to extract the current goal into a separate lemma.
 
-* Extended [font beautification](img/prettify.png): keywords are automatically replaced with corresponding symbols (`⊢⊤⊥→⇒λ∀∃∧∨¬≠⧺𝓝ℤℕℚℝ𝔹𝓟`)
+* Extended [font beautification](img/prettify.png): keywords are automatically replaced with corresponding symbols (`⊢⊤⊥→⇒λ∀∃∧∨¬≠⧺𝓝ℤℕℚℝ𝔹𝓟`), and the goals line (`========`) actually looks like a line (`════════`).
 
 * Visual [word diff](img/unification.png) of large unification error messages (<samp>The term "<i>blah</i>" has type "<i>huge blob</i>" while it is expected to have type "<i>slightly different blob</i>"</samp>)
 
@@ -98,7 +98,7 @@ most advanced features require a patched version of coqtop.
 
 ## Setup
 
-Note: You need a version of Emacs >= 24 for this to work properly. You can check which version you are running with <kbd>M-x emacs-version RET</kbd>. Note that some features, like beautification of symbols or syntax highlighting in the manual, only work with emacs >= 24.4.
+Note: You need a version of Emacs ≥ 24 for this to work properly. You can check which version you are running with <kbd>M-x emacs-version RET</kbd>. Note that some features, like beautification of symbols or syntax highlighting in the manual, only work with emacs ≥ 24.4.
 
 ### Coq
 
@@ -152,7 +152,7 @@ Once auto-completion has started, the following key bindings are available:
 * <kbd>C-M-v</kbd> scrolls down in the documentation window.
 * <kbd>C-w</kbd> opens the relevant section of the documentation, scrolling to the part about the currently highlighted keyword or identifier. Using <kbd>C-w</kbd> allows you scroll up (<kbd>C-M-S-v</kbd>) in the documentation window to see more context.
 
-Selecting a completion often inserts a snippet with holes at the current point (`company-coq` uses `yasnippet` as the snippet backend). You can move between holes by using <kbd>&lt;tab></kbd> and <kbd>S-&lt;tab></kbd>.
+Selecting a completion often inserts a snippet with holes at the current point (`company-coq` uses `yasnippet` as the snippet backend). You can move between holes by using <kbd>&lt;tab></kbd> and <kbd>S-&lt;tab></kbd>. Some snippets (like Print Instances) include multiple choices.
 
 Loading `company-coq` also binds the following keys:
 
@@ -163,6 +163,12 @@ Loading `company-coq` also binds the following keys:
 * <kbd>C-c C-/</kbd> folds the current code block, or all blocs in the file if repeated.
 * <kbd>C-c C-\\</kbd> unfolds the current code block, or all blocs in the file if repeated.
 * <kbd>C-c C-&</kbd> looks up (grep) the current word in files in the current directory subtree.
+
+## Tips
+
+* Module completion is fuzzy: you can type `Require Import C.N..Ab.ZPa` and press <kbd>RET</kbd> to insert `Coq.Numbers.Integer.Abstract.ZParity`.
+* Tactics completion is fuzzy too: typing `setrewin` and pressing <kbd>RET</kbd is enough to insert `setoid_rewrite <i>term</i> in <i>ident</i>`. You can (and must) omit spaces: `SLD` for `Set Ltac Debug` (of course `SetLtDeb` will also work), and `ULD` for `Unset Ltac Debug`.
+* Using <kdb>M-S-RET</kbd> to insert new cases in a `match goal` saves a lot of time (and finger contortions).
 
 ## Troubleshooting
 

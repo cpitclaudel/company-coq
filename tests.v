@@ -1,7 +1,6 @@
 Require Import Utf8.
 
 (* Global folding should work here *)
-
 Ltac TestLtac a b cde := idtac.
 
 Inductive AAABBB :=
@@ -18,8 +17,6 @@ Definition PrettySymbols : (nat -> nat -> Prop) :=
      forall p, p <> n -> p >= m -> True \/ False).
 
 (* AAABBB and BBBCCC should autocomplete without starting the prover, and appear in the outline (C-c C-,) *)
-
-Typeclasses eauto := debug dfs.
 
 (* Start prover *)
 Require Import Omega. (* This should autocomplete *)
@@ -167,7 +164,6 @@ Proof.
   
   (* Position in the goals buffer shouldn't change when thorem names are autocompleted. *)
 Admitted.
-
 
 Require Import Bvector.
 Require Import DecBool.
@@ -581,10 +577,8 @@ Proof.
   setoid_rewrite Qclt_minus_iff.
   rewrite Qcplus_comm.
   rewrite Qcplus_assoc.
-  replace (- vvvvv + vvvvv) with 0.
-  
+  ring_simplify.
   reflexivity.
-  ring.
 Qed.
 
 (* vvv shouldn't be available here *)
