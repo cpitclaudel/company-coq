@@ -322,7 +322,7 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
   "Keywords used in outline mode and in company-coq-occur")
 
 (defconst company-coq-named-outline-kwds `("Equations" "Notation" "Remark" "Tactic Notation"
-                                     ,@company-coq-section-kwds ,@company-coq-defuns-kwds)
+                                           ,@company-coq-section-kwds ,@company-coq-defuns-kwds)
   "Keywords used in outline mode and in company-coq-occur")
 
 (defconst company-coq-anonymous-outline-kwds '("Goal"))
@@ -1323,12 +1323,12 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (goto-char (or target-point (point-min)))
   (when target-point
     (when (equal (char-after (point)) "*")
-    ;; Remove the star ("*") added by shr
+      ;; Remove the star ("*") added by shr
       (delete-char 1))
     (company-coq-make-title-line)
     (if (eq truncate 'truncate)
         (progn
-      (forward-line -2)
+          (forward-line -2)
           (delete-region (point-min) (point)))
       (recenter))))
 
@@ -1670,8 +1670,59 @@ definitions."
     (`ignore-case nil)
     (`require-match 'never)))
 
+(defvar company-coq-choices-list nil)
+(defvar company-coq-saved-idle-delay nil)
+
 (defun company-coq-choose-value (values)
-  (yas-choose-value values))
+  "Sets company up so that a completion list will popup with values VALUES.
+This is a bit tricky, because it's not sufficient to just call
+company-begin-backend; the reason is that company doesn't support
+recursive calls to itself, and this function may be called as the
+result of expanding a snippet, and thus as a descendant of a
+company function. Instead of calling it directly, we set the idle
+delay to 0, and we override this-command to allow completion to
+proceed."
+  (unless company-coq-saved-idle-delay
+    (setq company-coq-saved-idle-delay company-idle-delay))
+  ;; (yas-verify-value values)
+  (if yas-moving-away-p
+      (company-coq-forget-choices)
+    (setq company-coq-choices-list values
+          this-command 'self-insert-command
+          company-idle-delay 0))
+  nil) ;; yas-text would work as well
+
+(defun company-coq-forget-choices ()
+  (setq company-coq-choices-list nil
+        company-idle-delay (or company-coq-saved-idle-delay company-idle-delay)
+        company-coq-saved-idle-delay nil))
+
+(defun company-coq-point-in-field ()
+  (and
+   (boundp 'yas--active-field-overlay)
+   (overlay-start yas--active-field-overlay)
+   (overlay-end   yas--active-field-overlay)
+   (<= (overlay-start yas--active-field-overlay) (point))
+   (>= (overlay-end   yas--active-field-overlay) (point))))
+
+(defun company-coq-choices-prefix ()
+  (when (and company-coq-choices-list
+             (company-coq-point-in-field))
+    (cons (company-grab-word) t)))
+
+(defun company-coq-choices-post-completion ()
+  (company-coq-forget-choices)
+  (yas-next-field))
+
+(defun company-coq-choices (command &optional arg &rest ignored)
+  "A company-mode backend for holes allowing a pre-determined set of values."
+  (interactive (list 'interactive))
+  (company-coq-dbg "choices backend: called with command %s" command)
+  (pcase command
+    (`interactive (company-begin-backend 'company-coq-choices))
+    (`prefix (company-coq-choices-prefix))
+    (`candidates (company-coq-complete-prefix-substring arg company-coq-choices-list t))
+    (`post-completion (company-coq-choices-post-completion))))
 
 (defun company-coq-make-backends-alist ()
   (mapcar (lambda (backend) (cons backend ()))
@@ -1835,15 +1886,13 @@ hypotheses HYPS, and everything that they depend on."
 
 (defun company-coq-setup-hooks () ;; NOTE: This could be made callable at the beginning of every completion.
   ;; PG hooks
-  ;; (add-hook 'proof-state-change-hook (lambda () (message "STATE CHANGE")))
-  (add-hook 'proof-shell-insert-hook ;; (lambda () (message "INSERT")))
-            #'company-coq-maybe-proof-input-reload-things)
-  (add-hook 'proof-shell-handle-delayed-output-hook ;; (lambda () (message "DELAYED OUTPUT")))
-            #'company-coq-maybe-proof-output-reload-things)
-  (add-hook 'proof-shell-handle-error-or-interrupt-hook ;; (lambda () (message "ERROR OR INTERRUPT")))
-            #'company-coq-maybe-reload-context)
-  (add-hook 'coq-goals-mode-hook
-            #'company-coq-setup-goals-buffer))
+  ;; (add-hook 'proof-state-change-hook (lambda () (message "State change")))
+  (add-hook 'proof-shell-insert-hook #'company-coq-maybe-proof-input-reload-things)
+  (add-hook 'proof-shell-handle-delayed-output-hook #'company-coq-maybe-proof-output-reload-things)
+  (add-hook 'proof-shell-handle-error-or-interrupt-hook #'company-coq-maybe-reload-context)
+  (add-hook 'coq-goals-mode-hook #'company-coq-setup-goals-buffer)
+  ;; Yasnippet
+  (add-hook 'yas-after-exit-snippet-hook #'company-coq-forget-choices))
 
 (defun company-coq-setup-optional-backends ()
   (when company-coq-autocomplete-context
@@ -1921,6 +1970,7 @@ hypotheses HYPS, and everything that they depend on."
 
   ;; Let company know about our backends
   (add-to-list (make-local-variable 'company-backends) company-coq-backends)
+  (add-to-list (make-local-variable 'company-backends) #'company-coq-choices)
   (add-to-list (make-local-variable 'company-transformers) #'company-coq-sort-in-backends-order)
 
   ;; Set up a few convenient key bindings
@@ -1934,8 +1984,10 @@ hypotheses HYPS, and everything that they depend on."
   (remove-hook 'proof-shell-handle-delayed-output-hook #'company-coq-maybe-proof-output-reload-things)
   (remove-hook 'proof-shell-handle-error-or-interrupt-hook #'company-coq-maybe-reload-context)
   (remove-hook 'coq-goals-mode-hook #'company-coq-setup-goals-buffer)
+  (remove-hook 'yas-after-exit-snippet-hook #'company-coq-forget-choices)
 
   (setq company-backends     (delete company-coq-backends company-backends))
+  (setq company-backends     (delete #'company-coq-choices company-backends))
   (setq company-transformers (delete #'company-coq-sort-in-backends-order company-transformers))
 
   (cl-loop for buffer in (buffer-list)
