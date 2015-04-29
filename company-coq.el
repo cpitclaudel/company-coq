@@ -1316,18 +1316,20 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (company-coq-shr-fontize cont 'company-coq-doc-i-face))
 
 (defun company-coq-doc-keywords-prettify-title (target-point truncate)
+  ;; Company-mode returns to the beginning of the buffer, so centering
+  ;; vertically doesn't work.  Instead, just truncate everything, leaving
+  ;; just a bit of room for comments preceeding the tactic if any.
   (goto-char (or target-point (point-min)))
   (when target-point
     (when (equal (char-after (point)) "*")
     ;; Remove the star ("*") added by shr
       (delete-char 1))
     (company-coq-make-title-line)
-    (when truncate
-      ;; Company-mode returns to the beginning of the buffer, so centering
-      ;; vertically doesn't work.  Instead, just truncate everything, leaving
-      ;; just a bit of room for comments preceeding the tactic if any.
+    (if (eq truncate 'truncate)
+        (progn
       (forward-line -2)
-      (delete-region (point-min) (point)))))
+          (delete-region (point-min) (point)))
+      (recenter))))
 
 (defun company-coq-doc-keywords-put-html (html-full-path truncate)
   (let ((doc (with-temp-buffer
@@ -1341,11 +1343,11 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
     (turn-on-visual-line-mode)
     (company-coq-doc-keywords-prettify-title (next-single-property-change (point-min) 'shr-target-id) truncate)))
 
-(defun company-coq-doc-buffer-keywords (name &optional truncate)
+(defun company-coq-doc-buffer-keywords (name-or-anchor &optional truncate)
   (interactive)
   (company-coq-dbg "company-coq-doc-buffer-keywords: Called for %s" name)
   (when (fboundp 'libxml-parse-html-region)
-    (let* ((anchor         (company-coq-get-anchor name))
+    (let* ((anchor         (if (stringp name-or-anchor) (company-coq-get-anchor name) name-or-anchor))
            (shr-target-id  (and anchor (concat "qh" (int-to-string (cdr anchor)))))
            (doc-short-path (and anchor (concat (car anchor) ".html.gz")))
            (doc-full-path  (and doc-short-path
@@ -1600,7 +1602,7 @@ definitions."
     (`match (company-coq-match arg))
     (`annotation (company-coq-annotation-keywords arg))
     (`post-completion (company-coq-post-completion-keyword arg))
-    (`doc-buffer (car (company-coq-doc-buffer-keywords arg t)))
+    (`doc-buffer (car (company-coq-doc-buffer-keywords arg 'truncate)))
     (`location (company-coq-doc-buffer-keywords arg nil)) ;; TODO
     (`comparison-fun #'company-coq-string-lessp-keywords)
     (`require-match 'never)))
@@ -1618,10 +1620,7 @@ definitions."
     (`ignore-case nil)
     (`meta (company-coq-meta-simple arg))
     (`no-cache t)
-    ;; (`match (company-coq-match arg))
     (`annotation (company-coq-annotation-context arg))
-    ;; (`doc-buffer (car (company-coq-doc-buffer-keywords arg t)))
-    ;; (`location (company-coq-doc-buffer-keywords arg nil)) ;; TODO
     (`comparison-fun #'company-coq-string-lessp-symbols)
     (`require-match 'never)))
 
