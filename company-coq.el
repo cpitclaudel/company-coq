@@ -321,17 +321,20 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
 (defconst company-coq-section-kwds '("Chapter" "Module" "Module Type" "Section")
   "Keywords used in outline mode and in company-coq-occur")
 
-(defconst company-coq-outline-kwds `("Equations" "Goal" "Notation" "Remark" "Tactic Notation"
+(defconst company-coq-named-outline-kwds `("Equations" "Notation" "Remark" "Tactic Notation"
                                      ,@company-coq-section-kwds ,@company-coq-defuns-kwds)
   "Keywords used in outline mode and in company-coq-occur")
+
+(defconst company-coq-anonymous-outline-kwds '("Goal"))
 
 (defconst company-coq-section-regexp (company-coq-make-headers-regexp company-coq-section-kwds
                                                                       company-coq-id-regexp-base)
   "Regexp used to locate the closest section opening")
 
-;; TODO: Would be nice to fold [Require Import]s together
-(defconst company-coq-outline-regexp (company-coq-make-headers-regexp company-coq-outline-kwds
-                                                                      company-coq-id-regexp-base)
+;; TODO: Would be nice to fold [Require Import]s together instead of hiding them entirely
+(defconst company-coq-outline-regexp
+  (concat "\\(?:" (company-coq-make-headers-regexp company-coq-named-outline-kwds company-coq-id-regexp-base)
+          "\\)\\|\\(?:" (company-coq-make-headers-regexp company-coq-anonymous-outline-kwds nil) "\\)")
   "Regexp used to locate headings")
 
 (defun company-coq-outline-level ()
