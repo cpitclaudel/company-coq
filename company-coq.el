@@ -310,6 +310,9 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
 (defconst company-coq-dabbrev-to-yas-regexp "#\\|@{\\([^}]+\\)}"
   "Used to match replace holes in dabbrevs")
 
+(defconst company-coq-yasnippet-choice-regexp "${\\([a-z]+\\(|[a-z]+\\)+\\)}"
+  "Used to find choice patterns in dabbrevs")
+
 (defconst company-coq-placeholder-regexp (concat company-coq-dabbrev-to-yas-regexp
                                                  "\\|\\${\\([^}]+\\)}\\|\\$[[:digit:]]")
   "Used to count placeholders in abbrevs")
@@ -632,7 +635,7 @@ line if empty). Calls `indent-region' on the inserted lines."
       (looking-at " *\\(Require\\)\\|\\(Import\\)\\|\\(Export\\) *"))))
 
 (defun company-coq-line-is-block-end-p ()
-  (looking-back company-coq-block-end-regexp))
+  (looking-back company-coq-block-end-regexp (point-at-bol)))
 
 (defun company-coq-parse-path-specs (loadpath-lines)
   "Parse lines of output from company-coq-modules-cmd. Output is
@@ -850,7 +853,7 @@ a list of pairs of paths in the form (LOGICAL . PHYSICAL)"
 (defun company-coq-complete-symbol (prefix)
   "List elements of company-coq-dynamic-symbols or company-coq-buffer-defuns containing PREFIX"
   (interactive)
-  ;; Use actual symbols iff it's enabled and scripting mode is on
+  ;; Use actual symbols iff they're available and scripting mode is on
   (when (company-coq-dynamic-symbols-available)
     (company-coq-complete-prefix-substring prefix company-coq-dynamic-symbols)))
 
@@ -1095,7 +1098,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
       (setq company-coq-symbols-reload-needed (or company-coq-symbols-reload-needed is-end-of-def is-end-of-proof))
       (company-coq-maybe-reload-context (or is-end-of-def is-end-of-proof is-aborted))
       (if is-error (company-coq-dbg "Last output was an error; not reloading")
-        (run-with-idle-timer 0 nil #'company-coq-maybe-reload-each)))))
+        (run-with-idle-timer 0 nil #'company-coq-maybe-reload-each))))) ;; FIXME idle timer
 
 (defun company-coq-maybe-proof-input-reload-things ()
   "Reload symbols if input mentions new symbols"
@@ -1205,15 +1208,6 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (company-coq-truncate-to-minibuf
    (get-text-property 0 'meta name)))
 
-(defun company-coq-location-simple (name)
-  (company-coq-dbg "company-coq-location-simple: Called for name %s" name)
-  (let ((fname (get-text-property 0 'location name)))
-    (when (and fname (file-exists-p fname))
-      (company-coq-with-clean-doc-buffer
-        (insert-file-contents fname)
-        (coq-mode)
-        (cons (current-buffer) 0)))))
-
 (defun company-coq-get-pg-buffer ()
   (get-buffer "*goals*"))
 
@@ -1245,6 +1239,15 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
            (remove-overlays)
            (erase-buffer)
            ,@body)))))
+
+(defun company-coq-location-simple (name)
+  (company-coq-dbg "company-coq-location-simple: Called for name %s" name)
+  (let ((fname (get-text-property 0 'location name)))
+    (when (and fname (file-exists-p fname))
+      (company-coq-with-clean-doc-buffer
+        (insert-file-contents fname)
+        (coq-mode)
+        (cons (current-buffer) 0)))))
 
 (defun company-coq-make-title-line ()
   (let ((overlay (make-overlay (point-at-bol) (+ 1 (point-at-eol))))) ;; +1 to cover the full line
@@ -1329,7 +1332,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (company-coq-dbg "company-coq-doc-buffer-keywords: Called for %s" name)
   (when (fboundp 'libxml-parse-html-region)
     (let* ((anchor         (company-coq-get-anchor name))
-           (shr-target-id  (and anchor (concat "hevea_quickhelp" (int-to-string (cdr anchor)))))
+           (shr-target-id  (and anchor (concat "qh" (int-to-string (cdr anchor)))))
            (doc-short-path (and anchor (concat (car anchor) ".html.gz")))
            (doc-full-path  (and doc-short-path
                                 (concat (file-name-directory script-full-path) "refman/" doc-short-path))))
@@ -1503,6 +1506,10 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
         (progn (outline-back-to-heading) nil)
       ('error t))))
 
+(defun company-coq-call-compat (func fallback)
+  "Compatibility layer for obsolete function in 24.3"
+  (funcall (if (functionp func) func fallback)))
+
 (defun company-coq-fold ()
   "Hide the body of the current proof or definition. When outside
 a proof, or when repeated, hide the body of all proofs and
@@ -1510,8 +1517,8 @@ definitions."
   (interactive)
   (when outline-minor-mode
     (if (or (eq last-command #'company-coq-fold) (company-coq-cant-fold-unfold))
-        (hide-body)
-      (hide-subtree))))
+        (company-coq-call-compat 'outline-hide-body 'hide-body)
+      (company-coq-call-compat 'outline-hide-subtree 'hide-subtree))))
 
 (unless (plist-member (symbol-plist 'company-coq-fold) 'disabled)
   (put #'company-coq-fold 'disabled t))
@@ -1520,8 +1527,8 @@ definitions."
   (interactive)
   (when outline-minor-mode
     (if (or (eq last-command #'company-coq-unfold) (company-coq-cant-fold-unfold))
-        (show-all)
-      (show-subtree))))
+        (company-coq-call-compat #'outline-show-all 'show-all)
+      (company-coq-call-compat #'outline-show-subtree 'show-subtree))))
 
 ;; TODO completion at end of full symbol
 
@@ -1633,7 +1640,6 @@ definitions."
     (`duplicates nil)
     (`ignore-case nil)
     (`require-match 'never)))
-
 
 (defun company-coq-reserved-keywords (command &optional _arg &rest ignored)
   "A company-mode backend for language keywords, to prevent completion from kicking in instead of newline."
