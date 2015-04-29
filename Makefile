@@ -9,6 +9,9 @@ clean: clean-elc clean-package clean-sandbox
 test:
 	emacs -mm tests.v
 
+test24:
+	emacs24 -mm tests.v
+
 elc:
 	emacs --batch -L . --script ~/.emacs -f batch-byte-compile *.el
 
@@ -37,7 +40,7 @@ install:
 sandbox: clean-sandbox package
 	mkdir -p $(SANDBOX)
 
-	emacs -Q \
+	emacs24 -Q \
 		--eval '(setq user-emacs-directory "$(SANDBOX)")' \
 		-L "~/.emacs.d/lisp/ProofGeneral/generic/" \
 		-l package \
@@ -54,8 +57,8 @@ clean-sandbox:
 
 etc: clean-etc
 	cd /build/coq/ && make doc-html
-	python3 html-minify.py refman /build/coq/doc/refman/html/*.html
-	python3 extract-tactics.py
+	rm -f refman/
+	./parse-hevea.py refman/ ./company-coq-abbrev.el.template /build/coq/doc/refman/html/Reference-Manual*.html
 	parallel -j8 gzip -9 -- refman/*.html
 
 clean-etc:

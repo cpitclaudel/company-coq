@@ -23,7 +23,5 @@
 
 $ABBREVS$
 
-$SHORTLIST$
-
 (provide 'company-coq-abbrev)
 ;;; company-coq-abbrev.el ends here

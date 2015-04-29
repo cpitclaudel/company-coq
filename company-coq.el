@@ -678,7 +678,7 @@ a list of pairs of paths in the form (LOGICAL . PHYSICAL)"
                  '(coq-tactics-db coq-solve-tactics-db coq-solve-cheat-tactics-db coq-tacticals-db coq-commands-db))))
 
 (defun company-coq-get-own-keywords-db ()
-  (apply #'append company-coq-abbrevs-all))
+  company-coq-abbrevs)
 
 (defun company-coq-normalize-abbrev (kwd)
   (downcase
@@ -1286,17 +1286,24 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
           (company-coq-make-title-line)
           (current-buffer))))))
 
+(defun company-coq-shr-fontize (dom font)
+  (funcall (if (functionp 'shr-fontize-cont)
+               'shr-fontize-cont
+             'shr-fontize-dom)
+           dom font))
+
 (defun company-coq-shr-tag-tt (cont)
-  (shr-fontize-cont cont 'company-coq-doc-tt-face))
+  (company-coq-shr-fontize cont 'company-coq-doc-tt-face))
 
 (defun company-coq-shr-tag-i (cont)
-  (shr-fontize-cont cont 'company-coq-doc-i-face))
+  (company-coq-shr-fontize cont 'company-coq-doc-i-face))
 
 (defun company-coq-doc-keywords-prettify-title (target-point truncate)
   (goto-char (or target-point (point-min)))
   (when target-point
+    (when (equal (char-after (point)) "*")
     ;; Remove the star ("*") added by shr
-    (delete-char 1)
+      (delete-char 1))
     (company-coq-make-title-line)
     (when truncate
       ;; Company-mode returns to the beginning of the buffer, so centering
@@ -1374,21 +1381,28 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (company-coq-dbg "company-coq-match: matching %s" completion)
   (get-text-property 0 'match-end completion))
 
-(defun company-coq-dabbrev-to-yas-format-marker (match)
-  (let* ((start      (match-beginning 1))
-         (end        (match-end       1))
-         (identifier (or (and start end (substring match start end))
+(defun company-coq-dabbrev-to-yas-format-one (match)
+  (let* ((identifier (or (match-string 1 match)
                          (and company-coq-explicit-placeholders "_") "")))
     (concat  "${" identifier "}")))
 
-(defun company-coq-dabbrev-to-yas (abbrev)
-  (let* ((snippet (replace-regexp-in-string
-                   company-coq-dabbrev-to-yas-regexp
-                   #'company-coq-dabbrev-to-yas-format-marker abbrev)))
-    (company-coq-dbg "company-coq-dabbrev-to-yas: transformed to %s" snippet)
-    snippet))
+(defun company-coq-yasnippet-choicify-one (match)
+  (let* ((choices (save-match-data (split-string (match-string 1 match) "|"))))
+    (concat "${$$" (prin1-to-string `(company-coq-choose-value (list ,@choices))) "}")))
 
-(defconst company-coq-abbrevs-transforms-alist '((own . company-coq-dabbrev-to-yas)
+(defun company-coq-dabbrev-to-yas (abbrev)
+  (replace-regexp-in-string company-coq-dabbrev-to-yas-regexp
+                            #'company-coq-dabbrev-to-yas-format-one abbrev))
+
+(defun company-coq-dabbrev-to-yas-with-choices (abbrev)
+  (let ((snippet (company-coq-dabbrev-to-yas abbrev))
+        (case-fold-search t))
+    (replace-regexp-in-string company-coq-yasnippet-choice-regexp
+                              #'company-coq-yasnippet-choicify-one snippet)))
+
+;; (company-coq-dabbrev-to-yas-with-choices "Typeclasses eauto := @{dfs|bfs} @{depth}.")
+
+(defconst company-coq-abbrevs-transforms-alist '((own . company-coq-dabbrev-to-yas-with-choices)
                                                  (pg  . company-coq-dabbrev-to-yas)))
 
 (defun company-coq-abbrev-to-yas (abbrev source)
@@ -1635,6 +1649,9 @@ definitions."
     (`duplicates nil)
     (`ignore-case nil)
     (`require-match 'never)))
+
+(defun company-coq-choose-value (values)
+  (yas-choose-value values))
 
 (defun company-coq-make-backends-alist ()
   (mapcar (lambda (backend) (cons backend ()))
