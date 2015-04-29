@@ -36,12 +36,18 @@ class TextPattern:
     DOTS_RE = re.compile(r"([^ ].+[^ ]) *((.*[^ ])?) *… *\2 *\1")
     ID_RE = re.compile(ID_PAT)
 
-    def __init__(self, source, ind, typ, *patterns):
+    def __init__(self, source, ind, typ, *variants):
         self.source = source
         self.ind = ind
         self.typ = typ
-        self.variants = [TextPattern.replace_dots_re(TextPattern.cleanup_single(pattern, typ))
-                         for pattern in patterns]
+        self.variants = [self.preprocess_one(variant) for variant in variants]
+
+    def preprocess_one(self, variant):
+        variant = TextPattern.cleanup_single(variant, self.typ)
+        variant = TextPattern.replace_dots_re(variant)
+        if self.typ == "error":
+            variant = variant.replace("…", "@{hole}")
+        return variant
 
     @staticmethod
     def replace_dots_re(variant):
@@ -82,7 +88,8 @@ class TextPattern:
         for variant in variants:
             if TextPattern.ALT_RE.search(variant):
                 yield from TextPattern.with_alternatives((TextPattern.ALT_RE.sub('',    variant, 1),
-                                                          TextPattern.ALT_RE.sub(r'\1', variant, 1),), already_known, typ, True)
+                                                          TextPattern.ALT_RE.sub(r'\1', variant, 1),),
+                                                         already_known, typ, True)
             else:
                 variant = TextPattern.cleanup_single(variant, typ)
                 if not (may_discard and (variant in already_known)):
@@ -121,6 +128,7 @@ class TextPattern:
     def finalize(self):
         if any(variant == "" or "…" in variant or "..." in variant for variant in self.variants):
             print(self.variants)
+            print(self.typ)
             raise Exception
 
         self.variants = [TextPattern.replace_argchoice(variant) for variant in self.variants]
@@ -146,6 +154,26 @@ class TextPattern:
 
         return patterns
 
+    @staticmethod
+    def format_defconst_body(strings):
+        return "\n    ".join('\'("{}" . ("{}" . {}))'.format(*string)
+                             for string in strings)
+
+    @staticmethod
+    def make_defconst(patterns, name):
+        DEFCONST = '(defconst {}\n  (list\n    {}))'
+
+        for pattern in patterns:
+            pattern.finalize()
+
+        strings = TextPattern.patterns_to_strings(patterns, with_info=True)
+        strings = deduplicate(strings, key=lambda x: x[0].replace(" ", "").lower().rstrip('.'))
+        strings = [(string.replace('"', r'\"'), source, index) for
+                   (string, source, index) in strings]
+
+        lisp = TextPattern.format_defconst_body(strings)
+        return strings, DEFCONST.format(name, lisp)
+
     def __repr__(self):
         return repr((self.source, self.ind, self.variants))
 
@@ -165,10 +193,11 @@ class XMLPattern:
                 span.name = 'i'
             elif style == "font-style:oblique":
                 span.name = 'o'
-            elif style == "font-family:monospace":
+            elif style in ("font-family:monospace", "font-variant:small-caps"):
                 span.unwrap()
             else:
                 print(style)
+                print(span)
                 raise Exception
 
         for alias in ("em", "i"):
@@ -318,31 +347,21 @@ def process_files(outdir, paths):
     patterns = TextPattern.expand_patterns(patterns)
     return patterns
 
-def format_defconst(patterns):
-    DEFCONST = '(defconst company-coq-abbrevs\n  (list\n    {}))'
-
-    for pattern in patterns:
-        pattern.finalize()
-    strings = TextPattern.patterns_to_strings(patterns, with_info=True)
-    strings = deduplicate(strings, key=lambda x: x[0].replace(" ", "").lower().rstrip('.'))
-    strings = [(string.replace('"', r'\"'), source, index) for
-               (string, source, index) in strings]
-
-    lisp = "\n    ".join('\'("{}" . ("{}" . {}))'.format(*string)
-                         for string in strings)
-    return strings, DEFCONST.format(lisp)
-
 def write_patterns(template_path, patterns):
-    unique_strings, defconst = format_defconst(patterns)
+    errors = [p for p in patterns if p.typ == "error"]
+    abbrevs = [p for p in patterns if p.typ != "error"]
+
+    errors,  e_defconst = TextPattern.make_defconst(errors, "company-coq-errors")
+    abbrevs, a_defconst = TextPattern.make_defconst(abbrevs, "company-coq-abbrevs")
 
     with open(template_path) as template_f:
         template = template_f.read()
 
     with open(template_path.replace(".template", ""), mode='w') as output:
-        output.write(template.replace('$ABBREVS$', defconst))
+        output.write(template.replace('$ABBREVS$', a_defconst + "\n\n" + e_defconst))
 
     with open("tactics", mode = "w") as output:
-        for string, _, _ in unique_strings:
+        for string, _, _ in abbrevs:
             output.write(string)
             output.write("\n")
 
