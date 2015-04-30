@@ -25,15 +25,17 @@ most advanced features require a patched version of coqtop.
 * [Documentation](img/keyword-completion-doc.png) for (most) auto-completion entries, with excerpts
   from the manual shown directly in Emacs.
 
+* [Documentation](img/errors-doc.png) for many error messages, with automagic matching of the last error message against errors documented in the manual.
+
+* Interactive lemma extraction: press <kbd>C-c C-a C-x</kbd> to extract the current goal into a separate lemma, keeping the hypotheses of your choice.
+
+* Visual [word diff](img/unification.png) of large unification error messages (<samp>The term "<i>blah</i>" has type "<i>huge blob</i>" while it is expected to have type "<i>slightly different blob</i>"</samp>)
+
 * Interactive [proof script outline](img/outline.png) and [in-buffer folding](img/folding.png)
 
 * Basic project search (search for instances of the word at point in neighboring files)
 
-* Interactive lemma extraction: press <kbd>C-c C-a C-e</kbd> to extract the current goal into a separate lemma.
-
 * Extended [font beautification](img/prettify.png): keywords are automatically replaced with corresponding symbols (`⊢⊤⊥→⇒λ∀∃∧∨¬≠⧺𝓝ℤℕℚℝ𝔹𝓟`), and the goals line (`========`) actually looks like a line (`════════`).
-
-* Visual [word diff](img/unification.png) of large unification error messages (<samp>The term "<i>blah</i>" has type "<i>huge blob</i>" while it is expected to have type "<i>slightly different blob</i>"</samp>)
 
 * Convenient snippets: easily insert [new `match` cases](img/match-function.gif) and [`match goal` rules](img/match-goal.gif).
 
@@ -65,6 +67,10 @@ most advanced features require a patched version of coqtop.
 ### Auto-completion of identifiers
 
 <img src="img/identifiers-completion.png" alt="Auto-completion of identifiers" />
+
+### Documentation for (documented) error messages
+
+<img src="img/errors-doc.png" alt="Documentation for (documented) error messages" />
 
 ### Outline and folding
 
@@ -158,7 +164,8 @@ Loading `company-coq` also binds the following keys:
 
 * <kbd>M-RET</kbd> inserts a new `match` case (`| _ => _`).
 * <kbd>M-S-RET</kbd> inserts a new `match goal` rule (`| [ H: _ |- _ ] => _`).
-* <kbd>C-c C-a C-e</kbd> extracts the current goal into a separate lemma.
+* <kbd>C-c C-a C-x</kbd> extracts the current goal into a separate lemma.
+* <kbd>C-c C-a C-e</kbd> tries to match the last output to a documented error message, and displays the relevant section of the manual if it finds one.
 * <kbd>C-c C-,</kbd> opens an outline of the code in a separate buffer (using `occur`).
 * <kbd>C-c C-/</kbd> folds the current code block, or all blocs in the file if repeated.
 * <kbd>C-c C-\\</kbd> unfolds the current code block, or all blocs in the file if repeated.

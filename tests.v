@@ -51,14 +51,14 @@ Proof.
   (* This should be typeable using:
   Require Import C.NA.NA *)
   Require Import Coq.NArith.NArith.
-  
+
   apply lt_n_S.
   apply lt_S_n in hypothesis.
   intuition. (* Typing C-c C-RET after C-RET should exit  *)
 
   (* C-x n d here should single this proof out (C-x n w to exit) *)
 Qed.
-  
+
 Example NameContaining_with_ : True. (* Dummy Example to add a name containing "with" to the context *)
 apply I.
 Qed.
@@ -118,7 +118,7 @@ Qed.
 Goal True = True.
   (* (company-coq-diff-unification-warning) should show diffs for all these errors *)
   Fail apply 1.
-  Fail (apply (@eq_refl Type)). 
+  Fail (apply (@eq_refl Type)).
   Set Printing All.
   Fail (apply (@eq_refl Type)).
   Unset Printing All.
@@ -148,7 +148,7 @@ Proof.
   intros; constructor.
   induction n; simpl; constructor; eauto.
 Qed.
-  
+
 Set Printing All.
 
 Definition Depth := 5.
@@ -161,9 +161,31 @@ Proof.
   (* (company-coq-diff-unification-warning) *)
   Fail exact pr.
   Unset Printing All.
-  
+
   (* Position in the goals buffer shouldn't change when thorem names are autocompleted. *)
 Admitted.
+
+
+(** Error messages **)
+
+Fail Require Import NonExistentModule.
+
+Goal True -> True -> True.
+  Fail intros a a a.
+  Fail intros; intro.
+  Fail intro before NonExistent. (* Far at the bottom of the page *)
+  Fail exists 1.
+  Fail apply False. (* undocumented *)
+
+  Inductive Ind : Type -> Type :=
+  | Const : forall {B}, B -> Ind B.
+
+  Fail Check Const (Const nat).
+
+  (* Why isn't id id an inconsistency? *)
+
+  constructor.
+Qed.
 
 Require Import Bvector.
 Require Import DecBool.
@@ -582,21 +604,3 @@ Proof.
 Qed.
 
 (* vvv shouldn't be available here *)
-
-(** Error messages **)
-
-(* Require Import NonExistentModule. *)
-
-Goal True -> True -> True.
-  (* intros a a a. *)
-  (* intros; intro. *)
-  (* intro before NonExistent. (* Far at the bottom of the page *) *)
-  (* exists 1. *)
-  (* apply False. (* unsupported *) *)
-  constructor.
-Qed.
-
-
-
-
-  
