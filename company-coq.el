@@ -1259,12 +1259,12 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   `(progn
      (company-coq-dbg "company-prepare-doc-buffer: Called")
      (let ((doc-buffer (get-buffer-create "*company-documentation*")))
-       (company-coq-display-in-pg-window doc-buffer nil)
-       (with-current-buffer doc-buffer
-         (let ((inhibit-read-only t))
-           (remove-overlays)
-           (erase-buffer)
-           ,@body)))))
+       (with-selected-window (company-coq-display-in-pg-window doc-buffer nil)
+         (with-current-buffer doc-buffer
+           (let ((inhibit-read-only t))
+             (remove-overlays)
+             (erase-buffer)
+             ,@body))))))
 
 (defun company-coq-location-simple (name)
   (company-coq-dbg "company-coq-location-simple: Called for name %s" name)
@@ -1333,15 +1333,13 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   ;; just a bit of room for comments preceeding the tactic if any.
   (goto-char (or target-point (point-min)))
   (when target-point
-    (when (equal (char-after (point)) "*")
-      ;; Remove the star ("*") added by shr
-      (delete-char 1))
     (company-coq-make-title-line)
-    (if (eq truncate 'truncate)
-        (progn
-          (forward-line -2)
-          (delete-region (point-min) (point)))
-      (recenter))))
+    (when (string= (char-after (point)) "*")
+      (delete-char 1)) ;; Remove the star ("*") added by shr
+    (if (/= truncate 'truncate)
+        (recenter)
+      (forward-line -2)
+      (delete-region (point-min) (point)))))
 
 (defun company-coq-doc-keywords-put-html (html-full-path truncate)
   (let ((doc (with-temp-buffer
@@ -1357,9 +1355,9 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
 
 (defun company-coq-doc-buffer-keywords (name-or-anchor &optional truncate)
   (interactive)
-  (company-coq-dbg "company-coq-doc-buffer-keywords: Called for %s" name)
+  (company-coq-dbg "company-coq-doc-buffer-keywords: Called for %s" name-or-anchor)
   (when (fboundp 'libxml-parse-html-region)
-    (let* ((anchor         (if (stringp name-or-anchor) (company-coq-get-anchor name) name-or-anchor))
+    (let* ((anchor         (if (stringp name-or-anchor) (company-coq-get-anchor name-or-anchor) name-or-anchor))
            (shr-target-id  (and anchor (concat "qh" (int-to-string (cdr anchor)))))
            (doc-short-path (and anchor (concat (car anchor) ".html.gz")))
            (doc-full-path  (and doc-short-path

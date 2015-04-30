@@ -10,7 +10,7 @@ test:
 	emacs -mm -L . -l company-coq.el tests.v
 
 test24:
-	emacs24 -mm tests.v
+	emacs24 -mm -L . -l company-coq.el tests.v
 
 elc:
 	emacs --batch -L . --script ~/.emacs -f batch-byte-compile *.el
