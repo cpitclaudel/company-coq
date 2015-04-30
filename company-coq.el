@@ -1282,6 +1282,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
              (erase-buffer)
              (remove-overlays)
              (buffer-disable-undo)
+             (visual-line-mode 1)
              (set (make-local-variable 'show-trailing-whitespace) nil)
              ,@body))))))
 
@@ -1364,12 +1365,12 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (let ((doc (with-temp-buffer
                (insert-file-contents html-full-path)
                (libxml-parse-html-region (point-min) (point-max))))
-        ;; (shr-width most-positive-fixnum) ;; Causes an out-of-memory exception
+        ;; FIXME: This is undocumented behaviour; using most-positive-fixnum instead of 0 causes an OOM exception
+        (shr-width 0) ;; Disable line filling
         (after-change-functions nil)
         (shr-external-rendering-functions '((tt . company-coq-shr-tag-tt)
                                             (i  . company-coq-shr-tag-i))))
     (shr-insert-document doc) ;; This sets the 'shr-target-id property upon finding the shr-target-id anchor
-    (turn-on-visual-line-mode)
     (company-coq-doc-keywords-prettify-title (next-single-property-change (point-min) 'shr-target-id) truncate)))
 
 (defun company-coq-doc-buffer-keywords (name-or-anchor &optional truncate)
