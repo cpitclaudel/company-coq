@@ -447,7 +447,7 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
         (progn
           (setq company-coq-asking-question t)
           (unwind-protect
-              (company-coq-with-window-start (and preserve-window-start (company-coq-get-pg-window))
+              (company-coq-with-window-start (and preserve-window-start (company-coq-get-goals-window))
                 (proof-shell-invisible-cmd-get-result question))
             (setq company-coq-asking-question nil)))
       (company-coq-dbg "Prover not available; question discarded"))))
@@ -1142,6 +1142,20 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
       (setq company-coq-modules-reload-needed (or company-coq-modules-reload-needed is-import is-load))
       (when is-retracting (company-coq-maybe-reload-context t)))))
 
+(defvar company-coq-goals-window nil)
+
+(defun company-coq-state-change (&rest _args)
+  (unless (window-live-p company-coq-goals-window)
+    (setq company-coq-goals-window (company-coq-get-goals-window)))
+
+  (let* ((doc-buf   (get-buffer "*company-documentation*"))
+         (goals-buf (company-coq-get-goals-buffer))
+         (goals-win (company-coq-get-goals-window)))
+    (when doc-buf
+      (bury-buffer doc-buf))
+    (when (and goals-buf goals-win)
+      (set-window-buffer goals-win goals-buf))))
+
 (defun company-coq-in-coq-mode (&optional silent)
   (or (derived-mode-p 'coq-mode)
       (ignore (or silent (company-coq-dbg "Not in Coq mode")))))
@@ -1234,12 +1248,13 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (company-coq-truncate-to-minibuf
    (get-text-property 0 'meta name)))
 
-(defun company-coq-get-pg-buffer ()
+(defun company-coq-get-goals-buffer ()
   (get-buffer "*goals*"))
 
-(defun company-coq-get-pg-window ()
-  (let ((pg-buffer (company-coq-get-pg-buffer)))
-    (and pg-buffer (get-buffer-window pg-buffer))))
+(defun company-coq-get-goals-window ()
+  (let ((pg-buffer (company-coq-get-goals-buffer)))
+    (or (and pg-buffer (get-buffer-window pg-buffer))
+        (and (window-live-p company-coq-goals-window) company-coq-goals-window))))
 
 (defun company-coq-display-in-pg-window (buffer alist)
   ;; This always displays the buffer, unless no window is available.  This was
@@ -1922,7 +1937,7 @@ hypotheses HYPS, and everything that they depend on."
 
 (defun company-coq-setup-hooks () ;; NOTE: This could be made callable at the beginning of every completion.
   ;; PG hooks
-  ;; (add-hook 'proof-state-change-hook (lambda () (message "State change")))
+  (add-hook 'proof-state-change-hook #'company-coq-state-change)
   (add-hook 'proof-shell-insert-hook #'company-coq-maybe-proof-input-reload-things)
   (add-hook 'proof-shell-handle-delayed-output-hook #'company-coq-maybe-proof-output-reload-things)
   (add-hook 'proof-shell-handle-error-or-interrupt-hook #'company-coq-maybe-reload-context)
