@@ -1261,9 +1261,10 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   ;; important, because if the window is not displayed upon calling
   ;; shr-insert-document, then shr would get the window width incorrectly, and
   ;; thus fail to wrap text properly. Setting the wrap limit to a large value
-  ;; fixes this.
+  ;; fixes this, except when it yields an out of memory exception (eg. for the
+  ;; mutually co-inductive records error documentation)
   (company-coq-dbg "Called company-coq-display-in-pg-buffer with %s %s" buffer alist)
-  (let ((pg-window (company-coq-get-pg-window)))
+  (let ((pg-window (company-coq-get-goals-window)))
     (when pg-window
       (set-window-dedicated-p pg-window nil)
       (set-window-buffer pg-window buffer))
@@ -1277,8 +1278,11 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
        (with-selected-window (company-coq-display-in-pg-window doc-buffer nil)
          (with-current-buffer doc-buffer
            (let ((inhibit-read-only t))
-             (remove-overlays)
+             (help-mode)
              (erase-buffer)
+             (remove-overlays)
+             (buffer-disable-undo)
+             (set (make-local-variable 'show-trailing-whitespace) nil)
              ,@body))))))
 
 (defun company-coq-location-simple (name)
@@ -1349,9 +1353,9 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (goto-char (or target-point (point-min)))
   (when target-point
     (company-coq-make-title-line)
-    (when (string= (char-after (point)) "*")
-      (delete-char 1)) ;; Remove the star ("*") added by shr
-    (if (/= truncate 'truncate)
+    (when (= (char-after (point)) ?*)
+      (delete-char 1)) ;; Remove the star (*) added by shr
+    (if (not (eq truncate 'truncate))
         (recenter)
       (forward-line -2)
       (delete-region (point-min) (point)))))
@@ -1360,7 +1364,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (let ((doc (with-temp-buffer
                (insert-file-contents html-full-path)
                (libxml-parse-html-region (point-min) (point-max))))
-        (shr-width most-positive-fixnum)
+        ;; (shr-width most-positive-fixnum) ;; Causes an out-of-memory exception
         (after-change-functions nil)
         (shr-external-rendering-functions '((tt . company-coq-shr-tag-tt)
                                             (i  . company-coq-shr-tag-i))))
