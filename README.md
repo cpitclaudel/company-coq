@@ -13,17 +13,17 @@ most advanced features require a patched version of coqtop.
 
 * Easy access to [Proof-General's templates](img/lemma-completion.png) (using yasnippet), with smart templates for sections and modules.
 
-* Fuzzy auto-completion of (most of) Coq's [tactics](img/command-completion-doc.png) and
-  [commands](img/symbol-completion-doc.png), with snippets auto-extracted from the manual.
+* Fuzzy auto-completion of (most of) Coq's [tactics](img/command-completion-doc.png) and [commands](img/symbol-completion-doc.png), with snippets auto-extracted from the manual.
 
 * Fuzzy auto-completion of library [module names](img/module-completion.png) in `Import` commands.
 
 * Auto-completion of [identifiers](img/identifiers-completion.png) in proof contexts, and of section and modules names.
 
+* Auto-completion of [search results](img/search-completion.png): after running a search, results are available as completions.
+
 ### Proof-General Extensions
 
-* [Documentation](img/keyword-completion-doc.png) for (most) auto-completion entries, with excerpts
-  from the manual shown directly in Emacs.
+* [Documentation](img/keyword-completion-doc.png) for (most) auto-completion entries, with excerpts from the manual shown directly in Emacs.
 
 * [Documentation](img/errors-doc.png) for many error messages, with automagic matching of the last error message against errors documented in the manual.
 
@@ -43,8 +43,7 @@ most advanced features require a patched version of coqtop.
 
 (These require a [patched version](https://github.com/coq/coq/pull/56) of `coqtop`)
 
-* Auto-completion of all known [theorem and symbol names](img/symbol-completion-doc.png), with
-  [type annotations](img/symbol-completion.png).
+* Auto-completion of all known [theorem and symbol names](img/symbol-completion-doc.png), with [type annotations](img/symbol-completion.png).
 
 ## Screenshots
 
@@ -67,6 +66,10 @@ most advanced features require a patched version of coqtop.
 ### Auto-completion of identifiers
 
 <img src="img/identifiers-completion.png" alt="Auto-completion of identifiers" />
+
+### Auto-completion of search results
+
+<img src="img/search-completion.png" alt="Auto-completion of search results" />
 
 ### Documentation for (documented) error messages
 

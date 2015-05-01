@@ -10,6 +10,14 @@ with BBBCCC :=
      | BBB1
      | BBB2 : AAABBB -> BBBCCC.
 
+Goal True.
+  idtac "!!!" 1.
+  idtac "!!!" 2.
+  idtac "!!!" 3.
+  idtac "!!!" 4.
+  auto.
+Qed.
+
 (* Are symbols correctly prettified? *)
 
 Definition PrettySymbols : (nat -> nat -> Prop) :=
@@ -20,6 +28,9 @@ Definition PrettySymbols : (nat -> nat -> Prop) :=
 
 (* Start prover *)
 Require Import Omega. (* This should autocomplete *)
+
+SearchAbout plus.
+(* plu should autocomplete after running this search *)
 
 Lemma TestSubscripts :
   forall x: True, True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> nat.

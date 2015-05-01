@@ -102,6 +102,10 @@
   "Autocomplete the name of the last opened block. This is an experimental feature."
   :group 'company-coq)
 
+(defcustom company-coq-autocomplete-search-results t
+  "Autocomplete symbol names pulled from the results of the last search. This is an experimental feature."
+  :group 'company-coq)
+
 (defcustom company-coq-autocomplete-symbols t
   "Autocomplete symbols by searching in the buffer for lemmas and theorems. If `company-coq-autocomplete-symbols-dynamic' is non-nil, query the proof assistant instead of searching."
   :group 'company-coq)
@@ -136,6 +140,7 @@
                                          company-coq-context
                                          company-coq-keywords
                                          company-coq-defuns
+                                         company-coq-search-results
                                          company-coq-symbols)
   "List of all backends, listed in the order in which you want
 the results displayed. Note that the first backend that returns a
@@ -172,13 +177,19 @@ same prefix."
 (defvar company-coq-last-goals-output nil
   "If proof-shell-last-goals-output matches this, it is ignored. This prevents old goals from being reparsed.")
 
+(defvar company-coq-last-search-results nil
+  "This stores a list of symbol names, extracted form the response of a search command.")
+
+(defvar company-coq-last-search-scan-size nil
+  "If the response buffer has this size, search results are deemed up to date.")
+
 (defconst company-coq-id-regexp-base "[a-zA-Z0-9_]")
 
 (defconst company-coq-rich-id-regexp-base "[a-zA-Z0-9_.]")
 
 (defconst company-coq-prefix-regexp-base "[a-zA-Z0-9_.!]") ;; '!' included so that patterns like [intros!] still work
 
-(defconst company-coq-all-symbols-slow-regexp (concat "\\`\\(" company-coq-rich-id-regexp-base "+\\):.*\\'")
+(defconst company-coq-all-symbols-slow-regexp (concat "^\\(" company-coq-rich-id-regexp-base "+\\):")
   "Regexp used to filter out lines without symbols in output of SearchPattern")
 
 (defconst company-coq-goals-hyp-regexp (concat "\\`  \\(" company-coq-id-regexp-base "+\\) : \\(.*\\)\\'")
@@ -1148,6 +1159,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (unless (window-live-p company-coq-goals-window)
     (setq company-coq-goals-window (company-coq-get-goals-window)))
 
+  ;; Hide the docs and redisplay the goals buffer
   (let* ((doc-buf   (get-buffer "*company-documentation*"))
          (goals-buf (company-coq-get-goals-buffer))
          (goals-win (company-coq-get-goals-window)))
@@ -1426,6 +1438,29 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (company-coq-dbg "company-coq-candidates-reserved-keywords: Called")
   (company-coq-complete-reserved (company-coq-prefix-simple)))
 
+(defun company-coq-parse-search-results ()
+  "Parse the last output of the prover, looking for symbol names,
+and store them in `company-coq-last-search-results'. Prover
+output size is cached in `company-coq-last-search-scan-size'."
+  (let* ((response-buffer (get-buffer "*response*"))
+         (response-size   (buffer-size response-buffer))
+         (needs-update    (and response-buffer
+                               (not (equal response-size
+                                           company-coq-last-search-scan-size)))))
+    (unless (and response-buffer (not needs-update))
+      (setq company-coq-last-search-results nil))
+    (when needs-update
+      (setq company-coq-last-search-scan-size response-size)
+      (with-current-buffer response-buffer
+        (save-match-data
+          (save-excursion
+            (while (re-search-forward company-coq-all-symbols-slow-regexp nil t)
+              (push (match-string-no-properties 1) company-coq-last-search-results))))))))
+
+(defun company-coq-candidates-search-results (prefix)
+  (company-coq-parse-search-results)
+  (company-coq-complete-prefix-substring prefix company-coq-last-search-results))
+
 (defun company-coq-match (completion)
   (company-coq-dbg "company-coq-match: matching %s" completion)
   (get-text-property 0 'match-end completion))
@@ -1697,6 +1732,24 @@ definitions."
     (`sorted t)
     (`duplicates nil)
     (`ignore-case nil)
+    (`require-match 'never)))
+
+(defun company-coq-search-results (command &optional arg &rest ignored)
+  "A company-mode backend for search results, offering candidates pulled from the response buffer."
+  (interactive (list 'interactive))
+  (company-coq-dbg "search results backend: called with command %s" command)
+  (pcase command
+    (`interactive (company-begin-backend 'company-coq-search-results))
+    (`prefix (company-coq-prefix-simple))
+    (`candidates (company-coq-candidates-search-results arg))
+    (`match (company-coq-match arg))
+    (`annotation "<search>")
+    (`sorted t)
+    (`duplicates nil)
+    (`ignore-case nil)
+    (`meta (company-coq-meta-simple arg))
+    (`no-cache t)
+    (`comparison-fun #'company-coq-string-lessp-symbols)
     (`require-match 'never)))
 
 (defvar company-coq-choices-list nil)
@@ -2004,6 +2057,9 @@ hypotheses HYPS, and everything that they depend on."
 
   (when company-coq-autocomplete-block-end
     (add-to-list 'company-coq-backends #'company-coq-block-end t))
+
+ (when company-coq-autocomplete-search-results
+   (add-to-list 'company-coq-backends #'company-coq-search-results t))
 
   ;; Symbols backend
   (when (and company-coq-autocomplete-symbols
