@@ -57,18 +57,14 @@ clean-sandbox:
 
 etc: clean-etc
 	cd /build/coq/ && make doc-html
-	rm -f refman/
 	./parse-hevea.py refman/ ./company-coq-abbrev.el.template /build/coq/doc/refman/html/Reference-Manual*.html
 	parallel -j8 gzip -9 -- refman/*.html
 
 clean-etc:
-	rm -rf refman/
+	rm -rf refman/*.gz
 
 deep-clean: clean clean-etc
 	cd /build/coq/ && make docclean
-
-ack:
-	cd refman && ack "hevea_quickhelp.*" -o | cut -c -80
 
 symbols:
 	awk -F'\\s+' -v NL=$$(wc -l < etc/symbols) -f etc/symbols.awk < etc/symbols
