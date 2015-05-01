@@ -1311,7 +1311,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
 (defun company-coq-annotation-keywords (candidate)
   (let* ((snippet   (company-coq-get-snippet candidate))
          (num-holes (and snippet (company-coq-count-holes snippet)))
-         (prefix    (if (company-coq-get-anchor candidate) "… " "")))
+         (prefix    (if (company-coq-get-anchor candidate) "... " "")))
     (if (and (numberp num-holes) (> num-holes 0))
         (format "%s<kwd (%d)>" prefix num-holes)
       (format "%s<kwd>" prefix))))
