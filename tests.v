@@ -182,7 +182,8 @@ Goal True -> True -> True.
 
   Fail Check Const (Const nat).
 
-  (* Why isn't id id an inconsistency? *)
+
+  Definition id {A} (a: A) := a.
 
   constructor.
 Qed.
@@ -593,6 +594,7 @@ Require Import RelationPairs.
 
 Lemma test : forall vvvvv, exists vvvvv', vvvvv' > vvvvv.
 Proof.
+
   intros.
   exists (Qcplus vvvvv 1).
 

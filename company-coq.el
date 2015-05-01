@@ -385,7 +385,7 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
             (mapconcat #'identity company-coq-unification-error-messages "\\|")
             "\\)\\s-*"))))
 
-(defconst script-full-path load-file-name
+(defconst company-coq-script-full-path load-file-name
   "Full path of this script")
 
 (defface company-coq-doc-header-face
@@ -1381,7 +1381,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
            (shr-target-id  (and anchor (concat "qh" (int-to-string (cdr anchor)))))
            (doc-short-path (and anchor (concat (car anchor) ".html.gz")))
            (doc-full-path  (and doc-short-path
-                                (concat (file-name-directory script-full-path) "refman/" doc-short-path))))
+                                (concat (file-name-directory company-coq-script-full-path) "refman/" doc-short-path))))
       (when doc-full-path
         (company-coq-with-clean-doc-buffer
           (company-coq-doc-keywords-put-html doc-full-path truncate)
@@ -1962,6 +1962,20 @@ hypotheses HYPS, and everything that they depend on."
   (if (consp arg)
       (company-coq-browse-error-messages)
     (company-coq-guess-error-message-from-response)))
+
+;;;###autoload
+(defun company-coq-tutorial ()
+  (interactive)
+  "Opens the company-coq tutorial"
+  (with-current-buffer (get-buffer-create "*company-coq-tutorial*")
+    (widen) ;; TODO: Ignore modifications upon saving
+    (insert-file-contents (expand-file-name "refman/tutorial.v" (file-name-directory
+                                                                 company-coq-script-full-path))
+                          nil nil nil t)
+    (coq-mode)
+    (company-coq-initialize)
+    (set-buffer-modified-p nil)
+    (pop-to-buffer-same-window (current-buffer))))
 
 (defun company-coq-setup-keybindings ()
   (company-coq--keybindings-minor-mode))

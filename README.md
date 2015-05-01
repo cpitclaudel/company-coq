@@ -106,12 +106,6 @@ most advanced features require a patched version of coqtop.
 
 Note: You need a version of Emacs ≥ 24 for this to work properly. You can check which version you are running with <kbd>M-x emacs-version RET</kbd>. Note that some features, like beautification of symbols or syntax highlighting in the manual, only work with emacs ≥ 24.4.
 
-### Coq
-
-```bash
-sudo apt-get install coq
-```
-
 ### Proof-General
 
 ```bash
@@ -148,6 +142,8 @@ Add the following to your `.emacs`
 
 ## Quick start guide
 
+*You can check out the tutorial by pressing `M-x company-coq-tutorial`.*
+
 `company-coq` should be pretty transparent. Completion windows will pop up when `company-coq` has suggestions to make. By default, this would be when you start writing a tactic name or a command. You can also launch manual completion by using <kbd>C-RET</kbd> (or whatever was originally assigned to `proof-script-complete` in Coq mode).
 
 Once auto-completion has started, the following key bindings are available:
@@ -174,7 +170,7 @@ Loading `company-coq` also binds the following keys:
 ## Tips
 
 * Module completion is fuzzy: you can type `Require Import C.N..Ab.ZPa` and press <kbd>RET</kbd> to insert `Coq.Numbers.Integer.Abstract.ZParity`.
-* Tactics completion is fuzzy too: typing `setrewin` and pressing <kbd>RET</kbd is enough to insert `setoid_rewrite <i>term</i> in <i>ident</i>`. You can (and must) omit spaces: `SLD` for `Set Ltac Debug` (of course `SetLtDeb` will also work), and `ULD` for `Unset Ltac Debug`.
+* Tactics completion is fuzzy too: typing `setrewin` and pressing <kbd>RET</kbd> is enough to insert <code>setoid_rewrite <i>term</i> in <i>ident</i></code>. You can (and must) omit spaces: `SLD` will insert `Set Ltac Debug` (of course `SetLtDeb` will also work), and `ULD` will insert `Unset Ltac Debug`.
 * Using <kdb>M-S-RET</kbd> to insert new cases in a `match goal` saves a lot of time (and finger contortions).
 
 ## Troubleshooting
