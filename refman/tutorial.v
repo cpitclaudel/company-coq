@@ -30,12 +30,12 @@ Definition PrettySymbols : (nat -> nat -> Prop) :=
 
 (*****************************************************************************)
 
-(* company-coq knows most basic Coq tactics, just a few letters are enough to
-   locate a tactic. Pressing RET inserts it. You can navigate the auto-inserted
-   fields using TAB *)
+(* company-coq knows most basic Coq tactics. Typing just a few letters are
+   enough to locate a tactic, and pressing RET inserts it. If a tactic contains
+   holes, you can navigate them using TAB *)
 
-(* Try typing `setrewin RET' here: *)
-
+(* Try typing `SLD RET' here: *)
+(* Try typing `applin RET' here: *)
 
 (*****************************************************************************)
 
@@ -45,7 +45,7 @@ Definition PrettySymbols : (nat -> nat -> Prop) :=
 
 (*****************************************************************************)
 
-(* company-coq binds a few convenient shortcuts, like M-RET and M-S-RET, to
+(* company-coq adds a few convenient shortcuts, like M-RET and M-S-RET, to
    insert additional match cases *)
 
 Ltac BasicTactic :=
@@ -151,14 +151,21 @@ Abort.
    induction: *)
 
 Lemma my_plus_comm :
-  forall n m, n + m = m + n.
+  forall p q r,
+    (p < q /\ q < r) ->
+    (p + q < q + r) ->
+    (exists s, p + q + r < s) ->
+    forall n m, n + m = m + n.
 Proof.
-  induction n; intros.
-  - apply plus_n_O.
-  - (* Evaluate everything up to this point. Wouldn't the proof would like nicer
+  induction m.
+  - auto.
+  - idtac.
+    (* Evaluate everything up to this point. Wouldn't the proof would like nicer
        if this was a separate lemma? *)
     (* Press `C-c C-a C-x` (eXtract) to automatically extract a lemma from your
        goal. You will be prompted for a name, then for hypotheses to keep in
-       your lemma. Try it on the empty line below: *)
+       your lemma (hint: you only need IHm). Try it on the empty line below: *)
     
 Abort.
+
+(*****************************************************************************)
