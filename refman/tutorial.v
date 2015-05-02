@@ -20,7 +20,7 @@
    prettified, though they appear as ASCII in the source file. You can disable
    this feature by typing M-x prettify-symbols-mode. If the symbols show as
    square boxes instead, you may want to install a good unicode font, such as
-   Symbola. *)
+   Symbola (see the github page for more info). *)
 
 Definition PrettySymbols : (nat -> nat -> Prop) :=
   (fun (n m: nat) =>
@@ -160,7 +160,7 @@ Proof.
   induction m.
   - auto.
   - idtac.
-    (* Evaluate everything up to this point. Wouldn't the proof would like nicer
+    (* Evaluate everything up to this point. Wouldn't the proof would look nicer
        if this was a separate lemma? *)
     (* Press `C-c C-a C-x` (eXtract) to automatically extract a lemma from your
        goal. You will be prompted for a name, then for hypotheses to keep in
