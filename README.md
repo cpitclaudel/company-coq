@@ -35,13 +35,15 @@ most advanced features require a patched version of coqtop.
 
 * Basic project search (search for instances of the word at point in neighboring files)
 
-* Extended [font beautification](img/prettify.png): keywords are automatically replaced with corresponding symbols (`⊢⊤⊥→⇒λ∀∃∧∨¬≠⧺𝓝ℤℕℚℝ𝔹𝓟`), and the goals line (`========`) actually looks like a line (`════════`).
+* Extended [font beautification](img/prettify.png): keywords are transparently replaced with the corresponding symbols (`⊢⊤⊥→⇒λ∀∃∧∨¬≠⧺𝓝ℤℕℚℝ𝔹𝓟`), and the goals line (`========`) actually looks like a line (`════════`).
 
 * Convenient snippets: easily insert [new `match` cases](img/match-function.gif) and [`match goal` rules](img/match-goal.gif).
 
+* Occur in `*coq*` buffer (`company-coq-search-in-coq-buffer`)
+
 ### Advanced features
 
-(These require a [patched version](https://github.com/coq/coq/pull/56) of `coqtop`)
+(This requires a [patched](https://github.com/coq/coq/pull/56) [version](https://github.com/coq/coq/pull/62) of `coqtop`)
 
 * Auto-completion of all known [theorem and symbol names](img/symbol-completion-doc.png), with [type annotations](img/symbol-completion.png).
 
@@ -145,7 +147,7 @@ Add the following to your `.emacs`
 
 ## Quick start guide
 
-*You can check out the tutorial by pressing `M-x company-coq-tutorial`.*
+*You can check out the interactive tutorial by pressing `M-x company-coq-tutorial`.*
 
 `company-coq` should be pretty transparent. Completion windows will pop up when `company-coq` has suggestions to make. By default, this would be when you start writing a tactic name or a command. You can also launch manual completion by using <kbd>C-RET</kbd> (or whatever was originally assigned to `proof-script-complete` in Coq mode).
 
@@ -169,6 +171,7 @@ Loading `company-coq` also binds the following keys:
 * <kbd>C-c C-/</kbd> folds the current code block, or all blocs in the file if repeated.
 * <kbd>C-c C-\\</kbd> unfolds the current code block, or all blocs in the file if repeated.
 * <kbd>C-c C-&</kbd> looks up (grep) the current word in files in the current directory subtree.
+* <kbd>M-x company-coq-diff-unification-error</kbd> parses the last unification error, and shows a diff of the two types that can't unify.
 
 ## Tips
 
@@ -219,16 +222,18 @@ The procedure above will give you auto-completion and documentation for tactics,
 (setq company-coq-autocomplete-symbols-dynamic t)
 ```
 
-This feature won't work well unless you build and use a patched coq REPL. [This patch](https://github.com/cpitclaudel/company-coq/blob/master/SearchMinimal.patch) should work well for 8.4pl2 and pl3; [this one](https://github.com/cpitclaudel/company-coq/blob/master/SearchMinimal-trunk.patch) should work on 8.5 and trunk.
+This feature won't work well unless you build and use a patched coq REPL: see [patched](https://github.com/coq/coq/pull/56) and [version](https://github.com/coq/coq/pull/62).
 
 ### Disabling some modules
 
-Modules, context and symbols auto-completion can be turned off using the following lines
+Modules, context, symbols, end of block and search results auto-completion can be turned off using the following lines
 
 ```elisp
 (setq company-coq-autocomplete-modules nil)
 (setq company-coq-autocomplete-context nil)
 (setq company-coq-autocomplete-symbols nil)
+(set company-coq-autocomplete-block-end nil)
+(set company-coq-autocomplete-search-results nil)
 ```
 
 You can set these variables using `M-x customize-group RET company-coq RET
@@ -239,7 +244,7 @@ You can set these variables using `M-x customize-group RET company-coq RET
 
 ### Installing from source
 
-#### Setup
+#### Dependencies
 
 [MELPA](http://melpa.org/#/getting-started)
 
@@ -250,11 +255,4 @@ mkdir -p ~/.emacs.d/lisp/
 git clone https://github.com/cpitclaudel/company-coq.git ~/.emacs.d/lisp/company-coq
 cd ~/.emacs.d/lisp/company-coq
 make package && make install
-```
-
-#### Configuration
-
-```elisp
-(add-to-list 'load-path "~/.emacs.d/lisp/company-coq/")
-(require 'company-coq)
 ```

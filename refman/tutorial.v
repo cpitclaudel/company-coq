@@ -16,11 +16,11 @@
   to your .emacs? If not, you can try company-coq temporarily; just type
   `M-x company-coq-initialize'. *)
 
-(* Let's get started! If you use emacs ≥ 24, the symbols below should be
+(* Let's get started! If you use emacs >= 24.4, the symbols below should be
    prettified, though they appear as ASCII in the source file. You can disable
    this feature by typing M-x prettify-symbols-mode. If the symbols show as
    square boxes instead, you may want to install a good unicode font, such as
-   Symbola (see the github page for more info). *)
+   Symbola (package `ttf-ancient-fonts'; see the github page for more info). *)
 
 Definition PrettySymbols : (nat -> nat -> Prop) :=
   (fun (n m: nat) =>
@@ -39,7 +39,7 @@ Definition PrettySymbols : (nat -> nat -> Prop) :=
 
 (*****************************************************************************)
 
-(* Math symbols also auto-complete *)
+(* You can also insert math symbols directly in the source file, using LaTeX *)
 
 (* Try typing `\gam RET' here: *)
 
@@ -162,9 +162,9 @@ Proof.
   - idtac.
     (* Evaluate everything up to this point. Wouldn't the proof would look nicer
        if this was a separate lemma? *)
-    (* Press `C-c C-a C-x` (eXtract) to automatically extract a lemma from your
-       goal. You will be prompted for a name, then for hypotheses to keep in
-       your lemma (hint: you only need IHm). Try it on the empty line below: *)
+    (* Press `C-c C-a C-x` to automatically extract a lemma from your goal. You
+       will be prompted for a name, then for hypotheses to keep in your lemma
+       (hint: you only need IHm). Try it on the empty line below: *)
     
 Abort.
 

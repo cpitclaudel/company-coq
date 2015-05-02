@@ -1563,7 +1563,7 @@ output size is cached in `company-coq-last-search-scan-size'."
           (goto-char (point-min))
           (company-coq-make-title-line))))))
 
-(defun company-coq-diff-unification-warning (&optional context)
+(defun company-coq-diff-unification-error (&optional context)
   (interactive "P")
   (unless (numberp context) (setq context 10))
   (with-current-buffer "*response*"
@@ -2026,16 +2026,19 @@ hypotheses HYPS, and everything that they depend on."
 ;;;###autoload
 (defun company-coq-tutorial ()
   (interactive)
-  "Opens the company-coq tutorial"
-  (with-current-buffer (get-buffer-create "*company-coq-tutorial*")
-    (widen) ;; TODO: Ignore modifications upon saving
-    (insert-file-contents (expand-file-name "refman/tutorial.v" (file-name-directory
-                                                                 company-coq-script-full-path))
-                          nil nil nil t)
+  "Opens the company-coq tutorial in a new buffer, or pop to it
+if it is already open."
+  (let* ((tutorial-name   "*company-coq-tutorial*")
+         (tutorial-buffer (get-buffer tutorial-name))
+         (tutorial-path   (expand-file-name "refman/tutorial.v" (file-name-directory company-coq-script-full-path))))
+    (unless tutorial-buffer
+      (with-current-buffer (setq tutorial-buffer (get-buffer-create tutorial-name))
+        (insert-file-contents tutorial-path nil nil nil t)
     (coq-mode)
     (company-coq-initialize)
     (set-buffer-modified-p nil)
-    (pop-to-buffer-same-window (current-buffer))))
+        (set (make-local-variable 'buffer-offer-save) nil)))
+    (pop-to-buffer-same-window tutorial-buffer)))
 
 (defun company-coq-setup-keybindings ()
   (company-coq--keybindings-minor-mode))
