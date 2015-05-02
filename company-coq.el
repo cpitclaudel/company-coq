@@ -2023,6 +2023,19 @@ hypotheses HYPS, and everything that they depend on."
       (company-coq-browse-error-messages)
     (company-coq-guess-error-message-from-response)))
 
+(defun company-coq-search-in-coq-buffer (regexp)
+  "Search for REGEXP in *coq* buffer. Useful for debugging
+tactics in older versions of Coq: use [idtac \"!!!\" message] to
+print [message] to output, and `company-coq-search-in-coq-buffer'
+to locate lines starting with \"^!!!\"."
+  (interactive "MRegexp search in *coq* buffer: ")
+  (let ((coq-buffer (get-buffer-create "*coq*"))
+        (same-window-buffer-names '("*Occur*")))
+    (if coq-buffer
+        (with-current-buffer coq-buffer
+          (occur regexp))
+      (error "*coq* buffer not found"))))
+
 ;;;###autoload
 (defun company-coq-tutorial ()
   (interactive)
@@ -2034,9 +2047,9 @@ if it is already open."
     (unless tutorial-buffer
       (with-current-buffer (setq tutorial-buffer (get-buffer-create tutorial-name))
         (insert-file-contents tutorial-path nil nil nil t)
-    (coq-mode)
-    (company-coq-initialize)
-    (set-buffer-modified-p nil)
+        (coq-mode)
+        (company-coq-initialize)
+        (set-buffer-modified-p nil)
         (set (make-local-variable 'buffer-offer-save) nil)))
     (pop-to-buffer-same-window tutorial-buffer)))
 

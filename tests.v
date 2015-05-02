@@ -10,14 +10,6 @@ with BBBCCC :=
      | BBB1
      | BBB2 : AAABBB -> BBBCCC.
 
-Goal True.
-  idtac "!!!" 1.
-  idtac "!!!" 2.
-  idtac "!!!" 3.
-  idtac "!!!" 4.
-  auto.
-Qed.
-
 (* Are symbols correctly prettified? *)
 
 Definition PrettySymbols : (nat -> nat -> Prop) :=
@@ -110,11 +102,21 @@ Proof.
   reflexivity.
 Admitted.
 
+
+
 (* number and hypothesis shouldn't be available here *)
 
 Let AbortedLemma : False.
   apply TestLemma2. (* This should autocomplete. *)
 Abort.
+
+Goal True.
+  idtac "!!!" 1.
+  idtac "!!!" 2.
+  idtac "!!!" 3.
+  idtac "!!!" 4.
+  auto. (* company-coq-search-in-coq-buffer should show these calls *)
+Qed.
 
 (* This should show a special menu *)
 
@@ -127,7 +129,7 @@ Lemma MathCompletion : ∀ x, x > 1 → x > 0. (* This can be typed using \foral
 Qed.
 
 Goal True = True.
-  (* (company-coq-diff-unification-warning) should show diffs for all these errors *)
+  (* (company-coq-diff-unification-error) should show diffs for all these errors *)
   Fail apply 1.
   Fail (apply (@eq_refl Type)).
   Set Printing All.
@@ -169,7 +171,7 @@ Proof.
   pose proof (inhabited_homogeneous unit Depth tt) as pr.
   simpl in *.
 
-  (* (company-coq-diff-unification-warning) *)
+  (* (company-coq-diff-unification-error) *)
   Fail exact pr.
   Unset Printing All.
 
