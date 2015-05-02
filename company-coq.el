@@ -1373,12 +1373,19 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
       (forward-line -2)
       (delete-region (point-min) (point)))))
 
+(defun company-coq-is-old-emacs ()
+  (< emacs-major-version 25))
+
 (defun company-coq-doc-keywords-put-html (html-full-path truncate)
   (let ((doc (with-temp-buffer
                (insert-file-contents html-full-path)
                (libxml-parse-html-region (point-min) (point-max))))
-        ;; FIXME: This is undocumented behaviour; using most-positive-fixnum instead of 0 causes an OOM exception
-        (shr-width 0) ;; Disable line filling
+        ;; Disable line filling for emacs >= 25
+        ;; FIXME: This is undocumented behaviour (and new in 25.0)
+        ;; Using most-positive-fixnum instead of 0 causes an OOM exception when
+        ;; shr tries to render an <hr> or a <table>, so all <hr>s and <table>s
+        ;; are removed from the source manual.
+        (shr-width (if (company-coq-is-old-emacs) most-positive-fixnum 0))
         (after-change-functions nil)
         (shr-external-rendering-functions '((tt . company-coq-shr-tag-tt)
                                             (i  . company-coq-shr-tag-i))))

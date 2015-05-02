@@ -291,6 +291,10 @@ class HtmlDocument:
         for code in self.soup.find_all('code'):
             code.name = "tt"
 
+        for nuke in ("table", "hr"):
+            for tag in self.soup.find_all(nuke):
+                tag.decompose()
+
         for a in self.soup.find_all('a'):
             if "href" in a.attrs:
                 a["href"] = HtmlDocument.RENAME_RE.sub(HtmlDocument.rename_sub, a["href"])
