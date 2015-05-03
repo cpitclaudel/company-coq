@@ -2063,6 +2063,7 @@ if it is already open."
   (add-hook 'proof-shell-handle-delayed-output-hook #'company-coq-maybe-proof-output-reload-things)
   (add-hook 'proof-shell-handle-error-or-interrupt-hook #'company-coq-maybe-reload-context)
   (add-hook 'coq-goals-mode-hook #'company-coq-setup-goals-buffer)
+  (add-hook 'coq-response-mode-hook #'company-coq-setup-response-buffer)
   ;; Yasnippet
   (add-hook 'yas-after-exit-snippet-hook #'company-coq-forget-choices))
 
@@ -2127,6 +2128,10 @@ if it is already open."
   ;; Transform H1 into H_1
   (font-lock-add-keywords nil company-coq-subscript-spec t))
 
+(defun company-coq-setup-response-buffer ()
+  (company-coq-setup-prettify)
+  (visual-line-mode 1))
+
 ;;;###autoload
 (defun company-coq-initialize () ;; TODO this could be a minor mode
   (interactive)
@@ -2158,7 +2163,10 @@ if it is already open."
   (remove-hook 'proof-shell-insert-hook #'company-coq-maybe-proof-input-reload-things)
   (remove-hook 'proof-shell-handle-delayed-output-hook #'company-coq-maybe-proof-output-reload-things)
   (remove-hook 'proof-shell-handle-error-or-interrupt-hook #'company-coq-maybe-reload-context)
+
   (remove-hook 'coq-goals-mode-hook #'company-coq-setup-goals-buffer)
+  (remove-hook 'coq-response-mode-hook #'company-coq-setup-response-buffer)
+
   (remove-hook 'yas-after-exit-snippet-hook #'company-coq-forget-choices)
 
   (setq company-backends     (delete company-coq-backends company-backends))
