@@ -208,9 +208,9 @@ same prefix."
 (defconst company-coq-path-end-regexp   (concat "\\` +" company-coq-path-part-regexp   "\\'"))
 (defconst company-coq-path-full-regexp  (concat "\\`"   company-coq-path-part-regexp " +" company-coq-path-part-regexp "\\'"))
 
-(defun company-coq-make-headers-regexp (headers regexp-base)
-  (concat "^[ \t]*\\b\\(" (regexp-opt headers) "\\)"
-          (when regexp-base (concat "[[:space:]]+\\(" regexp-base "+\\)"))))
+(defun company-coq-make-headers-regexp (headers &optional regexp-base)
+  (concat "^[[:space:]]*\\<\\(" (regexp-opt headers) "\\)\\>"
+          (when regexp-base (concat "\\s-*\\(" regexp-base "+\\)"))))
 
 (defconst company-coq-ltac-kwds '("Ltac"))
 
@@ -396,6 +396,27 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
             (mapconcat #'identity company-coq-unification-error-messages "\\|")
             "\\)\\s-*"))))
 
+(defconst company-coq-deprecated-options '("Equality Scheme" "Record Elimination Schemes"
+                                           "Tactic Evars Pattern Unification" "Undo")
+  "Deprecated options, as reported by [Print Tables].")
+
+(defconst company-coq-deprecated-options-re (concat "\\(?1:" (regexp-opt '("Set" "Unset" "Test")) " "
+                                                    (regexp-opt company-coq-deprecated-options) "\\)")
+  "Regexp to spot uses of deprecated options.")
+
+(defconst company-coq-deprecated-man-re
+  (mapconcat (lambda (x) (concat "\\(?:\\<" x "\\)"))
+             '("\\(?1:assert\\) (.* := .*)" "\\(?1:double induction\\)"
+               "\\(?1:appcontext\\>\\)[ a-zA-Z]*\\[" "\\(?1:cutrewrite\\) \\(?:<-\\|->\\)"
+               "\\(?1:Backtrack [[:digit:]]+ [[:digit:]]+ [[:digit:]]+\\)" "\\(?1:SearchAbout\\>\\)"
+               "\\(?1:Save\\>\\(?: \\(?:Lemma\\|Theorem\\|Remark\\|Fact\\|Corollary\\|Proposition\\)\\>\\)?\\)")
+             "\\|"))
+
+(defconst company-coq-deprecated-re (concat "^[[:space:]]*"
+                                            "\\(?:" company-coq-deprecated-options-re "\\)\\|"
+                                            "\\(?:" company-coq-deprecated-man-re "\\)")
+  "Deprecated forms.")
+
 (defconst company-coq-script-full-path load-file-name
   "Full path of this script")
 
@@ -428,13 +449,10 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
      '(face nil display "════════════════════════════") append))
   "Create a face specification for a sequence of '=' signs, suitable for use with `font-lock-add-keywords'.")
 
-(when nil
-  (defcustom company-coq-symbol-matching-scheme 'substring
-    "The strategy used to look for keywords"
-    :group 'company-coq)
-
-  (defun company-coq-symbol-matching-scheme-is-plain ()
-    (equal company-coq-symbol-matching-scheme 'plain)))
+(defconst company-coq-deprecated-spec
+  `((,company-coq-deprecated-re 1
+     '(face (:underline (:color "#FF0000" :style wave)) help-echo "This form is deprecated (8.5)") append))
+  "Create a face specification for deprecated forms, suitable for use with `font-lock-add-keywords'.")
 
 (defmacro company-coq-dbg (format &rest args)
   "Print a message if company-coq-debug is non-nil"
@@ -2097,7 +2115,12 @@ if it is already open."
   (company-mode 1)
   (set (make-local-variable 'company-idle-delay) 0)
   (set (make-local-variable 'company-tooltip-align-annotations) t)
-  (set (make-local-variable 'company-abort-manual-when-too-short) t))
+  (set (make-local-variable 'company-abort-manual-when-too-short) t)
+
+  ;; Let company know about our backends
+  (add-to-list (make-local-variable 'company-backends) company-coq-backends)
+  (add-to-list (make-local-variable 'company-backends) #'company-coq-choices)
+  (add-to-list (make-local-variable 'company-transformers) #'company-coq-sort-in-backends-order))
 
 (defun company-coq-setup-outline ()
   (outline-minor-mode 1)
@@ -2113,20 +2136,26 @@ if it is already open."
          (append prettify-symbols-alist company-coq-prettify-symbols-alist))
     (prettify-symbols-mode 1)))
 
+(defun company-coq-setup-fontlock ()
+  (font-lock-add-keywords nil '(("\\_<pose proof\\_>" 0 'proof-tactics-name-face prepend)) 'add)
+  (font-lock-add-keywords nil '(("\\(\\W\\|\\`\\)\\(@\\)\\<" 2 'font-lock-constant-face prepend)) 'append)
+  (font-lock-add-keywords nil company-coq-deprecated-spec t)
+  (set (make-local-variable 'help-at-pt-display-when-idle) t)
+  (help-at-pt-set-timer))
+
 (defun company-coq-setup-minor-modes ()
   (yas-minor-mode 1)
   (show-paren-mode 1)
   (company-coq-setup-company)
   (company-coq-setup-outline)
-  (company-coq-setup-prettify))
+  (company-coq-setup-prettify)
+  (company-coq-setup-fontlock))
 
 (defun company-coq-setup-goals-buffer ()
-  (company-coq-setup-prettify)
   (add-to-list (make-local-variable 'font-lock-extra-managed-props) 'display)
-  ;; Prettify the goals line ("=====")
-  (font-lock-add-keywords nil company-coq-goal-separator-spec t)
-  ;; Transform H1 into H_1
-  (font-lock-add-keywords nil company-coq-subscript-spec t))
+  (font-lock-add-keywords nil company-coq-goal-separator-spec t)  ;; Prettify the goals line ("=====")
+  (font-lock-add-keywords nil company-coq-subscript-spec t)  ;; Transform H1 into H_1
+  (company-coq-setup-prettify))
 
 (defun company-coq-setup-response-buffer ()
   (company-coq-setup-prettify)
@@ -2144,19 +2173,9 @@ if it is already open."
   ;; Load keywords
   (company-coq-init-keywords)
 
-  ;; Happens too late:
-  ;; (push '("pose proof" "pp" "pose proof #" t "pose proof") coq-tactics-db)
-  (font-lock-add-keywords nil '(("\\_<pose proof\\_>" 0 'proof-tactics-name-face prepend)) 'add)
-  (font-lock-add-keywords nil '(("\\(\\W\\|\\`\\)\\(@\\)\\<" 2 'font-lock-constant-face prepend)) 'append)
-
   ;; Setup hooks and extra backends
   (company-coq-setup-hooks)
   (company-coq-setup-optional-backends)
-
-  ;; Let company know about our backends
-  (add-to-list (make-local-variable 'company-backends) company-coq-backends)
-  (add-to-list (make-local-variable 'company-backends) #'company-coq-choices)
-  (add-to-list (make-local-variable 'company-transformers) #'company-coq-sort-in-backends-order)
 
   ;; Set up a few convenient key bindings
   (company-coq-setup-keybindings))
@@ -2173,6 +2192,8 @@ if it is already open."
   (remove-hook 'coq-response-mode-hook #'company-coq-setup-response-buffer)
 
   (remove-hook 'yas-after-exit-snippet-hook #'company-coq-forget-choices)
+
+  (help-at-pt-cancel-timer)
 
   (setq company-backends     (delete company-coq-backends company-backends))
   (setq company-backends     (delete #'company-coq-choices company-backends))

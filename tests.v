@@ -3,6 +3,9 @@ Require Import Utf8.
 (* Global folding should work here *)
 Ltac TestLtac a b cde := idtac.
 
+(* This should be underlined. *)
+Unset Undo.
+
 Inductive AAABBB :=
 | AAA1
 | AAA2 : BBBCCC -> AAABBB
@@ -31,7 +34,6 @@ Proof.
   (* Are subscripts displaying properly? *)
   constructor.
 Qed.
-
 (*
 (progn
   (setq coq-prog-name "/build/coq-trunk-pr/bin/coqtop")
@@ -54,6 +56,8 @@ Proof.
   (* This should be typeable using:
   Require Import C.NA.NA *)
   Require Import Coq.NArith.NArith.
+
+  assert (x := plus_0_r). (* This should be underlined *)
 
   apply lt_n_S.
   apply lt_S_n in hypothesis.

@@ -7,7 +7,7 @@ most advanced features require a patched version of coqtop.
 
 ### Completion
 
-* Auto-completion of [math symbols](img/tactic-completion-doc.png) (using company-math)
+* Auto-completion of [math symbols](img/tactic-completion-doc.png) (using company-math).
 
 * Auto-completion of theorems and tactics defined in the same buffer, with type annotations.
 
@@ -29,17 +29,19 @@ most advanced features require a patched version of coqtop.
 
 * Interactive lemma extraction: press <kbd>C-c C-a C-x</kbd> to extract the current goal into a separate lemma, keeping the hypotheses of your choice.
 
-* Visual [word diff](img/unification.png) of large unification error messages (<code>The term "<i>blah</i>" has type "<i>huge blob</i>" while it is expected to have type "<i>slightly different blob</i>"</code>)
+* Visual [word diff](img/unification.png) of large unification error messages (<code>The term "<i>blah</i>" has type "<i>huge blob</i>" while it is expected to have type "<i>slightly different blob</i>"</code>).
 
-* Interactive [proof script outline](img/outline.png) and [in-buffer folding](img/folding.png)
+* Interactive [proof script outline](img/outline.png) and [in-buffer folding](img/folding.png).
 
-* Basic project search (search for instances of the word at point in neighboring files)
+* Basic project search (search for instances of the word at point in neighboring files).
 
 * Extended [font beautification](img/prettify.png): keywords are transparently replaced with the corresponding symbols (`⊢⊤⊥→⇒λ∀∃∧∨¬≠⧺𝓝ℤℕℚℝ𝔹𝓟`), and the goals line (`========`) actually looks like a line (`════════`).
 
 * Convenient snippets: easily insert [new `match` cases](img/match-function.gif) and [`match goal` rules](img/match-goal.gif).
 
-* Occur in `*coq*` buffer (`company-coq-search-in-coq-buffer`)
+* Occur in `*coq*` buffer (`company-coq-search-in-coq-buffer`).
+
+* Automatic [highlighting](img/deprecated.png) of deprecated forms (`assert (_ := _)`, `SearchAbout`, etc.).
 
 ### Advanced features
 
@@ -57,10 +59,6 @@ most advanced features require a patched version of coqtop.
 
 <img src="img/keyword-completion-doc.png" alt="Autocompletion of commands with documentation" />
 
-### Auto insertion of Proof-General's templates
-
-<img src="img/lemma-completion.png" alt="Auto insertion of Proof-General's templates" />
-
 ### Fuzzy autocompletion of module names
 
 <img src="img/modules-completion.png" alt="Fuzzy autocompletion of module names" />
@@ -73,6 +71,19 @@ most advanced features require a patched version of coqtop.
 
 <img src="img/search-completion.png" alt="Auto-completion of search results" />
 
+### Keyword beautification
+
+<img src="img/prettify.png" alt="Keyword beautification" />
+
+### Neat snippets
+
+<img src="img/match-function.gif" alt="Insert new match cases" />
+<img src="img/match-goal.gif" alt="Insert new match goal rules" />
+
+### Highlighting of deprecated forms
+
+<img src="img/deprecated.png" alt="Highlighting of deprecated forms" />
+
 ### Documentation for (documented) error messages
 
 <img src="img/errors-doc.png" alt="Documentation for (documented) error messages" />
@@ -82,18 +93,13 @@ most advanced features require a patched version of coqtop.
 <img src="img/outline.png" alt="Outline" />
 <img src="img/folding.png" alt="Folding" />
 
+### Auto insertion of Proof-General's templates
+
+<img src="img/lemma-completion.png" alt="Auto insertion of Proof-General's templates" />
+
 ### Unicode math symbols
 
 <img src="img/math-completion.png" alt="Unicode math symbols" />
-
-### Keyword beautification
-
-<img src="img/prettify.png" alt="Keyword beautification" />
-
-### Neat snippets
-
-<img src="img/match-function.gif" alt="Insert new match cases" />
-<img src="img/match-goal.gif" alt="Insert new match goal rules" />
 
 ### Diffs of unification errors
 
