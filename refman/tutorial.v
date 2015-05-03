@@ -91,6 +91,15 @@ each definition, theorem, and lemma. *)
 
 (*****************************************************************************)
 
+(* In addition to lemmas, tactics, and type definitions from the current buffer,
+company-coq also monitors Coq's responses for lists of identifiers, and adjusts
+completions accordingly *)
+
+(* Run the following snippet, then try typing `plus': *)
+SearchAbout eq. 
+
+(*****************************************************************************)
+
 (* Confused by an error message? company-coq has documentation for (some) of
    them, auto-extracted from the manual *)
 
