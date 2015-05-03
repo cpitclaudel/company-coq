@@ -2144,6 +2144,11 @@ if it is already open."
   ;; Load keywords
   (company-coq-init-keywords)
 
+  ;; Happens too late:
+  ;; (push '("pose proof" "pp" "pose proof #" t "pose proof") coq-tactics-db)
+  (font-lock-add-keywords nil '(("\\_<pose proof\\_>" 0 'proof-tactics-name-face prepend)) 'add)
+  (font-lock-add-keywords nil '(("\\(\\W\\|\\`\\)\\(@\\)\\<" 2 'font-lock-constant-face prepend)) 'append)
+
   ;; Setup hooks and extra backends
   (company-coq-setup-hooks)
   (company-coq-setup-optional-backends)
