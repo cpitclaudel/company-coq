@@ -189,7 +189,7 @@ Loading `company-coq` also binds the following keys:
 
 ### Empty squares in place of math operators, or incorrect line spacing
 
-If you see blank squares appear where there should be math symbols (`forall`, `exists`, etc.), or if some lines suddenly become very tall, you may be missing a proper math font. See [Installing a math-enabled font](#math-font), or insert the following snippet in your .emacs to disable symbols beautification:
+If you see blank squares appear where there should be math symbols (`forall`, `exists`, etc.), or if some lines suddenly become very tall, you may be missing a proper math font. See [Installing a math-enabled font](#installing-a-math-enabled-font), or insert the following snippet in your .emacs to disable symbols beautification:
 
 ```elisp
 ;; Disable keyword replacement
@@ -200,7 +200,7 @@ Technical note: Proof-General [also offers](http://proofgeneral.inf.ed.ac.uk/htm
 
 ## Advanced topics
 
-### Installing a math-enabled font {#math-font}
+### Installing a math-enabled font
 
 For font beautification to work properly, you'll need a font with proper symbol support. DejaVu Sans Mono, Symbola, FreeMono, STIX, Unifont, Segoe UI Symbol, Arial Unicode and Cambria Math do. If Emacs doesn't fallback properly, you can use the following snippet:
 
