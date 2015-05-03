@@ -29,7 +29,7 @@ most advanced features require a patched version of coqtop.
 
 * Interactive lemma extraction: press <kbd>C-c C-a C-x</kbd> to extract the current goal into a separate lemma, keeping the hypotheses of your choice.
 
-* Visual [word diff](img/unification.png) of large unification error messages (<samp>The term "<i>blah</i>" has type "<i>huge blob</i>" while it is expected to have type "<i>slightly different blob</i>"</samp>)
+* Visual [word diff](img/unification.png) of large unification error messages (<code>The term "<i>blah</i>" has type "<i>huge blob</i>" while it is expected to have type "<i>slightly different blob</i>"</code>)
 
 * Interactive [proof script outline](img/outline.png) and [in-buffer folding](img/folding.png)
 
@@ -232,8 +232,8 @@ Modules, context, symbols, end of block and search results auto-completion can b
 (setq company-coq-autocomplete-modules nil)
 (setq company-coq-autocomplete-context nil)
 (setq company-coq-autocomplete-symbols nil)
-(set company-coq-autocomplete-block-end nil)
-(set company-coq-autocomplete-search-results nil)
+(setq company-coq-autocomplete-block-end nil)
+(setq company-coq-autocomplete-search-results nil)
 ```
 
 You can set these variables using `M-x customize-group RET company-coq RET
