@@ -591,9 +591,9 @@ line if empty). Calls `indent-region' on the inserted lines."
     (let* ((prefix   (expand-file-name "coq" temporary-file-directory))
            (fname    (make-temp-name prefix))
            (question (company-coq-format-redirection cmd fname))
-           (_        (company-coq-ask-prover question)))
+           (answer   (company-coq-ask-prover question)))
       (company-coq-dbg "Asking coq to redirect output of [%s] to [%s]" cmd prefix)
-      (company-coq-read-and-delete (concat fname ".out")))))
+      (cons answer (company-coq-read-and-delete (concat fname ".out"))))))
 
 (defun company-coq-get-symbols ()
   "Load symbols by issuing command company-coq-all-symbols-cmd and parsing the results. Do not call if proof process is busy."
@@ -601,8 +601,8 @@ line if empty). Calls `indent-region' on the inserted lines."
   (with-temp-message "company-coq: Loading symbols..."
     (let* ((start-time     (current-time))
            (_              (mapc #'company-coq-ask-prover company-coq-all-symbols-prelude))
-           (output         (company-coq-ask-prover-redirect company-coq-all-symbols-cmd))
-           (extras         (company-coq-ask-prover-redirect company-coq-extra-symbols-cmd))
+           (output         (cdr (company-coq-ask-prover-redirect company-coq-all-symbols-cmd)))
+           (extras         (cdr (company-coq-ask-prover-redirect company-coq-extra-symbols-cmd)))
            (_              (mapc #'company-coq-ask-prover company-coq-all-symbols-coda))
            (half-time      (current-time))
            (lines          (nconc (company-coq-split-lines output) (company-coq-split-lines extras)))
@@ -1071,17 +1071,17 @@ search term and a qualifier."
   (company-coq-boundp-string-match company-coq-error-regexp 'proof-shell-last-output))
 
 (defun company-coq-detect-capabilities ()
-  (let* ((output     (company-coq-ask-prover company-coq-capability-test-cmd))
+  (let* ((output     (car (company-coq-ask-prover-redirect company-coq-capability-test-cmd)))
          (capability (and output (not (string-match-p company-coq-error-regexp output)))))
     (when output
       (setq company-coq-needs-capability-detection nil)
-      (setq company-coq--has-dynamic-symbols capability)
-      (message "Capability detection complete: dynamic completion is %savailable." (if capability "" "not "))
-      (when (not capability)
-        (when company-coq-autocomplete-symbols-dynamic
+      (setq company-coq--has-dynamic-symbols (and capability company-coq-autocomplete-symbols-dynamic))
+      (when company-coq-autocomplete-symbols-dynamic
+        (message "Capability detection complete: dynamic completion is %savailable." (if capability "" "not "))
+        (when (not capability)
           (warn (concat "`company-coq-autocomplete-symbols-dynamic' is non-nil, but "
-                         "your version of coqtop does not seem to support symbols completion. "
-                         "Falling back to same-buffer completion.")))))))
+                        "your version of coqtop does not seem to support symbols completion. "
+                        "Falling back to same-buffer completion.")))))))
 
 (defun company-coq-maybe-reload-each ()
   (company-coq-dbg "company-coq-maybe-reload-each: [%s] [%s] [%s]"

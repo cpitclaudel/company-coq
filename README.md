@@ -45,7 +45,7 @@ most advanced features require a patched version of coqtop.
 
 ### Advanced features
 
-(This requires a [patched](https://github.com/coq/coq/pull/56) [version](https://github.com/coq/coq/pull/62) of `coqtop`)
+(This requires a [patched](https://github.com/coq/coq/pull/56) version of `coqtop`)
 
 * Auto-completion of all known [theorem and symbol names](img/symbol-completion-doc.png), with [type annotations](img/symbol-completion.png).
 
