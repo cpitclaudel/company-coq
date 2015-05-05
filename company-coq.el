@@ -90,6 +90,9 @@
   "Autocomplete theorem names by periodically querying coq about defined identifiers. This is an experimental feature. It requires a patched version of Coq to work properly; it will be very slow otherwise."
   :group 'company-coq)
 
+(defvar company-coq--has-dynamic-symbols nil
+  "Equal to `company-coq-autocomplete-symbols-dynamic' if capability detection succeeds")
+
 (defcustom company-coq-autocomplete-context t
   "Autocomplete hypotheses by parsing the latest Goals output. This is an experimental feature."
   :group 'company-coq)
@@ -107,15 +110,11 @@
   :group 'company-coq)
 
 (defcustom company-coq-autocomplete-symbols t
-  "Autocomplete symbols by searching in the buffer for lemmas and theorems. If `company-coq-autocomplete-symbols-dynamic' is non-nil, query the proof assistant instead of searching."
+  "Autocomplete symbols by searching in the buffer for lemmas and theorems. If `company-coq-autocomplete-symbols-dynamic' is non-nil, query the proof assistant in addition to searching."
   :group 'company-coq)
 
 (defcustom company-coq-prettify-symbols t
   "Transparently replace keywords by the corresponding symbols (e.g. ∀ for forall). The contents of the buffer are not changed."
-  :group 'company-coq)
-
-(defcustom company-coq-fast nil
-  "Indicates whether we have access to a faster, patched REPL"
   :group 'company-coq)
 
 (defcustom company-coq-explicit-placeholders t
@@ -183,6 +182,14 @@ same prefix."
 (defvar company-coq-last-search-scan-size nil
   "If the response buffer has this size, search results are deemed up to date.")
 
+(defvar company-coq-needs-capability-detection t
+  "Tracks whether capability detection has already happened.")
+
+(defconst company-coq-capability-test-cmd "Test Search Output Name Only"
+  "Command use to test for dynamic completion capabilities. Two patches are
+required for proper completion: [Redirect]ion to a file, and [Search Output
+Name Only].")
+
 (defconst company-coq-id-regexp-base "[a-zA-Z0-9_]")
 
 (defconst company-coq-rich-id-regexp-base "[a-zA-Z0-9_.]")
@@ -245,11 +252,9 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
 (defconst company-coq-search-blacklist-rem-cmd (concat "Remove Search Blacklist "
                                                        company-coq-search-blacklist-str))
 
-(defun company-coq-all-symbols-prelude ()
-  "Command to run before listing all symbols, using a patched version of Coq"
-  (cons company-coq-search-blacklist-add-cmd
-        (when company-coq-fast
-          '("Set Search Output Name Only")))) ;; "Set Search Write To File"
+(defconst company-coq-all-symbols-prelude (cons company-coq-search-blacklist-add-cmd
+                                                '("Set Search Output Name Only"))
+  "Command to run before listing all symbols, using a patched version of Coq")
 
 (defconst company-coq-redirection-template "Redirect \"%s\" %s")
 
@@ -259,23 +264,13 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
 (defvar company-coq-extra-symbols-cmd nil
   "Command used to list more symbols ([SearchPattern _] doesn't search inside modules in 8.4).")
 
-(defun company-coq-all-symbols-coda ()
-  "Command to run after listing all symbols, using a patched version of Coq"
-  (cons company-coq-search-blacklist-rem-cmd
-        (when company-coq-fast
-          '("Unset Search Output Name Only")))) ;; "Unset Search Write To File"
+(defconst company-coq-all-symbols-coda (cons company-coq-search-blacklist-rem-cmd
+                                          '("Unset Search Output Name Only"))
+  "Command to run after listing all symbols, using a patched version of Coq")
 
-(defun company-coq-all-symbols-filter-line ()
+(defun company-coq-all-symbols-filter-line (line)
   "Lambda used to filter each output line"
-  (if company-coq-fast
-      (lambda (line) (> (length line) 0))
-    (lambda (line) (string-match company-coq-all-symbols-slow-regexp line))))
-
-(defun company-coq-all-symbols-extract-names ()
-  "Lambda used to extract names from the list of output lines"
-  (if company-coq-fast
-      'identity
-    (lambda (lines) (mapcar (lambda (line) (replace-regexp-in-string company-coq-all-symbols-slow-regexp "\\1" line)) lines))))
+  (> (length line) 0))
 
 (defconst company-coq-doc-cmd "About %s"
   "Command used to retrieve the documentation of a symbol.")
@@ -479,7 +474,8 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
               (company-coq-with-window-start (and preserve-window-start (company-coq-get-goals-window))
                 (proof-shell-invisible-cmd-get-result question))
             (setq company-coq-asking-question nil)))
-      (company-coq-dbg "Prover not available; question discarded"))))
+      (company-coq-dbg "Prover not available; [%s] discarded" question)
+      nil)))
 
 (defun company-coq-split-lines (str)
   (if str (split-string str "\n")))
@@ -561,8 +557,6 @@ line if empty). Calls `indent-region' on the inserted lines."
   (let ((available (and (not company-coq-asking-question)
                         (fboundp 'proof-shell-available-p)
                         (proof-shell-available-p))))
-    (when (not available)
-      (company-coq-dbg "company-coq-prover-available: Prover not available"))
     available))
 
 (defun company-coq-force-reload-with-prover (track-symbol store-symbol load-function)
@@ -581,10 +575,8 @@ line if empty). Calls `indent-region' on the inserted lines."
         (company-coq-dbg "company-coq-init-db: reloading")
         (funcall initfun))))
 
-(defun company-coq-maybe-format-redirection (cmd fname)
-  (if company-coq-fast
-      (format company-coq-redirection-template fname cmd)
-    cmd))
+(defun company-coq-format-redirection (cmd fname)
+  (format company-coq-redirection-template fname cmd))
 
 (defun company-coq-read-and-delete (fname)
   (ignore-errors
@@ -594,39 +586,36 @@ line if empty). Calls `indent-region' on the inserted lines."
       (delete-file fname)
       contents)))
 
-(defun company-coq-ask-prover-maybe-redirect (cmd)
+(defun company-coq-ask-prover-redirect (cmd)
   (when cmd
     (let* ((prefix   (expand-file-name "coq" temporary-file-directory))
            (fname    (make-temp-name prefix))
-           (question (company-coq-maybe-format-redirection cmd fname))
-           (answer   (company-coq-ask-prover question)))
+           (question (company-coq-format-redirection cmd fname))
+           (_        (company-coq-ask-prover question)))
       (company-coq-dbg "Asking coq to redirect output of [%s] to [%s]" cmd prefix)
-      (if company-coq-fast
-          (company-coq-read-and-delete (concat fname ".out"))
-        answer))))
+      (company-coq-read-and-delete (concat fname ".out")))))
 
 (defun company-coq-get-symbols ()
   "Load symbols by issuing command company-coq-all-symbols-cmd and parsing the results. Do not call if proof process is busy."
   (interactive)
   (with-temp-message "company-coq: Loading symbols..."
     (let* ((start-time     (current-time))
-           (_              (mapc #'company-coq-ask-prover (company-coq-all-symbols-prelude)))
-           (output         (company-coq-ask-prover-maybe-redirect company-coq-all-symbols-cmd))
-           (extras         (company-coq-ask-prover-maybe-redirect company-coq-extra-symbols-cmd))
-           (_              (mapc #'company-coq-ask-prover (company-coq-all-symbols-coda)))
+           (_              (mapc #'company-coq-ask-prover company-coq-all-symbols-prelude))
+           (output         (company-coq-ask-prover-redirect company-coq-all-symbols-cmd))
+           (extras         (company-coq-ask-prover-redirect company-coq-extra-symbols-cmd))
+           (_              (mapc #'company-coq-ask-prover company-coq-all-symbols-coda))
            (half-time      (current-time))
            (lines          (nconc (company-coq-split-lines output) (company-coq-split-lines extras)))
-           (line-filter    (company-coq-all-symbols-filter-line))
-           (line-extractor (company-coq-all-symbols-extract-names))
-           (filtered-lines (cl-remove-if-not (lambda (line) (funcall line-filter line)) lines))
-           (names          (company-coq-union-sort #'string-equal #'string-lessp (funcall line-extractor filtered-lines))))
+           (filtered-lines (cl-remove-if-not #'company-coq-all-symbols-filter-line lines))
+           (names          (company-coq-union-sort #'string-equal #'string-lessp filtered-lines)))
       (message "Loaded %d symbols (%d lines) in %.03f+%.03f seconds"
                (length names) (length lines) (float-time (time-subtract half-time start-time)) (float-time (time-since half-time)))
       names)))
 
 (defun company-coq-force-reload-symbols ()
   (interactive)
-  (when company-coq-autocomplete-symbols-dynamic
+  (company-coq-dbg "company-coq--has-dynamic-symbols is [%s]" company-coq--has-dynamic-symbols)
+  (when company-coq--has-dynamic-symbols
     (company-coq-force-reload-with-prover 'company-coq-symbols-reload-needed
                                           'company-coq-dynamic-symbols
                                           #'company-coq-get-symbols)))
@@ -892,7 +881,9 @@ a list of pairs of paths in the form (LOGICAL . PHYSICAL)"
      (all-completions prefix completions))))
 
 (defun company-coq-dynamic-symbols-available ()
-  (and company-coq-autocomplete-symbols-dynamic (company-coq-in-scripting-mode)))
+  (and company-coq--has-dynamic-symbols
+       company-coq-dynamic-symbols
+       (company-coq-in-scripting-mode)))
 
 (defun company-coq-complete-symbol (prefix)
   "List elements of company-coq-dynamic-symbols or company-coq-buffer-defuns containing PREFIX"
@@ -902,7 +893,7 @@ a list of pairs of paths in the form (LOGICAL . PHYSICAL)"
     (company-coq-complete-prefix-substring prefix company-coq-dynamic-symbols)))
 
 (defun company-coq-complete-defun (prefix)
-  "List elements of company-coq-dynamic-symbols or company-coq-buffer-defuns containing PREFIX"
+  "List elements of `company-coq-buffer-defuns' containing PREFIX"
   (interactive)
   (company-coq-complete-prefix-substring prefix company-coq-buffer-defuns))
 
@@ -1079,9 +1070,28 @@ search term and a qualifier."
   "Checks whether proof-general signaled an error"
   (company-coq-boundp-string-match company-coq-error-regexp 'proof-shell-last-output))
 
+(defun company-coq-detect-capabilities ()
+  (let* ((output     (company-coq-ask-prover company-coq-capability-test-cmd))
+         (capability (and output (not (string-match-p company-coq-error-regexp output)))))
+    (when output
+      (setq company-coq-needs-capability-detection nil)
+      (setq company-coq--has-dynamic-symbols capability)
+      (message "Capability detection complete: dynamic completion is %savailable." (if capability "" "not "))
+      (when (not capability)
+        (when company-coq-autocomplete-symbols-dynamic
+          (warn (concat "`company-coq-autocomplete-symbols-dynamic' is non-nil, but "
+                         "your version of coqtop does not seem to support symbols completion. "
+                         "Falling back to same-buffer completion.")))))))
+
 (defun company-coq-maybe-reload-each ()
-  (when company-coq-symbols-reload-needed (company-coq-force-reload-symbols))
-  (when company-coq-modules-reload-needed (company-coq-force-reload-modules)))
+  (company-coq-dbg "company-coq-maybe-reload-each: [%s] [%s] [%s]"
+                   company-coq-needs-capability-detection
+                   company-coq-symbols-reload-needed
+                   company-coq-modules-reload-needed)
+  (when (company-coq-prover-available)
+    (when company-coq-needs-capability-detection (company-coq-detect-capabilities))
+    (when company-coq-symbols-reload-needed (company-coq-force-reload-symbols))
+    (when company-coq-modules-reload-needed (company-coq-force-reload-modules))))
 
 (defmacro company-coq-remember-hyp (hyp-cons context)
   `(cl-destructuring-bind (name . type-lines) ,hyp-cons
@@ -1153,7 +1163,8 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
       (company-coq-maybe-reload-context (or is-end-of-def is-end-of-proof is-aborted))
       (if is-error (company-coq-dbg "Last output was an error; not reloading")
         ;; Delay call until after we have returned to the command loop
-        (run-with-idle-timer 0 nil #'company-coq-maybe-reload-each)))))
+        (company-coq-dbg "This could be a good time to reload things?")
+        (run-with-timer 0 nil #'company-coq-maybe-reload-each)))))
 
 (defun company-coq-maybe-proof-input-reload-things ()
   "Reload symbols if input mentions new symbols"
@@ -2054,6 +2065,9 @@ to locate lines starting with \"^!!!\"."
           (occur regexp))
       (error "*coq* buffer not found"))))
 
+(defun company-coq-init-hook ()
+  (setq company-coq-needs-capability-detection t))
+
 ;;;###autoload
 (defun company-coq-tutorial ()
   (interactive)
@@ -2076,6 +2090,7 @@ if it is already open."
 
 (defun company-coq-setup-hooks () ;; NOTE: This could be made callable at the beginning of every completion.
   ;; PG hooks
+  (add-hook 'proof-state-init-mode-hook #'company-coq-init-hook)
   (add-hook 'proof-state-change-hook #'company-coq-state-change)
   (add-hook 'proof-shell-insert-hook #'company-coq-maybe-proof-input-reload-things)
   (add-hook 'proof-shell-handle-delayed-output-hook #'company-coq-maybe-proof-output-reload-things)
@@ -2101,15 +2116,7 @@ if it is already open."
     (add-to-list 'company-coq-backends #'company-coq-block-end t))
 
  (when company-coq-autocomplete-search-results
-   (add-to-list 'company-coq-backends #'company-coq-search-results t))
-
-  ;; Symbols backend
-  (when (and company-coq-autocomplete-symbols
-             company-coq-autocomplete-symbols-dynamic
-             (not company-coq-fast))
-    (message "Warning: Symbols autocompletion is an experimental
-    feature. Performance won't be good unless you use a patched
-    coqtop. If you do, set company-coq-fast to true.")))
+   (add-to-list 'company-coq-backends #'company-coq-search-results t)))
 
 (defun company-coq-setup-company ()
   (company-mode 1)
@@ -2192,7 +2199,8 @@ if it is already open."
   (when (not (company-coq-in-coq-mode))
     (error "company-coq only works with coq-mode."))
 
-  ;; Enable relevant minor modes
+  ;; Setup backends and relevant minor modes
+  (company-coq-setup-optional-backends)
   (company-coq-setup-minor-modes)
 
   ;; Some more improvements that don't fit in any of the minor modes
@@ -2201,9 +2209,8 @@ if it is already open."
   ;; Load keywords
   (company-coq-init-keywords)
 
-  ;; Setup hooks and extra backends
+  ;; Setup hooks
   (company-coq-setup-hooks)
-  (company-coq-setup-optional-backends)
 
   ;; Set up a few convenient key bindings
   (company-coq-setup-keybindings))
@@ -2212,6 +2219,7 @@ if it is already open."
   (when (featurep 'company-coq-abbrev)
     (unload-feature 'company-coq-abbrev t))
 
+  (remove-hook 'proof-state-init-mode-hook #'company-coq-init-hook)
   (remove-hook 'proof-shell-insert-hook #'company-coq-maybe-proof-input-reload-things)
   (remove-hook 'proof-shell-handle-delayed-output-hook #'company-coq-maybe-proof-output-reload-things)
   (remove-hook 'proof-shell-handle-error-or-interrupt-hook #'company-coq-maybe-reload-context)
