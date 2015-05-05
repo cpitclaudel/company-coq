@@ -1,9 +1,9 @@
-(*****************************************)
-(* Welcome to this company-coq tutorial! *)
-(* Here's a demo of a few nice features  *)
-(*****************************************)
+(*******************************************)
+(** Welcome to this company-coq tutorial! **)
+(** Here's a demo of a few nice features  **)
+(*******************************************)
 
-(* First of all, let's ensure that company-coq is running. Did you add
+(** First of all, let's ensure that company-coq is running. Did you add
 
       (package-initialize)
 
@@ -13,14 +13,14 @@
       ;; Load company-coq when opening Coq files
       (add-hook 'coq-mode-hook #'company-coq-initialize)
 
-  to your .emacs? If not, you can try company-coq temporarily; just type
-  `M-x company-coq-initialize'. *)
+    to your .emacs? If not, you can try company-coq temporarily; just type
+    `M-x company-coq-initialize'. *)
 
-(* Let's get started! If you use emacs >= 24.4, the symbols below should be
-   prettified, though they appear as ASCII in the source file. You can disable
-   this feature by typing M-x prettify-symbols-mode. If the symbols show as
-   square boxes instead, you may want to install a good unicode font, such as
-   Symbola (package `ttf-ancient-fonts'; see the github page for more info). *)
+(** Let's get started! If you use emacs >= 24.4, the symbols below should be
+    prettified, though they appear as ASCII in the source file. You can disable
+    this feature by typing M-x prettify-symbols-mode. If the symbols show as
+    square boxes instead, you may want to install a good unicode font, such as
+    Symbola (package `ttf-ancient-fonts'; see the github page for more info). *)
 
 Definition PrettySymbols : (nat -> nat -> Prop) :=
   (fun (n m: nat) =>
@@ -28,25 +28,25 @@ Definition PrettySymbols : (nat -> nat -> Prop) :=
 
 (* Try typing an arrow `->' here: *)
 
-(*****************************************************************************)
+(******************************************************************************)
 
-(* company-coq knows most basic Coq tactics. Typing just a few letters are
-   enough to locate a tactic, and pressing RET inserts it. If a tactic contains
-   holes, you can navigate them using TAB *)
+(** company-coq knows most basic Coq tactics. Typing just a few letters are
+    enough to locate a tactic, and pressing RET inserts it. If a tactic contains
+    holes, you can navigate them using TAB *)
 
 (* Try typing `SLD RET' here: *)
 (* Try typing `applin RET' here: *)
 
-(*****************************************************************************)
+(******************************************************************************)
 
-(* You can also insert math symbols directly in the source file, using LaTeX *)
+(** You can also insert math symbols directly in the source file, using LaTeX *)
 
 (* Try typing `\gam RET' here: *)
 
-(*****************************************************************************)
+(******************************************************************************)
 
-(* company-coq adds a few convenient shortcuts, like M-RET and M-S-RET, to
-   insert additional match cases *)
+(** company-coq adds a few convenient shortcuts, like M-RET and M-S-RET, to
+    insert additional match cases *)
 
 Ltac BasicTactic :=
   match goal with
@@ -56,52 +56,52 @@ Ltac BasicTactic :=
 
   end.
 
-(*****************************************************************************)
+(******************************************************************************)
 
-(* Not sure what a tactic does? Type part of its name, and press C-h. *)
+(** Not sure what a tactic does? Type part of its name, and press C-h. *)
 
 (* Try typing `appl C-h' here: *)
 
-(*****************************************************************************)
+(******************************************************************************)
 
-(* Completion is smart enough to look for theorems and tactics in the current
-buffer (and with the proper Coq patches, in the whole library). For example, it
-knows about BasicTactic and PrettySymbols *)
+(** Completion is smart enough to look for theorems and tactics in the current
+    buffer (and with the proper Coq patches, in the whole library). For example,
+    it knows about BasicTactic and PrettySymbols *)
 
 (* Try typing `BasicTac' here: *)
 
-(*****************************************************************************)
+(******************************************************************************)
 
-(* company-coq can extract an outline of your proof script; it includes links to
-each definition, theorem, and lemma. *)
+(** company-coq can extract an outline of your proof script; it includes links
+    to each definition, theorem, and lemma. *)
 
 (* Try pressing `C-c C-,'. Press q to exit the outline buffer. *)
 
-(*****************************************************************************)
+(******************************************************************************)
 
-(* Now for a few interactive features. You'll want to start the prover *)
+(** Now for a few interactive features. You'll want to start the prover *)
 
 (* Start Coq by pressing C-c RET here *)
 
-(*****************************************************************************)
+(******************************************************************************)
 
-(* Now that Coq is started, company-coq can auto-complete library modules *)
+(** Now that Coq is started, company-coq can auto-complete library modules *)
 
 (* Try typing `Require Import Coq.Z.B' here: *)
 
-(*****************************************************************************)
+(******************************************************************************)
 
-(* In addition to lemmas, tactics, and type definitions from the current buffer,
-company-coq also monitors Coq's responses for lists of identifiers, and adjusts
-completions accordingly *)
+(** In addition to lemmas, tactics, and type definitions from the current
+    buffer, company-coq also monitors Coq's responses for lists of identifiers,
+    and adjusts completions accordingly *)
 
 (* Run the following snippet, then try typing `plus': *)
 SearchAbout eq. 
 
-(*****************************************************************************)
+(******************************************************************************)
 
-(* Confused by an error message? company-coq has documentation for (some) of
-   them, auto-extracted from the manual *)
+(** Confused by an error message? company-coq has documentation for (some) of
+    them, auto-extracted from the manual *)
 
 (* Consider the following attempt at using Omega: *)
 
@@ -125,9 +125,9 @@ Proof.
   using Emacs ≥ 24.4) *)
 Qed.
 
-(*****************************************************************************)
+(******************************************************************************)
 
-(* Even if you know what the error means, sometimes it's hard to parse: *)
+(** Even if you know what the error means, sometimes it's hard to parse: *)
 
 (* Evaluate the following block: *)
 
@@ -154,10 +154,10 @@ Lemma LargeGoal : inhabited (Tt (@MkLarge Type 5 unit nat)).
   Unset Printing All.
 Abort.
 
-(*****************************************************************************)
+(******************************************************************************)
 
-(* One last nice feature is goal extraction. Let's prove a theorem by
-   induction: *)
+(** One last nice feature is goal extraction. Let's prove a theorem by
+    induction: *)
 
 Lemma my_plus_comm :
   forall p q r,
@@ -177,4 +177,4 @@ Proof.
     
 Abort.
 
-(*****************************************************************************)
+(******************************************************************************)

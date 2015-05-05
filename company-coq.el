@@ -2136,10 +2136,35 @@ if it is already open."
          (append prettify-symbols-alist company-coq-prettify-symbols-alist))
     (prettify-symbols-mode 1)))
 
+(defun company-coq-syntactic-face-function-aux (_depth _innermost-start _last-complete-start
+                                                in-string comment-depth _after-quote _min-paren-depth
+                                                _comment-style comment-string-start _continuation)
+  (cond
+   (in-string
+    'font-lock-string-face)
+   ((or comment-depth (numberp comment-depth))
+    (if (and comment-string-start
+             (ignore-errors (save-excursion
+                              (goto-char comment-string-start)
+                              (looking-at-p (regexp-quote "(** ")))))
+        'font-lock-doc-face
+      'font-lock-comment-face))))
+
+(defun company-coq-syntactic-face-function (args)
+  (apply #'company-coq-syntactic-face-function-aux args))
+
+(defun company-coq-fill-nobreak-predicate ()
+  (not (memq (get-text-property (point) 'face) '(font-lock-doc-face font-lock-comment-face))))
+
 (defun company-coq-setup-fontlock ()
+  (set (make-local-variable 'font-lock-syntactic-face-function) #'company-coq-syntactic-face-function)
   (font-lock-add-keywords nil '(("\\_<pose proof\\_>" 0 'proof-tactics-name-face prepend)) 'add)
-  (font-lock-add-keywords nil '(("\\(\\W\\|\\`\\)\\(@\\)\\<" 2 'font-lock-constant-face prepend)) 'append)
-  (font-lock-add-keywords nil company-coq-deprecated-spec t)
+  (font-lock-add-keywords nil '(("\\(\\W\\|\\`\\)\\(@\\)\\<" 2 'font-lock-constant-face prepend)) 'add)
+  (add-to-list (make-local-variable 'font-lock-extra-managed-props) 'help-echo)
+  (font-lock-add-keywords nil company-coq-deprecated-spec t))
+
+(defun company-coq-setup-misc-pc-improvements ()
+  (set (make-local-variable 'fill-nobreak-predicate) #'company-coq-fill-nobreak-predicate)
   (set (make-local-variable 'help-at-pt-display-when-idle) t)
   (help-at-pt-set-timer))
 
@@ -2170,6 +2195,9 @@ if it is already open."
   ;; Enable relevant minor modes
   (company-coq-setup-minor-modes)
 
+  ;; Some more improvements that don't fit in any of the minor modes
+  (company-coq-setup-misc-pc-improvements)
+
   ;; Load keywords
   (company-coq-init-keywords)
 
@@ -2193,6 +2221,7 @@ if it is already open."
 
   (remove-hook 'yas-after-exit-snippet-hook #'company-coq-forget-choices)
 
+  (setq font-lock-syntactic-face-function (default-value 'font-lock-syntactic-face-function))
   (help-at-pt-cancel-timer)
 
   (setq company-backends     (delete company-coq-backends company-backends))
