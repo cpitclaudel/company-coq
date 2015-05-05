@@ -216,7 +216,7 @@ Name Only].")
 (defconst company-coq-path-full-regexp  (concat "\\`"   company-coq-path-part-regexp " +" company-coq-path-part-regexp "\\'"))
 
 (defun company-coq-make-headers-regexp (headers &optional regexp-base)
-  (concat "^[[:space:]]*\\<\\(" (regexp-opt headers) "\\)\\>"
+  (concat "^[[:blank:]]*\\<\\(" (regexp-opt headers) "\\)\\>"
           (when regexp-base (concat "\\s-*\\(" regexp-base "+\\)"))))
 
 (defconst company-coq-ltac-kwds '("Ltac"))
@@ -407,7 +407,7 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
                "\\(?1:Save\\>\\(?: \\(?:Lemma\\|Theorem\\|Remark\\|Fact\\|Corollary\\|Proposition\\)\\>\\)?\\)")
              "\\|"))
 
-(defconst company-coq-deprecated-re (concat "^[[:space:]]*"
+(defconst company-coq-deprecated-re (concat "^[[:blank:]]*"
                                             "\\(?:" company-coq-deprecated-options-re "\\)\\|"
                                             "\\(?:" company-coq-deprecated-man-re "\\)")
   "Deprecated forms.")
