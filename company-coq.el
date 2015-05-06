@@ -762,7 +762,7 @@ a list of pairs of paths in the form (LOGICAL . PHYSICAL)"
              collect abbrev)))
 
 (defun company-coq-union-sort (test comp &rest lists)
-  (let ((merged  (cl-sort (apply #'append lists) comp))
+  (let ((merged  (cl-stable-sort (apply #'append lists) comp))
         (deduped nil)
         (prev    nil))
     (while merged
@@ -819,7 +819,7 @@ a list of pairs of paths in the form (LOGICAL . PHYSICAL)"
 (defun company-coq-string-lessp-foldcase (str1 str2)
   (string-lessp (upcase str1) (upcase str2)))
 
-(defmacro company-coq-lessp-fallback (a1 a2 fallback-t &optional fallback-nil)
+(defmacro company-coq-bool-lessp-fallback (a1 a2 fallback-t &optional fallback-nil)
   (declare (indent defun))
   `(let ((a1 ,a1)
          (a2 ,a2))
@@ -831,7 +831,7 @@ a list of pairs of paths in the form (LOGICAL . PHYSICAL)"
   (declare (indent defun))
   `(let ((a1 (,extraction ,cmp (get-text-property 0 ,symbol ,str1)))
          (a2 (,extraction ,cmp (get-text-property 0 ,symbol ,str2))))
-     (company-coq-lessp-fallback a1 a2
+     (company-coq-bool-lessp-fallback a1 a2
        ,fallback-t ,fallback-nil)))
 
 (defun company-coq-string-lessp-symbols (str1 str2)
@@ -839,17 +839,23 @@ a list of pairs of paths in the form (LOGICAL . PHYSICAL)"
     (company-coq-string-lessp-foldcase str1 str2)))
 
 (defun company-coq-string-lessp-keywords (str1 str2)
+  ;; Rank 'custom first (before 'own)
   (company-coq-attr-lessp 'source str1 str2 eq 'custom
-    (company-coq-lessp-fallback (company-coq-is-lower str1) (company-coq-is-lower str2)
+    ;; Rank lowercase (tactics) before uppercase (vernacs)
+    (company-coq-bool-lessp-fallback (company-coq-is-lower str1) (company-coq-is-lower str2)
+      ;; If both are lowercase (tactics)
       (company-coq-attr-lessp 'num str1 str2 or nil
+        ;; If both have a number, preserve the original manual order
         (< a1 a2)
+        ;; Otherwise rank alphabetically (eg two PG tactics)
         (company-coq-string-lessp-foldcase str1 str2))
-      (company-coq-string-lessp-foldcase str1 str2))))
-
-(defun company-coq-make-proper-list (improper-list) ;;TODO used?
-  (let ((last-cell (last improper-list)))
-    (setcdr last-cell nil)
-    improper-list))
+      ;; If both are uppercase (vernacs)
+      (if (and (company-coq-get-anchor str1)
+               (equal (company-coq-get-anchor str1) (company-coq-get-anchor str2)))
+          ;; If both have the same non-nil anchor, sort in original order
+          (< (get-text-property 0 'num str1) (get-text-property 0 'num str2))
+        ;; Otherwise sort alphabetically
+        (company-coq-string-lessp-foldcase str1 str2)))))
 
 (defun company-coq-propertize-match (match beginning end)
   (company-coq-dbg "company-coq-propertize-match: %s %s %s" match beginning end)
@@ -865,11 +871,6 @@ a list of pairs of paths in the form (LOGICAL . PHYSICAL)"
     (cl-loop for completion in completions
              if (string-match prefix-re completion)
              collect (company-coq-propertize-match completion (match-beginning 0) (match-end 0)))))
-
-(defun company-coq-complete-prefix-fuzzy (prefix completions &optional ignore-case)
-  "List elements of COMPLETIONS matching PREFIX"
-  (let ((completion-ignore-case ignore-case))
-    (company-coq-make-proper-list (completion-pcm-all-completions prefix completions nil (length prefix)))))
 
 (defun company-coq-complete-prefix (prefix completions &optional ignore-case)
   "List elements of COMPLETIONS starting with PREFIX"
