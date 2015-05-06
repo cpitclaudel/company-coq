@@ -269,7 +269,7 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
   "Command to run after listing all symbols, using a patched version of Coq")
 
 (defun company-coq-all-symbols-filter-line (line)
-  "Lambda used to filter each output line"
+  "Function used to filter each output line"
   (> (length line) 0))
 
 (defconst company-coq-doc-cmd "About %s"
@@ -1713,6 +1713,7 @@ definitions."
         (company-coq-call-compat 'outline-hide-body 'hide-body)
       (company-coq-call-compat 'outline-hide-subtree 'hide-subtree))))
 
+;; Disable company-coq-fold
 (unless (plist-member (symbol-plist 'company-coq-fold) 'disabled)
   (put #'company-coq-fold 'disabled t))
 
@@ -1936,8 +1937,8 @@ proceed."
           candidates)
     (apply #'append
            (mapcar (lambda (pair) ;; Sort the results of each backends, and concat all
-                     (cl-stable-sort (cdr pair) (or (and (car pair) (funcall (car pair) 'comparison-fun))
-                                                    #'company-coq-string-lessp-foldcase)))
+                     (let ((comparison-fun (and (car pair) (funcall (car pair) 'comparison-fun))))
+                       (cl-stable-sort (cdr pair) (or comparison-fun #'company-coq-string-lessp-foldcase))))
                    backends-alist))))
 
 (defvar company-coq-map

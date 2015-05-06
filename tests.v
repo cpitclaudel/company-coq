@@ -3,6 +3,12 @@ Require Import Utf8.
 (* Global folding should work here *)
 Ltac TestLtac a b cde := idtac.
 
+Goal True = False -> False.
+  intros.
+  rewrite <- ?H. (* Is this variable properly colored? *)
+  apply I.
+Qed.
+
 (* This should be underlined. *)
 Unset Undo.
 
