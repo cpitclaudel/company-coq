@@ -25,8 +25,6 @@ most advanced features require a patched version of coqtop.
 
 * [Documentation](img/keyword-completion-doc.png) for (most) auto-completion entries, with excerpts from the manual shown directly in Emacs.
 
-* [Source view](img/source-view.png) for auto-completed symbols (requires `.v` files).
-
 * [Documentation](img/errors-doc.png) for many error messages, with automagic matching of the last error message against errors documented in the manual.
 
 * Interactive lemma extraction: press <kbd>C-c C-a C-x</kbd> to extract the current goal into a separate lemma, keeping the hypotheses of your choice.
@@ -51,6 +49,8 @@ most advanced features require a patched version of coqtop.
 
 * Auto-completion of all known [theorem and symbol names](img/symbol-completion-doc.png), with [type annotations](img/symbol-completion.png).
 
+* [Source view](img/source-view.png) for auto-completed symbols (requires `.v` files).
+
 ## Screenshots
 
 ### Autocompletion of tactics with documentation
@@ -72,10 +72,6 @@ most advanced features require a patched version of coqtop.
 ### Auto-completion of search results
 
 <img src="img/search-completion.png" alt="Auto-completion of search results" />
-
-### Source view
-
-<img src="img/source-view.png" alt="Source view" />
 
 ### Keyword beautification
 
@@ -118,6 +114,10 @@ most advanced features require a patched version of coqtop.
 (notice the help string in the mini-buffer)
 
 <img src="img/symbol-completion-doc.png" alt="Autocompletion of symbol names with type annotations" />
+
+### Source view (with patched `coqtop`)
+
+<img src="img/source-view.png" alt="Source view" />
 
 ## Setup
 
@@ -168,9 +168,8 @@ Once auto-completion has started, the following key bindings are available:
 * <kbd>RET</kbd> selects a completion
 * <kbd>C-g</kbd> interrupts completion.
 * <kbd>C-h</kbd> and <kbd>&lt;f1></kbd> display documentation for the currently highlighted keyword or identifier.
-* <kbd>C-w</kbd> displays the file where the current completion is defined. This only works if the corresponding `.v` file is available.
 * <kbd>C-M-v</kbd> scrolls down in the documentation window.
-* <kbd>C-w</kbd> opens the relevant section of the documentation, scrolling to the part about the currently highlighted keyword or identifier. Using <kbd>C-w</kbd> allows you scroll up (<kbd>C-M-S-v</kbd>) in the documentation window to see more context.
+* <kbd>C-w</kbd> opens the full documentation, scrolled to the current keyword. For symbols, <kbd>C-w</kbd> opens source view.
 
 Selecting a completion often inserts a snippet with holes at the current point (`company-coq` uses `yasnippet` as the snippet backend). You can move between holes by using <kbd>&lt;tab></kbd> and <kbd>S-&lt;tab></kbd>. Some snippets (like Print Instances) include multiple choices.
 
