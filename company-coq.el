@@ -1763,7 +1763,7 @@ definitions."
     (`interactive (company-begin-backend 'company-coq-reserved-keywords))
     (`prefix (company-coq-prefix-simple))
     (`candidates (company-coq-candidates-reserved))
-    (`post-completion (newline 1 t))
+    (`post-completion (call-interactively #'newline))
     (`annotation "<reserved>")
     (`sorted t)
     (`duplicates nil)
