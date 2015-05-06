@@ -1312,9 +1312,10 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
     (or pg-window (display-buffer buffer))))
 
 (defmacro company-coq-with-clean-doc-buffer (&rest body)
-  (declare (indent defun))
+  (declare (indent defun)
+           (debug body))
   `(progn
-     (company-coq-dbg "company-prepare-doc-buffer: Called")
+     (company-coq-dbg "company-prepare-doc-buffer: Called") ;; TODO the buffer could have a different name
      (let ((doc-buffer (get-buffer-create "*company-documentation*")))
        (with-selected-window (company-coq-display-in-pg-window doc-buffer nil)
          (with-current-buffer doc-buffer
