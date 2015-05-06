@@ -1129,7 +1129,6 @@ search term and a qualifier."
       (let* ((lines   (company-coq-split-lines output))
              (context (company-coq-extract-context lines))
              (goal    (company-coq-extract-goal lines)))
-        (print lines)
         (cons context goal)))))
 
 (defun company-coq-maybe-reload-context (&optional end-of-proof)
@@ -1992,8 +1991,6 @@ hypotheses HYPS, and everything that they depend on."
          (ctx-goal  (company-coq-run-and-parse-context full-cmd))
          (_         (company-coq-ask-prover "Undo 1"))
          (lemma     (cdr ctx-goal)))
-    (message "Lemma is [%s]" lemma)
-    (message "Extracted from [%s]" ctx-goal)
     (if lemma
         (company-coq-insert-indented
          `(,(concat "Lemma " lemma-name ":\n")
