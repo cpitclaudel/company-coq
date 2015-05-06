@@ -293,7 +293,7 @@ about shorter names, and other matches")
 (defconst company-coq-locate-lib-cmd "Locate Library %s."
   "Command used to retrieve the qualified name of a symbol (to locate the corresponding source file).")
 
-(defconst company-coq-locate-lib-output-format "\\`\\(.*\\) has been loaded from file \\(.*\\.vo\\)"
+(defconst company-coq-locate-lib-output-format "\\`\\(.*\\)\\s-*has\\s-*been\\s-*loaded\\s-*from\\s-*file\\s-*\\(.*\\.vo\\)"
   "Output of `company-coq-locate-lib-cmd'")
 
 (defconst company-coq-compiled-regexp "\\.vo\\'"
@@ -1356,18 +1356,25 @@ inside a comment, at the beginning of the comment."
   (save-excursion
     (or (and target
              (re-search-forward target nil t)
-             (forward-line -2)
-             (if (coq-looking-at-comment)
-                 (car (coq-get-comment-region (point)))
-               (point)))
+             (progn
+               (company-coq-make-title-line)
+               (forward-line -2)
+               (or (and (functionp 'coq-looking-at-comment)
+                        (coq-looking-at-comment)
+                        (functionp 'coq-get-comment-region)
+                        (car (coq-get-comment-region (point))))
+                   (point))))
         0)))
 
 (defun company-coq-location-simple (name &optional target)
   (company-coq-dbg "company-coq-location-simple: Called for name %s" name)
-  (let ((fname (get-text-property 0 'location name)))
-    (when (and fname (file-exists-p fname))
+  (let* ((fname-or-buffer (get-text-property 0 'location name))
+         (is-buffer       (and fname-or-buffer (bufferp fname-or-buffer)))
+         (is-fname        (and fname-or-buffer (stringp fname-or-buffer) (file-exists-p fname-or-buffer))))
+    (when (or is-buffer is-fname)
       (company-coq-with-clean-doc-buffer
-        (insert-file-contents fname)
+        (cond (is-buffer (insert-buffer-substring fname-or-buffer))
+              (is-fname  (insert-file-contents fname-or-buffer nil nil nil t)))
         (company-coq-setup-temp-coq-buffer)
         (cons (current-buffer) (company-coq-search-then-scroll-up target))))))
 
@@ -1389,27 +1396,28 @@ corresponding (logical name . real name) pair."
         (string-match company-coq-locate-output-format output)
         (match-string-no-properties 1 output)))))
 
-(defun company-coq-library-path (lib-name fallback)
-  (let ((output (company-coq-ask-prover (format company-coq-locate-lib-cmd lib-name))))
-    (or (and output
-             (save-match-data
-               (when (string-match company-coq-locate-lib-output-format output)
-                 (replace-regexp-in-string "\\.vo\\'" ".v" (match-string-no-properties 2 output)))))
-        fallback)))
+(defun company-coq-library-path (lib-path mod-name fallback-spec)
+  (if (and (equal lib-path "") (equal mod-name "Top"))
+      (current-buffer)
+    (let* ((lib-name (concat lib-path mod-name))
+           (output   (company-coq-ask-prover (format company-coq-locate-lib-cmd lib-name))))
+      (or (and output (save-match-data
+                        (when (string-match company-coq-locate-lib-output-format output)
+                          (replace-regexp-in-string "\\.vo\\'" ".v" (match-string-no-properties 2 output)))))
+          (and fallback-spec (expand-file-name (concat mod-name ".v") (cdr fallback-spec)))))))
 
 (defun company-coq-location-symbol (name)
   (company-coq-dbg "company-coq-location-symbol: Called for name [%s]" name)
   (let* ((qname (company-coq-fully-qualified-name name)))
     (when qname
-      (company-coq-dbg "company-coq-location-symbol: qname is [%s] with spec [%s]" qname spec)
+      (company-coq-dbg "company-coq-location-symbol: qname is [%s]" qname)
       (let* ((spec       (company-coq-longest-matching-path-spec qname))
              (logical    (if spec (concat (car spec) ".") ""))
              (short-name (replace-regexp-in-string "\\`.*\\." "" qname))
              (mod-name   (replace-regexp-in-string "\\..*\\'" "" qname nil nil nil (length logical)))
-             (fname      (company-coq-library-path (concat logical mod-name)
-                                                   (expand-file-name (concat mod-name ".v") (cdr spec))))
+             (fname      (company-coq-library-path logical mod-name spec))
              (target     (concat (company-coq-make-headers-regexp company-coq-named-outline-kwds)
-                                 "\\s-*" (regexp-quote short-name))))
+                                 "\\s-*" (regexp-quote short-name) "\\>")))
         (company-coq-location-simple (propertize name 'location fname) target)))))
 
 (defun company-coq-make-title-line ()

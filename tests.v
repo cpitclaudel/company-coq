@@ -37,7 +37,7 @@ SearchAbout plus.
 
 (* Does C-w (location) work? Is the point at the beginning of the preceeding comment? *)
 Locate le.
-Locate gcdn.
+Locate gcd.
 
 Goal forall {A} f g (x: A), f = g -> f x -> g x.
 Proof.
@@ -103,7 +103,8 @@ with TestCo l :=
   | cons h t => cons h (TestFixpoint t)
   end.
 
-(* TestFixpoint and testCo should autocomplete here *)
+(* TestFixpoin and TestCo should autocomplete here. C-h should show their
+types. C-w should work, too *)
 
 (* C-c C-& should lookup symbols *)
 (* C-c C-, should show an occur buffer *)
@@ -126,8 +127,6 @@ Proof.
   replace False with True.
   reflexivity.
 Admitted.
-
-
 
 (* number and hypothesis shouldn't be available here *)
 
