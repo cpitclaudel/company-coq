@@ -50,7 +50,7 @@ sandbox: clean-sandbox package
 		--eval "(add-to-list 'package-archives '(\"melpa\" . \"http://melpa.org/packages/\") t)" \
 		--eval "(package-refresh-contents)" \
 		--eval "(package-initialize)" \
-		--eval "(package-install-file \"build/$(PKG).tar\")"
+		--eval "(package-install-file (expand-file-name \"build/$(PKG).tar\"))"
 
 clean-sandbox:
 	rm -rf $(SANDBOX)
