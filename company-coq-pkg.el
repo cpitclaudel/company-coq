@@ -2,8 +2,8 @@
   "company-coq"
   "0.3"
   "Company-mode backend for Proof General's coq-mode"
-  '((company "0.8.12")
-    (company-math "0")
+  '((company-math "0")
+    (company "0.8.12")
     (yasnippet "0.9.0.1")
     (cl-lib "0.5")))
 ;; Local Variables:
