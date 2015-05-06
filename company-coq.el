@@ -279,7 +279,22 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
   "Command used to retrieve the definition of a symbol.")
 
 (defconst company-coq-modules-cmd "Print LoadPath."
-  "Command use to retrieve module path specs (for module name completion).")
+  "Command used to retrieve module path specs (for module name completion).")
+
+(defconst company-coq-locate-cmd "Locate %s."
+  "Command used to retrieve the qualified name of a symbol (to locate the corresponding source file).")
+
+(defconst company-coq-locate-output-format (concat "\\`\\w+ \\("
+                                                   company-coq-rich-id-regexp-base
+                                                   "+\\)")
+  "Output of `company-coq-locate-cmd'; it can contain details
+about shorter names, and other matches")
+
+(defconst company-coq-locate-lib-cmd "Locate Library %s."
+  "Command used to retrieve the qualified name of a symbol (to locate the corresponding source file).")
+
+(defconst company-coq-locate-lib-output-format "\\`\\(.*\\) has been loaded from file \\(.*\\.vo\\)"
+  "Output of `company-coq-locate-lib-cmd'")
 
 (defconst company-coq-compiled-regexp "\\.vo\\'"
   "Regexp matching the extension of compiled Coq files.")
@@ -1328,14 +1343,74 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
              (set (make-local-variable 'show-trailing-whitespace) nil)
              ,@body))))))
 
-(defun company-coq-location-simple (name)
+(defun company-coq-setup-temp-coq-buffer ()
+  (coq-mode)
+  (company-coq-initialize)
+  (set-buffer-modified-p nil)
+  (set (make-local-variable 'buffer-offer-save) nil))
+
+(defun company-coq-search-then-scroll-up (target)
+  "Finds a definition, then returns a nice point to scroll to,
+before that definition. This could be two lines higher or, if that's
+inside a comment, at the beginning of the comment."
+  (save-excursion
+    (or (and target
+             (re-search-forward target nil t)
+             (forward-line -2)
+             (if (coq-looking-at-comment)
+                 (car (coq-get-comment-region (point)))
+               (point)))
+        0)))
+
+(defun company-coq-location-simple (name &optional target)
   (company-coq-dbg "company-coq-location-simple: Called for name %s" name)
   (let ((fname (get-text-property 0 'location name)))
     (when (and fname (file-exists-p fname))
       (company-coq-with-clean-doc-buffer
         (insert-file-contents fname)
-        (coq-mode)
-        (cons (current-buffer) 0)))))
+        (company-coq-setup-temp-coq-buffer)
+        (cons (current-buffer) (company-coq-search-then-scroll-up target))))))
+
+(defun company-coq-longest-matching-path-spec (qname)
+  "Finds the longest matching logical name, and returns the
+corresponding (logical name . real name) pair."
+  (cl-loop for     (logical . real)
+           in      company-coq-known-path-specs
+           with    longest = nil
+           when    (string-match-p (concat "\\`" (regexp-quote logical) "\\.") qname)
+           do      (when (> (length logical) (length (car longest)))
+                     (setq longest (cons logical real)))
+           finally return longest))
+
+(defun company-coq-fully-qualified-name (name)
+  (let ((output (company-coq-ask-prover (format company-coq-locate-cmd name))))
+    (when output
+      (save-match-data
+        (string-match company-coq-locate-output-format output)
+        (match-string-no-properties 1 output)))))
+
+(defun company-coq-library-path (lib-name fallback)
+  (let ((output (company-coq-ask-prover (format company-coq-locate-lib-cmd lib-name))))
+    (or (and output
+             (save-match-data
+               (when (string-match company-coq-locate-lib-output-format output)
+                 (replace-regexp-in-string "\\.vo\\'" ".v" (match-string-no-properties 2 output)))))
+        fallback)))
+
+(defun company-coq-location-symbol (name)
+  (company-coq-dbg "company-coq-location-symbol: Called for name [%s]" name)
+  (let* ((qname (company-coq-fully-qualified-name name)))
+    (when qname
+      (company-coq-dbg "company-coq-location-symbol: qname is [%s] with spec [%s]" qname spec)
+      (let* ((spec       (company-coq-longest-matching-path-spec qname))
+             (logical    (if spec (concat (car spec) ".") ""))
+             (short-name (replace-regexp-in-string "\\`.*\\." "" qname))
+             (mod-name   (replace-regexp-in-string "\\..*\\'" "" qname nil nil nil (length logical)))
+             (fname      (company-coq-library-path (concat logical mod-name)
+                                                   (expand-file-name (concat mod-name ".v") (cdr spec))))
+             (target     (concat (company-coq-make-headers-regexp company-coq-named-outline-kwds)
+                                 "\\s-*" (regexp-quote short-name))))
+        (company-coq-location-simple (propertize name 'location fname) target)))))
 
 (defun company-coq-make-title-line ()
   (let ((overlay (make-overlay (point-at-bol) (+ 1 (point-at-eol))))) ;; +1 to cover the full line
@@ -1665,6 +1740,7 @@ definitions."
     (`no-cache t)
     (`match (company-coq-match arg))
     (`annotation "<symb>")
+    (`location (company-coq-location-symbol arg))
     (`doc-buffer (company-coq-doc-buffer-symbols arg))
     (`comparison-fun #'company-coq-string-lessp-symbols)
     (`require-match 'never)))
@@ -2078,10 +2154,7 @@ if it is already open."
     (unless tutorial-buffer
       (with-current-buffer (setq tutorial-buffer (get-buffer-create tutorial-name))
         (insert-file-contents tutorial-path nil nil nil t)
-        (coq-mode)
-        (company-coq-initialize)
-        (set-buffer-modified-p nil)
-        (set (make-local-variable 'buffer-offer-save) nil)))
+        (company-coq-setup-temp-coq-buffer)))
     (pop-to-buffer-same-window tutorial-buffer)))
 
 (defun company-coq-setup-keybindings ()

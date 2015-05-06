@@ -29,6 +29,19 @@ Require Import Omega. (* This should autocomplete *)
 SearchAbout plus.
 (* plu should autocomplete after running this search *)
 
+(* Does C-w (location) work? Is the point at the beginning of the preceeding comment? *)
+Locate le.
+Locate gcdn.
+
+Goal forall {A} f g (x: A), f = g -> f x -> g x.
+Proof.
+  intros.
+  Hint Extern 1 => subst. (* HintExter should complete *)
+  match goal with
+  | [ H: ?a |- _ ] => eauto (* Is the variable name highlighted? But not in comments: ?a *)
+  end.
+Qed.
+
 Lemma TestSubscripts :
   forall x: True, True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> nat.
 Proof.
