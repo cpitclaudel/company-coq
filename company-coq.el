@@ -2149,14 +2149,14 @@ if it is already open."
                                                 _comment-style comment-string-start _continuation)
   (cond
    (in-string
-    'font-lock-string-face)
+    font-lock-string-face)
    ((or comment-depth (numberp comment-depth))
     (if (and comment-string-start
              (ignore-errors (save-excursion
                               (goto-char comment-string-start)
                               (looking-at-p (regexp-quote "(** ")))))
-        'font-lock-doc-face
-      'font-lock-comment-face))))
+        font-lock-doc-face
+      font-lock-comment-face))))
 
 (defun company-coq-syntactic-face-function (args)
   (apply #'company-coq-syntactic-face-function-aux args))
@@ -2167,7 +2167,8 @@ if it is already open."
 (defun company-coq-setup-fontlock ()
   (set (make-local-variable 'font-lock-syntactic-face-function) #'company-coq-syntactic-face-function)
   (font-lock-add-keywords nil '(("\\_<pose proof\\_>" 0 'proof-tactics-name-face prepend)) 'add)
-  (font-lock-add-keywords nil '(("\\(\\W\\|\\`\\)\\(@\\)\\<" 2 'font-lock-constant-face prepend)) 'add)
+  (font-lock-add-keywords nil '(("\\(\\W\\|\\`\\)\\(@\\)\\<" 2 'font-lock-constant-face append)) 'add)
+  (font-lock-add-keywords nil '(("\\(\\W\\|\\`\\)\\(\\?\\sw+\\)\\>" 2 'font-lock-variable-name-face append)) 'add)
   (add-to-list (make-local-variable 'font-lock-extra-managed-props) 'help-echo)
   (font-lock-add-keywords nil company-coq-deprecated-spec t))
 
