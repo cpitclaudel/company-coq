@@ -389,7 +389,7 @@ about shorter names, and other matches")
 
 (defconst company-coq-lemma-introduction-forms
   '("repeat match goal with H:_ |- _ => clear H end"
-    "repeat match goal with H:_ |- _ => generalize dependent H end")
+    "repeat match goal with H:_ |- _ => generalize dependent H; try (generalize dependent H; fail 1) end")
   "Forms run after 'generalize dependent ...' to produce a lemma statement")
 
 (defconst company-coq-unification-error-header
