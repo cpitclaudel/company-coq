@@ -284,6 +284,10 @@ This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
 (defconst company-coq-locate-cmd "Locate %s."
   "Command used to retrieve the qualified name of a symbol (to locate the corresponding source file).")
 
+(defconst company-coq-locate-cmd-fallback "Locate Ltac %s."
+  "Command used to retrieve the qualified name of an Ltac. Needed
+in 8.4, not in 8.5.")
+
 (defconst company-coq-locate-output-format (concat "\\`\\w+ \\("
                                                    company-coq-rich-id-regexp-base
                                                    "+\\)")
@@ -1389,8 +1393,8 @@ corresponding (logical name . real name) pair."
                      (setq longest (cons logical real)))
            finally return longest))
 
-(defun company-coq-fully-qualified-name (name)
-  (let ((output (company-coq-ask-prover (format company-coq-locate-cmd name))))
+(defun company-coq-fully-qualified-name (name cmd)
+  (let ((output (company-coq-ask-prover (format cmd name))))
     (when output
       (save-match-data
         (string-match company-coq-locate-output-format output)
@@ -1413,7 +1417,8 @@ such a case, try [Locate Library Peano] in 8.4pl3)."
 
 (defun company-coq-location-symbol (name)
   (company-coq-dbg "company-coq-location-symbol: Called for name [%s]" name)
-  (let* ((qname (company-coq-fully-qualified-name name)))
+  (let* ((qname (or (company-coq-fully-qualified-name name company-coq-locate-cmd)
+                    (company-coq-fully-qualified-name name company-coq-locate-cmd-fallback))))
     (when qname
       (company-coq-dbg "company-coq-location-symbol: qname is [%s]" qname)
       (let* ((spec       (company-coq-longest-matching-path-spec qname))
