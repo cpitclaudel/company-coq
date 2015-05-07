@@ -434,7 +434,12 @@ about shorter names, and other matches")
 (defconst company-coq-script-full-path load-file-name
   "Full path of this script")
 
-(defface company-coq-doc-header-face
+(defface company-coq-doc-header-face-source
+  '((t :height 1.5))
+  "Face used to highlight the target line in source view"
+  :group 'company-coq)
+
+(defface company-coq-doc-header-face-docs
   '((t :inherit highlight :height 1.2))
   "Face used to highlight the target line in the docs"
   :group 'company-coq)
@@ -1359,9 +1364,10 @@ before that definition. This could be two lines higher or, if that's
 inside a comment, at the beginning of the comment."
   (save-excursion
     (or (and target
+             (goto-char (point-min))
              (re-search-forward target nil t)
              (progn
-               (company-coq-make-title-line)
+               (company-coq-make-title-line 'company-coq-doc-header-face-source t)
                (forward-line -2)
                (or (and (functionp 'coq-looking-at-comment)
                         (coq-looking-at-comment)
@@ -1430,9 +1436,13 @@ such a case, try [Locate Library Peano] in 8.4pl3)."
                                  "\\s-*" (regexp-quote short-name) "\\>")))
         (company-coq-location-simple (propertize name 'location fname) target)))))
 
-(defun company-coq-make-title-line ()
-  (let ((overlay (make-overlay (point-at-bol) (+ 1 (point-at-eol))))) ;; +1 to cover the full line
-    (overlay-put overlay 'face 'company-coq-doc-header-face)))
+(defun company-coq-make-title-line (face &optional skip-space)
+  (let* ((start   (save-excursion (goto-char (point-at-bol))
+                                  (if skip-space (skip-chars-forward " \t"))
+                                  (point)))
+         (end     (1+ (point-at-eol))) ;; +1 to cover the full line
+         (overlay (make-overlay start end)))
+    (overlay-put overlay 'face face)))
 
 (defun company-coq-get-anchor (kwd)
   (get-text-property 0 'anchor kwd))
@@ -1467,7 +1477,7 @@ such a case, try [Locate Library Peano] in 8.4pl3)."
           (when (fboundp 'coq-response-mode)
             (coq-response-mode))
           (goto-char (point-min))
-          (company-coq-make-title-line)
+          (company-coq-make-title-line 'company-coq-doc-header-face-docs)
           (current-buffer))))))
 
 (defun company-coq-shr-fontize (dom font)
@@ -1488,7 +1498,7 @@ such a case, try [Locate Library Peano] in 8.4pl3)."
   ;; just a bit of room for comments preceeding the tactic if any.
   (goto-char (or target-point (point-min)))
   (when target-point
-    (company-coq-make-title-line)
+    (company-coq-make-title-line 'company-coq-doc-header-face-docs)
     (when (= (char-after (point)) ?*)
       (delete-char 1)) ;; Remove the star (*) added by shr
     (if (not (eq truncate 'truncate))
@@ -1684,7 +1694,7 @@ output size is cached in `company-coq-last-search-scan-size'."
         (when (re-search-forward "\\`[^\0]*?find.*" (point-max) t)
           (replace-match (replace-quote (format "Searching for [%s] in [%s]\n" regexp default-directory)))
           (goto-char (point-min))
-          (company-coq-make-title-line))))))
+          (company-coq-make-title-line 'company-coq-doc-header-face-docs))))))
 
 (defun company-coq-diff-unification-error (&optional context)
   (interactive "P")
