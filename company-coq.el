@@ -293,10 +293,10 @@ about shorter names, and other matches")
 (defconst company-coq-locate-lib-cmd "Locate Library %s."
   "Command used to retrieve the qualified name of a symbol (to locate the corresponding source file).")
 
-(defconst company-coq-locate-lib-output-format "\\`\\(.*\\)\\s-*has\\s-*been\\s-*loaded\\s-*from\\s-*file\\s-*\\(.*\\.vo\\)"
+(defconst company-coq-locate-lib-output-format "\\`\\(.*\\)\\s-*has\\s-*been\\s-*loaded\\s-*from\\s-*file\\s-*\\(.*\\.vi?o\\)"
   "Output of `company-coq-locate-lib-cmd'")
 
-(defconst company-coq-compiled-regexp "\\.vo\\'"
+(defconst company-coq-compiled-regexp "\\.vi?o\\'"
   "Regexp matching the extension of compiled Coq files.")
 
 (defconst company-coq-prefix-regexp (concat company-coq-prefix-regexp-base "*")
@@ -960,7 +960,7 @@ cases:
 
 (defun company-coq-complete-module-unqualified (search-path search-regexp)
   "Find module names matching SEARCH-REGEXP in SEARCH-PATH.
-Results are file names only, and do not include the .vo
+Results are file names only, and do not include the .v[i]o
 extension." ;; TODO format directories properly
   (when (file-exists-p search-path)
     (cl-loop for file in (directory-files search-path nil nil t)
@@ -1397,13 +1397,18 @@ corresponding (logical name . real name) pair."
         (match-string-no-properties 1 output)))))
 
 (defun company-coq-library-path (lib-path mod-name fallback-spec)
+  "Gets the path of a .v file likely to hold the definition
+of (concat LIB-PATH MOD-NAME), or a buffer visiting that
+file. FALLBACK-SPEC is a module path specification to be used if
+[Locate Library] points to a non-existent file (for an example of
+such a case, try [Locate Library Peano] in 8.4pl3)."
   (if (and (equal lib-path "") (equal mod-name "Top"))
       (current-buffer)
     (let* ((lib-name (concat lib-path mod-name))
            (output   (company-coq-ask-prover (format company-coq-locate-lib-cmd lib-name))))
       (or (and output (save-match-data
                         (when (string-match company-coq-locate-lib-output-format output)
-                          (replace-regexp-in-string "\\.vo\\'" ".v" (match-string-no-properties 2 output)))))
+                          (replace-regexp-in-string "\\.vi?o\\'" ".v" (match-string-no-properties 2 output)))))
           (and fallback-spec (expand-file-name (concat mod-name ".v") (cdr fallback-spec)))))))
 
 (defun company-coq-location-symbol (name)
