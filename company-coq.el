@@ -914,23 +914,6 @@ a list of pairs of paths in the form (LOGICAL . PHYSICAL)"
      (lambda (completion) (company-coq-propertize-match completion 0 prefix-len))
      (all-completions prefix completions))))
 
-(defun company-coq-dynamic-symbols-available ()
-  (and company-coq--has-dynamic-symbols
-       company-coq-dynamic-symbols
-       (company-coq-in-scripting-mode)))
-
-(defun company-coq-complete-symbol (prefix)
-  "List elements of company-coq-dynamic-symbols or company-coq-buffer-defuns containing PREFIX"
-  (interactive)
-  ;; Use actual symbols iff they're available and scripting mode is on
-  (when (company-coq-dynamic-symbols-available)
-    (company-coq-complete-prefix-substring prefix company-coq-dynamic-symbols)))
-
-(defun company-coq-complete-defun (prefix)
-  "List elements of `company-coq-buffer-defuns' containing PREFIX"
-  (interactive)
-  (company-coq-complete-prefix-substring prefix company-coq-buffer-defuns))
-
 (defun company-coq-complete-sub-re (prefix candidates)
   (let* ((chars (string-to-list prefix)) ;; The regexp says: skip stuff before beginning a new word, or skip nothing
          (re    (concat "\\`\\W*" (mapconcat (lambda (c) (regexp-quote (char-to-string c))) chars "\\(\\|.+?\\<\\)")))
@@ -940,19 +923,6 @@ a list of pairs of paths in the form (LOGICAL . PHYSICAL)"
                in      candidates
                when    (string-match re candidate)
                collect (company-coq-propertize-match candidate 0 (match-end 0))))))
-
-(defun company-coq-complete-keyword (prefix)
-  "List elements of company-coq-known-keywords starting with PREFIX"
-  (interactive)
-  (company-coq-complete-sub-re prefix company-coq-known-keywords))
-
-(defun company-coq-complete-context (prefix)
-  "List elements of company-coq-current-context containing PREFIX"
-  (interactive)
-  (company-coq-complete-prefix-substring prefix company-coq-current-context))
-
-(defun company-coq-no-empty-strings (ss)
-  (cl-remove-if (lambda (s) (string-equal s "")) ss))
 
 (defun company-coq-match-logical-paths (module-atoms path-atoms)
   "Produces a cons (QUALID-ATOMS SEARCH-ATOMS LEFT-PTH) from a
@@ -1065,28 +1035,6 @@ search term and a qualifier."
             company-coq-known-path-specs)
       (apply #'company-coq-union-sort
              #'string-equal #'string-lessp completions))))
-
-(defun company-coq-complete-block-end (prefix) ;; FIXME: See also `coq-end-Section'
-  "Find the closest section/chapter/... opening, if it matches the prefix at point"
-  (when (and prefix (boundp 'show-paren-data-function) (functionp show-paren-data-function))
-    (save-excursion
-      ;; Find matching delimiter
-      (when (re-search-backward company-coq-block-end-regexp)
-        (goto-char (+ 1 (match-beginning 1)))
-        (let ((delim-info (funcall show-paren-data-function)))
-          (when delim-info
-            (cl-destructuring-bind (_hb _he _tb there-end mismatch) delim-info
-                (when (and (not mismatch) there-end)
-                  (goto-char there-end)
-                  (re-search-backward company-coq-section-regexp nil t)
-                  (let ((nearest-section-name (match-string-no-properties 2)))
-                    (when (and nearest-section-name
-                               (equal prefix (substring nearest-section-name 0 (length prefix))))
-                      (list nearest-section-name)))))))))))
-
-(defun company-coq-complete-reserved (prefix)
-  (when (and (boundp 'coq-reserved) (member prefix coq-reserved))
-    (list prefix)))
 
 (defun company-coq-shell-output-is-end-of-def ()
   "Checks whether the output of the last command matches company-coq-end-of-def-regexp"
@@ -1550,44 +1498,64 @@ such a case, try [Locate Library Peano] in 8.4pl3)."
           (company-coq-doc-keywords-put-html doc-full-path truncate)
           (cons (current-buffer) (point)))))))
 
-(defun company-coq-candidates-symbols ()
+(defun company-coq-candidates-symbols (prefix)
+  "List elements of company-coq-dynamic-symbols or company-coq-buffer-defuns containing PREFIX"
   (interactive)
-  (company-coq-dbg "company-coq-candidates-symbols: Called")
-  (when (company-coq-init-symbols)
-    (company-coq-complete-symbol (company-coq-prefix-simple))))
+  (when (and company-coq--has-dynamic-completion (company-coq-init-symbols))
+    (company-coq-complete-prefix-substring prefix company-coq-dynamic-symbols)))
 
-(defun company-coq-candidates-defuns ()
+(defun company-coq-candidates-tactics (prefix)
+  "List elements of company-coq-dynamic-symbols or company-coq-buffer-defuns containing PREFIX"
   (interactive)
-  (company-coq-dbg "company-coq-candidates-defuns: Called")
+  (when (and company-coq--has-dynamic-completion (company-coq-init-tactics))
+    (company-coq-complete-sub-re prefix company-coq-dynamic-tactics)))
+
+(defun company-coq-candidates-defuns (prefix)
+  "List elements of `company-coq-buffer-defuns' containing PREFIX"
+  (interactive)
   (when (company-coq-init-defuns)
-    (company-coq-complete-defun (company-coq-prefix-simple))))
+    (company-coq-complete-prefix-substring prefix company-coq-buffer-defuns)))
 
-(defun company-coq-candidates-keywords ()
+(defun company-coq-candidates-keywords (prefix)
+  "List elements of company-coq-known-keywords starting with PREFIX"
   (interactive)
   (company-coq-dbg "company-coq-candidates-keywords: Called")
   (when (company-coq-init-keywords)
-    (company-coq-complete-keyword (company-coq-prefix-simple))))
+    (company-coq-complete-sub-re prefix company-coq-known-keywords)))
 
-(defun company-coq-candidates-context ()
+(defun company-coq-candidates-context (prefix)
+  "List elements of company-coq-current-context containing PREFIX"
   (interactive)
-  (company-coq-dbg "company-coq-candidates-context: Called")
-  (company-coq-complete-context (company-coq-prefix-simple)))
+  (company-coq-complete-prefix-substring prefix company-coq-current-context))
 
-(defun company-coq-candidates-modules ()
+(defun company-coq-candidates-modules (prefix)
   (interactive)
-  (company-coq-dbg "company-coq-candidates-modules: Called with prefix %s" (company-coq-prefix-module))
-  (when (company-coq-init-modules)
-    (company-coq-complete-modules (company-coq-prefix-module))))
+  (when (and (company-coq-line-is-import-p) (company-coq-init-modules))
+    (company-coq-complete-modules prefix)))
 
-(defun company-coq-candidates-block-end ()
+(defun company-coq-candidates-block-end (prefix)
+  "Find the closest section/chapter/... opening, if it matches the prefix at point"
   (interactive)
-  (company-coq-dbg "company-coq-candidates-block-end: Called")
-  (company-coq-complete-block-end (company-coq-prefix-block-end)))
+  (when (and prefix (boundp 'show-paren-data-function) (functionp show-paren-data-function))
+    (save-excursion
+      ;; Find matching delimiter
+      (when (re-search-backward company-coq-block-end-regexp)
+        (goto-char (+ 1 (match-beginning 1)))
+        (let ((delim-info (funcall show-paren-data-function)))
+          (when delim-info
+            (cl-destructuring-bind (_hb _he _tb there-end mismatch) delim-info
+                (when (and (not mismatch) there-end)
+                  (goto-char there-end)
+                  (re-search-backward company-coq-section-regexp nil t)
+                  (let ((nearest-section-name (match-string-no-properties 2)))
+                    (when (and nearest-section-name
+                               (equal prefix (substring nearest-section-name 0 (length prefix))))
+                      (list nearest-section-name)))))))))))
 
-(defun company-coq-candidates-reserved ()
+(defun company-coq-candidates-reserved (prefix)
   (interactive)
-  (company-coq-dbg "company-coq-candidates-reserved-keywords: Called")
-  (company-coq-complete-reserved (company-coq-prefix-simple)))
+  (when (and (boundp 'coq-reserved) (member prefix coq-reserved))
+    (list prefix)))
 
 (defun company-coq-parse-search-results ()
   "Parse the last output of the prover, looking for symbol names,
@@ -1772,7 +1740,7 @@ definitions."
   (pcase command
     (`interactive (company-begin-backend 'company-coq-symbols))
     (`prefix (company-coq-prefix-simple))
-    (`candidates (company-coq-candidates-symbols))
+    (`candidates (company-coq-candidates-symbols arg))
     (`sorted t)
     (`duplicates nil)
     (`ignore-case nil)
@@ -1792,7 +1760,7 @@ definitions."
   (pcase command
     (`interactive (company-begin-backend 'company-coq-defuns))
     (`prefix (company-coq-prefix-simple))
-    (`candidates (company-coq-candidates-defuns))
+    (`candidates (company-coq-candidates-defuns arg))
     (`sorted t)
     (`duplicates nil)
     (`ignore-case nil)
@@ -1811,7 +1779,7 @@ definitions."
   (pcase command
     (`interactive (company-begin-backend 'company-coq-keywords))
     (`prefix (company-coq-prefix-simple))
-    (`candidates (company-coq-candidates-keywords))
+    (`candidates (company-coq-candidates-keywords arg))
     (`sorted t)
     (`duplicates nil)
     (`ignore-case nil)
@@ -1832,7 +1800,7 @@ definitions."
   (pcase command
     (`interactive (company-begin-backend 'company-coq-context))
     (`prefix (company-coq-prefix-simple))
-    (`candidates (company-coq-candidates-context))
+    (`candidates (company-coq-candidates-context arg))
     (`sorted t)
     (`duplicates nil)
     (`ignore-case nil)
@@ -1849,7 +1817,7 @@ definitions."
   (pcase command
     (`interactive (company-begin-backend 'company-coq-modules))
     (`prefix (company-coq-prefix-module)) ;; FIXME Completion at beginning of hole
-    (`candidates (company-coq-candidates-modules))
+    (`candidates (company-coq-candidates-modules arg))
     (`sorted t)
     (`duplicates nil)
     (`ignore-case nil)
@@ -1859,27 +1827,27 @@ definitions."
     (`match (company-coq-match arg))
     (`require-match 'never)))
 
-(defun company-coq-block-end (command &optional _arg &rest ignored)
+(defun company-coq-block-end (command &optional arg &rest ignored)
   "A company-mode backend for the end of Sections and Chapters."
   (interactive (list 'interactive))
   (company-coq-dbg "section end backend: called with command %s" command)
   (pcase command
     (`interactive (company-begin-backend 'company-coq-block-end))
     (`prefix (company-coq-prefix-block-end))
-    (`candidates (company-coq-candidates-block-end))
+    (`candidates (company-coq-candidates-block-end arg))
     (`sorted t)
     (`duplicates nil)
     (`ignore-case nil)
     (`require-match 'never)))
 
-(defun company-coq-reserved-keywords (command &optional _arg &rest ignored)
+(defun company-coq-reserved-keywords (command &optional arg &rest ignored)
   "A company-mode backend for language keywords, to prevent completion from kicking in instead of newline."
   (interactive (list 'interactive))
   (company-coq-dbg "reserved keywords backend: called with command %s" command)
   (pcase command
     (`interactive (company-begin-backend 'company-coq-reserved-keywords))
     (`prefix (company-coq-prefix-simple))
-    (`candidates (company-coq-candidates-reserved))
+    (`candidates (company-coq-candidates-reserved arg))
     (`post-completion (call-interactively #'newline))
     (`annotation "<reserved>")
     (`sorted t)
