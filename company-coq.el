@@ -851,7 +851,7 @@ a list of pairs of paths in the form (LOGICAL . PHYSICAL)"
      (company-coq-bool-lessp-fallback a1 a2
        ,fallback-t ,fallback-nil)))
 
-(defun company-coq-string-lessp-symbols (str1 str2)
+(defun company-coq-string-lessp-match-beginning (str1 str2)
   (company-coq-attr-lessp 'match-beginning str1 str2 eq 0
     (company-coq-string-lessp-foldcase str1 str2)))
 
@@ -1764,7 +1764,7 @@ definitions."
     (`annotation "<symb>")
     (`location (company-coq-location-symbol arg))
     (`doc-buffer (company-coq-doc-buffer-symbols arg))
-    (`comparison-fun #'company-coq-string-lessp-symbols)
+    (`comparison-fun #'company-coq-string-lessp-match-beginning)
     (`require-match 'never)))
 
 (defun company-coq-defuns (command &optional arg &rest ignored)
@@ -1783,7 +1783,7 @@ definitions."
     (`match (company-coq-match arg))
     (`annotation "<lsymb>")
     (`doc-buffer (company-coq-doc-buffer-symbols arg))
-    (`comparison-fun #'company-coq-string-lessp-symbols)
+    (`comparison-fun #'company-coq-string-lessp-match-beginning)
     (`require-match 'never)))
 
 (defun company-coq-keywords (command &optional arg &rest ignored)
@@ -1821,7 +1821,7 @@ definitions."
     (`meta (company-coq-meta-simple arg))
     (`no-cache t)
     (`annotation (company-coq-annotation-context arg))
-    (`comparison-fun #'company-coq-string-lessp-symbols)
+    (`comparison-fun #'company-coq-string-lessp-match-beginning)
     (`require-match 'never)))
 
 (defun company-coq-modules (command &optional arg &rest ignored)
@@ -1884,7 +1884,7 @@ definitions."
     (`ignore-case nil)
     (`meta (company-coq-meta-simple arg))
     (`no-cache t)
-    (`comparison-fun #'company-coq-string-lessp-symbols)
+    (`comparison-fun #'company-coq-string-lessp-match-beginning)
     (`require-match 'never)))
 
 (defvar company-coq-choices-list nil)
