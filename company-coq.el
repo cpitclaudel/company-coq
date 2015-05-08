@@ -598,7 +598,7 @@ line if empty). Calls `indent-region' on the inserted lines."
 (defun company-coq-prover-available ()
   (and (company-coq-value-or-nil 'proof-script-buffer)
        (not company-coq-asking-question)
-                        (fboundp 'proof-shell-available-p)
+       (fboundp 'proof-shell-available-p)
        (proof-shell-available-p)))
 
 (defun company-coq-force-reload-with-prover (track-symbol store-symbol load-function)
@@ -1246,7 +1246,7 @@ if output mentions new symbol, then calls
   (let ((output (company-coq-ask-prover-swallow-errors
                  (format company-coq-symbols-meta-cmd name))))
     (when output
-  (company-coq-truncate-to-minibuf
+      (company-coq-truncate-to-minibuf
        (replace-regexp-in-string "\\s+" " " (company-coq-trim output))))))
 
 (defun company-coq-meta-keyword (name)
@@ -1442,7 +1442,7 @@ fully qualified name of NAME."
   (let ((chapters (company-coq-doc-buffer-collect-outputs name cmds)))
     (when chapters
       (let* ((fontized-name (propertize name 'font-lock-face 'company-coq-doc-i-face))
-             (doc-tagline (format company-coq-doc-tagline fontized-name))
+             (doc-tagline   (format company-coq-doc-tagline fontized-name))
              (doc-body      (mapconcat #'identity chapters company-coq-doc-def-sep))
              (doc-full      (concat doc-tagline "\n\n" doc-body)))
         (company-coq-with-clean-doc-buffer
@@ -1632,9 +1632,9 @@ output size is cached in `company-coq-last-search-scan-size'."
 
 ;; (company-coq-dabbrev-to-yas-with-choices "Typeclasses eauto := @{dfs|bfs} @{depth}.")
 
-(defconst company-coq-abbrevs-transforms-alist '((own . company-coq-dabbrev-to-yas-with-choices)
+(defconst company-coq-abbrevs-transforms-alist '((own     . company-coq-dabbrev-to-yas-with-choices)
                                                  (dynamic . company-coq-dabbrev-to-yas)
-                                                 (pg  . company-coq-dabbrev-to-yas)))
+                                                 (pg      . company-coq-dabbrev-to-yas)))
 
 (defun company-coq-abbrev-to-yas (abbrev source)
   (company-coq-dbg "company-coq-abbrev-to-yas: Transforming %s" abbrev)

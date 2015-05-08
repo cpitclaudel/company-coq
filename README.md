@@ -9,17 +9,17 @@ most advanced features require a patched version of coqtop.
 
 * Auto-completion of [math symbols](img/tactic-completion-doc.png) (using company-math).
 
-* Auto-completion of theorems and tactics defined in the same buffer, with type annotations.
-
-* Easy access to [Proof-General's templates](img/lemma-completion.png) (using yasnippet), with smart templates for sections and modules.
+* Auto-completion of [theorems and tactics](img/defun-completion.png) defined in the same buffer.
 
 * Fuzzy auto-completion of (most of) Coq's [tactics](img/command-completion-doc.png) and [commands](img/symbol-completion-doc.png), with snippets auto-extracted from the manual.
 
 * Fuzzy auto-completion of library [module names](img/module-completion.png) in `Import` commands.
 
-* Auto-completion of [identifiers](img/identifiers-completion.png) in proof contexts, and of section and modules names.
+* Auto-completion of [hypotheses](img/hypotheses-completion.png) in proof contexts, and of section and modules names.
 
 * Auto-completion of [search results](img/search-completion.png): after running a search, results are available as completions.
+
+* Easy access to [Proof-General's templates](img/lemma-completion.png) (using yasnippet), with smart templates for sections and modules.
 
 ### Proof-General Extensions
 
@@ -45,29 +45,33 @@ most advanced features require a patched version of coqtop.
 
 ### Advanced features
 
-(This requires a [patched](https://github.com/coq/coq/pull/56) version of `coqtop`)
+(These require a [patched](https://github.com/coq/coq/pull/56) [version](https://github.com/coq/coq/pull/64) of `coqtop`)
 
-* Auto-completion of all known [theorem and symbol names](img/symbol-completion-doc.png), with [type annotations](img/symbol-completion.png).
+* Auto-completion of all known [types and theorems](img/symbol-completion.png) with [annotations](img/symbol-completion-doc.png), and of all [user-defined tactics](ltac-completion.png)
 
-* [Source view](img/source-view.png) for auto-completed symbols (requires `.v` files).
+* [Source view](img/source-view.png) for auto-completed symbols and [tactics](img/source-view-ltac.png) (requires `.v` files).
 
 ## Screenshots
 
-### Autocompletion of tactics with documentation
+### Auto-completion of tactics with documentation
 
-<img src="img/tactic-completion-doc.png" alt="Autocompletion of tactics with documentation" />
+<img src="img/tactic-completion-doc.png" alt="Auto-completion of tactics with documentation" />
 
-### Autocompletion of commands with documentation
+### Auto-completion of commands with documentation
 
-<img src="img/keyword-completion-doc.png" alt="Autocompletion of commands with documentation" />
+<img src="img/keyword-completion-doc.png" alt="Auto-completion of commands with documentation" />
 
-### Fuzzy autocompletion of module names
+### Auto-completion of local definitions
 
-<img src="img/modules-completion.png" alt="Fuzzy autocompletion of module names" />
+<img src="img/defuns-completion.png" alt="Auto-completion of local definitions" />
 
-### Auto-completion of identifiers
+### Fuzzy auto-completion of module names
 
-<img src="img/identifiers-completion.png" alt="Auto-completion of identifiers" />
+<img src="img/modules-completion.png" alt="Fuzzy auto-completion of module names" />
+
+### Auto-completion of hypotheses
+
+<img src="img/hypotheses-completion.png" alt="Auto-completion of hypotheses" />
 
 ### Auto-completion of search results
 
@@ -107,17 +111,23 @@ most advanced features require a patched version of coqtop.
 
 <img src="img/unification.png" alt="Diffs of unification errors" />
 
-### Autocompletion of symbol names (w/ patched `coqtop`, see notes)
+### Auto-completion of theorems and types (w/ patched `coqtop`, see notes)
 
-<img src="img/symbol-completion.png" alt="Autocompletion of symbol names" />
+<img src="img/symbol-completion.png" alt="Auto-completion of symbol names" />
 
 (notice the help string in the mini-buffer)
 
-<img src="img/symbol-completion-doc.png" alt="Autocompletion of symbol names with type annotations" />
+<img src="img/symbol-completion-doc.png" alt="Auto-completion of symbol names with type annotations" />
+
+### Auto-completion of user-defined tactics (w/ patched `coqtop`)
+
+<img src="img/ltac-completion.png" alt="Auto-completion of user-defined tactics" />
 
 ### Source view (with patched `coqtop`)
 
 <img src="img/source-view.png" alt="Source view" />
+
+<img src="img/source-view-ltac.png" alt="Source view on tactics" />
 
 ## Setup
 
@@ -226,15 +236,15 @@ Adjust and use the following snippet to register your own keywords to prettify:
                           ("Defined." . ?□) ("Time" . ?⏱)))))
 ```
 
-### Autocompleting more symbols
+### Autocompleting symbols and tactics defined externally
 
 The procedure above will give you auto-completion and documentation for tactics, commands, and theorems that you define locally, but not for theorem names and symbols defined in the libraries you load. To get the latter, add the following to your `.emacs`, before `(company-coq-initialize)`:
 
 ```elisp
-(setq company-coq-autocomplete-symbols-dynamic t)
+(setq company-coq-dynamic-autocompletion t)
 ```
 
-This feature won't work well unless you build and use a patched coq REPL: see [patched](https://github.com/coq/coq/pull/56) and [version](https://github.com/coq/coq/pull/62).
+This feature won't work well unless you build and use a patched coq REPL: see [this fork](https://github.com/cpitclaudel/coq/tree/v8.5-with-cc-patches). One of the relevant patches has been merged upstream; the other two are being discussed [here](https://github.com/coq/coq/pull/64) and [here](https://github.com/coq/coq/pull/56).
 
 ### Disabling some modules
 
