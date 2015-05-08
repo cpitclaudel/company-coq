@@ -272,6 +272,9 @@ This is mostly useful of company-coq-dynamic-autocompletion is nil.")
 (defconst company-coq-def-cmd "Print %s"
   "Command used to retrieve the definition of a symbol.")
 
+(defconst company-coq-symbols-meta-cmd "Check %s."
+  "Command used to retrieve a short description of a symbol.")
+
 (defconst company-coq-modules-cmd "Print LoadPath."
   "Command used to retrieve module path specs (for module name completion).")
 
@@ -303,14 +306,17 @@ about shorter names, and other matches")
 (defconst company-coq-symbol-regexp (concat company-coq-rich-id-regexp-base "*")
   "Regexp used to find symbol at point")
 
-(defconst company-coq-undefined-regexp " not a defined object.$"
-  "Regexp used to detect missing documentation (useful if database becomes outdated)")
-
 (defconst company-coq-end-of-def-regexp "\\(is\\|are\\) \\(recursively \\)?\\(defined\\|assumed\\)"
   "Regexp used to detect signs that new definitions have been added to the context")
 
 (defconst company-coq-error-regexp "\\`Error: "
   "Regexp used to detect errors (useful in particular to prevent reloading the modules list after a failed import.")
+
+(defconst company-coq-error-regexps `(,company-coq-error-regexp
+                                      " not a defined object.\\s-\\'"
+                                      "\\`No object of basename"
+                                      "\\`Toplevel input, characters")
+  "Regexp used to detect invalid output")
 
 (defconst company-coq-abort-proof-regexp "Current goals? aborted"
   "Regexp used to detect signs that new definitions have been added to the context")
@@ -495,6 +501,15 @@ about shorter names, and other matches")
       (company-coq-dbg "Prover not available; [%s] discarded" question)
       nil)))
 
+(defun company-coq-unless-error (str)
+  "Returns STR, unless STR is a message saying that a symbol is undefined, or an error."
+  (and str
+       (cl-loop for regexp in company-coq-error-regexps
+                never (string-match-p regexp str))
+       str))
+
+(defun company-coq-ask-prover-swallow-errors (question &optional preserve-window-start)
+  (company-coq-unless-error (company-coq-ask-prover question preserve-window-start)))
 (defun company-coq-split-lines (str)
   (if str (split-string str "\n")))
 
@@ -1090,7 +1105,7 @@ search term and a qualifier."
 
 (defun company-coq-detect-capabilities ()
   (let* ((output     (car (company-coq-ask-prover-redirect company-coq-capability-test-cmd)))
-         (capability (and output (not (string-match-p company-coq-error-regexp output)))))
+         (capability (company-coq-unless-error output)))
     (when output
       (setq company-coq-needs-capability-detection nil)
       (setq company-coq--has-dynamic-completion (and capability company-coq-dynamic-autocompletion))
@@ -1140,8 +1155,8 @@ search term and a qualifier."
            collect line))
 
 (defun company-coq-run-and-parse-context (command)
-  (let ((output (company-coq-ask-prover command)))
-    (if (or (null output) (string-match-p "^Error:" output))
+  (let ((output (company-coq-ask-prover-swallow-errors command)))
+    (if (not output)
         (error (format "company-coq-parse-context: failed with message %s" output))
       (let* ((lines   (company-coq-split-lines output))
              (context (company-coq-extract-context lines))
@@ -1292,9 +1307,11 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
 
 (defun company-coq-meta-symbol (name)
   (company-coq-dbg "company-coq-meta-symbol: Called for name %s" name)
+  (let ((output (company-coq-ask-prover-swallow-errors
+                 (format company-coq-symbols-meta-cmd name))))
+    (when output
   (company-coq-truncate-to-minibuf
-   (company-coq-join-lines
-    (company-coq-documentation-header name) " " 'company-coq-trim)))
+       (replace-regexp-in-string "\\s+" " " (company-coq-trim output))))))
 
 (defun company-coq-meta-keyword (name)
   (company-coq-dbg "company-coq-meta-keyword: Called for name %s" name)
