@@ -86,12 +86,12 @@
                                          "match ${ident} with")
   "Custom YAS snippets")
 
-(defcustom company-coq-autocomplete-symbols-dynamic nil
-  "Autocomplete theorem names by periodically querying coq about defined identifiers. This is an experimental feature. It requires a patched version of Coq to work properly; it will be very slow otherwise."
+(defcustom company-coq-dynamic-autocompletion nil
+  "Autocomplete theorem and tactic names by periodically querying coq about defined identifiers. This is an experimental feature. It requires a patched version of Coq to work properly; it will be very slow otherwise."
   :group 'company-coq)
 
-(defvar company-coq--has-dynamic-symbols nil
-  "Equal to `company-coq-autocomplete-symbols-dynamic' if capability detection succeeds")
+(defvar company-coq--has-dynamic-completion nil
+  "Equal to `company-coq-dynamic-autocompletion' if capability detection succeeds")
 
 (defcustom company-coq-autocomplete-context t
   "Autocomplete hypotheses by parsing the latest Goals output. This is an experimental feature."
@@ -110,7 +110,7 @@
   :group 'company-coq)
 
 (defcustom company-coq-autocomplete-symbols t
-  "Autocomplete symbols by searching in the buffer for lemmas and theorems. If `company-coq-autocomplete-symbols-dynamic' is non-nil, query the proof assistant in addition to searching."
+  "Autocomplete symbols by searching in the buffer for lemmas and theorems. If `company-coq-dynamic-autocompletion' is non-nil, query the proof assistant in addition to searching."
   :group 'company-coq)
 
 (defcustom company-coq-prettify-symbols t
@@ -219,22 +219,16 @@ Name Only].")
   (concat "^[[:blank:]]*\\<\\(" (regexp-opt headers) "\\)\\>"
           (when regexp-base (concat "\\s-*\\(" regexp-base "+\\)"))))
 
-(defconst company-coq-ltac-kwds '("Ltac"))
-
-(defconst company-coq-defuns-kwds `("Class" "CoFixpoint" "CoInductive"
-                                    "Corollary" "Definition" "Example"
-                                    "Fact" "Fixpoint" "Function" "Inductive"
-                                    "Instance" "Lemma" "Let" ,@company-coq-ltac-kwds
-                                    "Program" "Program Fixpoint" "Record" "Theorem" "with"))
-
-(defconst company-coq-ltac-regexp (company-coq-make-headers-regexp company-coq-ltac-kwds
-                                   company-coq-id-regexp-base)
-  "Regexp used to locate ltac definitions in the current buffer.")
+(defconst company-coq-defuns-kwds `("Class" "CoFixpoint" "CoInductive" "Corollary"
+                                    "Definition" "Example" "Fact" "Fixpoint"
+                                    "Function" "Inductive" "Instance" "Lemma"
+                                    "Let" "Ltac" "Program" "Program Fixpoint"
+                                    "Record" "Theorem" "with"))
 
 (defconst company-coq-defuns-regexp (company-coq-make-headers-regexp company-coq-defuns-kwds
                                                                      company-coq-id-regexp-base)
   "Regexp used to locate symbol definitions in the current buffer.
-This is mostly useful of company-coq-autocomplete-symbols-dynamic is nil.")
+This is mostly useful of company-coq-dynamic-autocompletion is nil.")
 
 (defconst company-coq-block-end-regexp (company-coq-make-headers-regexp '("End")
                                                                           company-coq-id-regexp-base)
@@ -668,9 +662,8 @@ line if empty). Calls `indent-region' on the inserted lines."
   (interactive) ;; FIXME should timeout after some time, and should accumulate search results
   (let* ((unproc-beg (proof-unprocessed-begin)))
     (setq company-coq-buffer-defuns
-          (if (company-coq-dynamic-symbols-available)
-              (nconc (company-coq-find-all company-coq-ltac-regexp (point-min) unproc-beg)
-                     (company-coq-find-all company-coq-defuns-regexp unproc-beg (point-at-bol)))
+          (if (and company-coq--has-dynamic-completion company-coq-dynamic-autocompletion)
+              (company-coq-find-all company-coq-defuns-regexp unproc-beg (point-at-bol))
             (company-coq-find-all company-coq-defuns-regexp (point-min) (point-at-bol))))))
 
 (defun company-coq-line-is-import-p ()
@@ -1100,11 +1093,11 @@ search term and a qualifier."
          (capability (and output (not (string-match-p company-coq-error-regexp output)))))
     (when output
       (setq company-coq-needs-capability-detection nil)
-      (setq company-coq--has-dynamic-symbols (and capability company-coq-autocomplete-symbols-dynamic))
-      (when company-coq-autocomplete-symbols-dynamic
+      (setq company-coq--has-dynamic-completion (and capability company-coq-dynamic-autocompletion))
+      (when company-coq-dynamic-autocompletion
         (message "Capability detection complete: dynamic completion is %savailable." (if capability "" "not "))
         (when (not capability)
-          (warn (concat "`company-coq-autocomplete-symbols-dynamic' is non-nil, but "
+          (warn (concat "`company-coq-dynamic-autocompletion' is non-nil, but "
                         "your version of coqtop does not seem to support symbols completion. "
                         "Falling back to same-buffer completion.")))))))
 
@@ -2210,7 +2203,7 @@ if it is already open."
 
   (when company-coq-autocomplete-symbols
     (add-to-list 'company-coq-backends #'company-coq-defuns t)
-    (when company-coq-autocomplete-symbols-dynamic
+    (when company-coq-dynamic-autocompletion
       (add-to-list 'company-coq-backends #'company-coq-symbols t)))
 
   (when company-coq-autocomplete-block-end
