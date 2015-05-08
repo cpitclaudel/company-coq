@@ -156,7 +156,7 @@ Abort.
 
 (******************************************************************************)
 
-(** One last nice feature is goal extraction. Let's prove a theorem by
+(** Another nice feature is goal extraction. Let's prove a theorem by
     induction: *)
 
 Lemma my_plus_comm :
@@ -178,3 +178,16 @@ Proof.
 Abort.
 
 (******************************************************************************)
+
+(** To conclude, here's one final neat feature: source view. You can ask
+    company-coq to print the definition, from the source, of any symbol for
+    which sources are available. *)
+
+(* Try typing PrettySymb and pressing C-w *)
+
+(******************************************************************************)
+
+(** Good luck with your proofs! Don't hesitate to submit ideas and patches to
+    https://github.com/cpitclaudel/company-coq/, and if you use Coq, Proof-
+    General, and company-coq for your research, don't forget that citations are
+    highly appreciated! *)
