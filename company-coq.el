@@ -396,7 +396,10 @@ about shorter names, and other matches")
 (defconst company-coq-lemma-introduction-forms
   '("repeat match goal with H:_ |- _ => clear H end"
     "repeat match goal with H:_ |- _ => generalize dependent H; try (generalize dependent H; fail 1) end")
-  "Forms run after 'generalize dependent ...' to produce a lemma statement")
+  "Forms run after 'generalize dependent ...' to produce a lemma
+statement. The try (...) part ensures that section variables
+don't cause an infinite loop (they are not cleared by [generalize
+dependent]).")
 
 (defconst company-coq-unification-error-header
   "\\(?:The command has indeed failed with message:\\|Error:\\)")
