@@ -275,17 +275,16 @@ This is mostly useful of company-coq-dynamic-autocompletion is nil.")
 (defconst company-coq-modules-cmd "Print LoadPath."
   "Command used to retrieve module path specs (for module name completion).")
 
-(defconst company-coq-locate-cmd "Locate %s."
+(defconst company-coq-locate-symbol-cmd "Locate %s."
   "Command used to retrieve the qualified name of a symbol (to locate the corresponding source file).")
 
-(defconst company-coq-locate-cmd-fallback "Locate Ltac %s."
+(defconst company-coq-locate-tactic-cmd "Locate Ltac %s."
   "Command used to retrieve the qualified name of an Ltac. Needed
 in 8.4, not in 8.5.")
 
-(defconst company-coq-locate-output-format (concat "\\`\\w+ \\("
-                                                   company-coq-rich-id-regexp-base
-                                                   "+\\)")
-  "Output of `company-coq-locate-cmd'; it can contain details
+(defconst company-coq-locate-output-format (concat "\\`" (regexp-opt company-coq-defuns-kwds) "\\> +"
+                                                   "\\(" company-coq-rich-id-regexp-base "+\\)")
+  "Output of `company-coq-locate-tactic-cmd' and `company-coq-locate-symbol-cmd'; it can contain details
 about shorter names, and other matches")
 
 (defconst company-coq-locate-lib-cmd "Locate Library %s."
@@ -1322,12 +1321,20 @@ corresponding (logical name . real name) pair."
                      (setq longest (cons logical real)))
            finally return longest))
 
-(defun company-coq-fully-qualified-name (name cmd)
-  (let ((output (company-coq-ask-prover (format cmd name))))
+(defun company-coq-fully-qualified-name-simple (name cmd)
+  (let ((output (company-coq-ask-prover-swallow-errors (format cmd name))))
     (when output
       (save-match-data
-        (string-match company-coq-locate-output-format output)
-        (match-string-no-properties 1 output)))))
+        (when (string-match company-coq-locate-output-format output)
+          (match-string-no-properties 1 output))))))
+
+(defun company-coq-fully-qualified-name (name cmds)
+  "Finds the fully qualified name of NAME, successively issuing
+commands in CMD until one of the returns proper output. When CMDS
+is nil, both of `company-coq-locate-tactic-cmd' and
+`company-coq-locate-symbols-cmd'"
+  (cl-loop for cmd in cmds
+           thereis (company-coq-fully-qualified-name-simple name cmd)))
 
 (defun company-coq-library-path (lib-path mod-name fallback-spec)
   "Gets the path of a .v file likely to hold the definition
@@ -1344,10 +1351,12 @@ such a case, try [Locate Library Peano] in 8.4pl3)."
                           (replace-regexp-in-string "\\.vi?o\\'" ".v" (match-string-no-properties 2 output)))))
           (and fallback-spec (expand-file-name (concat mod-name ".v") (cdr fallback-spec)))))))
 
-(defun company-coq-location-symbol (name)
-  (company-coq-dbg "company-coq-location-symbol: Called for name [%s]" name)
-  (let* ((qname (or (company-coq-fully-qualified-name name company-coq-locate-cmd)
-                    (company-coq-fully-qualified-name name company-coq-locate-cmd-fallback))))
+(defun company-coq-location-source (name locate-cmds)
+  "Shows the definition of NAME in its surrounding source
+context. LOCATE-CMDS is a list of queries to use to guess the
+fully qualified name of NAME."
+  (company-coq-dbg "company-coq-location-symbol: Called for [%s]" name)
+  (let* ((qname (company-coq-fully-qualified-name name locate-cmds)))
     (when qname
       (company-coq-dbg "company-coq-location-symbol: qname is [%s]" qname)
       (let* ((spec       (company-coq-longest-matching-path-spec qname))
@@ -1358,6 +1367,17 @@ such a case, try [Locate Library Peano] in 8.4pl3)."
              (target     (concat (company-coq-make-headers-regexp company-coq-named-outline-kwds)
                                  "\\s-*" (regexp-quote short-name) "\\>")))
         (company-coq-location-simple (propertize name 'location fname) target)))))
+
+(defun company-coq-location-symbols (name)
+  (company-coq-location-source name (list company-coq-locate-symbol-cmd)))
+
+(defun company-coq-location-tactics (name)
+  (setq name (replace-regexp-in-string " .*" "" name))
+  (company-coq-location-source name (list company-coq-locate-tactic-cmd)))
+
+(defun company-coq-location-defuns (name)
+  (company-coq-location-source name (list company-coq-locate-symbol-cmd
+                                          company-coq-locate-tactic-cmd)))
 
 (defun company-coq-make-title-line (face &optional skip-space)
   (let* ((start   (save-excursion (goto-char (point-at-bol))
@@ -1751,6 +1771,7 @@ definitions."
     (`no-cache t)
     (`match (company-coq-match arg))
     (`annotation "<lsymb>")
+    (`location (company-coq-location-defuns arg))
     (`doc-buffer (company-coq-doc-buffer-defuns arg))
     (`comparison-fun #'company-coq-string-lessp-match-beginning)
     (`require-match 'never)))
