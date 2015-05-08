@@ -328,7 +328,7 @@ about shorter names, and other matches")
   "Format string for the header of the documentation buffer")
 
 (defconst company-coq-doc-def-sep "\n---\n\n"
-  "Separation line between the output of company-coq-doc-cmd and company-coq-def-cmd in the doc buffer.")
+  "Separation line between sections in the doc buffer.")
 
 (defconst company-coq-dabbrev-to-yas-regexp "#\\|@{\\([^}]+\\)}"
   "Used to match replace holes in dabbrevs")
@@ -1208,29 +1208,6 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (when (company-coq-line-is-block-end-p)
     (company-coq-prefix-simple)))
 
-(defun company-coq-documentation (name)
-  (company-coq-dbg "company-coq-documentation: Called for name %s" name)
-  (when (company-coq-prover-available)
-    (company-coq-string-or-undefined (company-coq-ask-prover (format company-coq-doc-cmd name) t))))
-
-(defun company-coq-definition (name)
-  (company-coq-dbg "company-coq-definition: Called for name %s" name)
-  (when (company-coq-prover-available)
-    (company-coq-string-or-undefined (company-coq-ask-prover (format company-coq-def-cmd name) t))))
-
-(defun company-coq-get-header (doc)
-  (when doc
-    (company-coq-take-while-non-empty
-     (company-coq-split-lines doc))))
-
-(defun company-coq-documentation-header (name)
-  (company-coq-get-header
-   (company-coq-documentation name)))
-
-(defun company-coq-definition-header (name)
-  (company-coq-get-header
-   (company-coq-definition name)))
-
 (defun company-coq-trim (str)
   (replace-regexp-in-string "\\` *" "" (replace-regexp-in-string " *\\'" "" str)))
 
@@ -1410,14 +1387,20 @@ such a case, try [Locate Library Peano] in 8.4pl3)."
 (defun company-coq-annotation-context (_)
   "<h>")
 
-(defun company-coq-doc-buffer-symbols (name)
-  (company-coq-dbg "company-coq-doc-buffer-symbols: Called for name %s" name)
-  (let ((doc (company-coq-documentation name))
-        (def (company-coq-join-lines (company-coq-definition-header name) "\n")))
-    (when (and doc def)
+(defun company-coq-doc-buffer-collect-outputs (name templates)
+  (cl-loop for template in templates
+           for cmd = (format template name)
+           for output = (company-coq-ask-prover-swallow-errors cmd)
+           when output collect output))
+
+(defun company-coq-doc-buffer-generic (name cmds)
+  (company-coq-dbg "company-coq-doc-buffer-generic: Called for name %s" name)
+  (let ((chapters (company-coq-doc-buffer-collect-outputs name cmds)))
+    (when chapters
       (let* ((fontized-name (propertize name 'font-lock-face 'company-coq-doc-i-face))
              (doc-tagline (format company-coq-doc-tagline fontized-name))
-             (doc-full (concat doc-tagline "\n\n" doc company-coq-doc-def-sep def)))
+             (doc-body      (mapconcat #'identity chapters company-coq-doc-def-sep))
+             (doc-full      (concat doc-tagline "\n\n" doc-body)))
         (company-coq-with-clean-doc-buffer
           (insert doc-full)
           (when (fboundp 'coq-response-mode)
@@ -1425,6 +1408,19 @@ such a case, try [Locate Library Peano] in 8.4pl3)."
           (goto-char (point-min))
           (company-coq-make-title-line 'company-coq-doc-header-face-docs)
           (current-buffer))))))
+
+(defun company-coq-doc-buffer-symbols (name)
+  (company-coq-doc-buffer-generic name (list company-coq-doc-cmd
+                                             company-coq-def-cmd)))
+
+(defun company-coq-doc-buffer-defuns (name)
+  (company-coq-doc-buffer-generic name (list company-coq-doc-cmd
+                                             company-coq-def-cmd
+                                             company-coq-tactic-def-cmd)))
+
+(defun company-coq-doc-buffer-tactics (name)
+  (setq name (replace-regexp-in-string " .*" "" name))
+  (company-coq-doc-buffer-generic name (list company-coq-tactic-def-cmd)))
 
 (defun company-coq-shr-fontize (dom font)
   (funcall (if (functionp 'shr-fontize-cont)
@@ -1735,7 +1731,7 @@ definitions."
     (`no-cache t)
     (`match (company-coq-match arg))
     (`annotation "<symb>")
-    (`location (company-coq-location-symbol arg))
+    (`location (company-coq-location-symbols arg))
     (`doc-buffer (company-coq-doc-buffer-symbols arg))
     (`comparison-fun #'company-coq-string-lessp-match-beginning)
     (`require-match 'never)))
@@ -1755,7 +1751,7 @@ definitions."
     (`no-cache t)
     (`match (company-coq-match arg))
     (`annotation "<lsymb>")
-    (`doc-buffer (company-coq-doc-buffer-symbols arg))
+    (`doc-buffer (company-coq-doc-buffer-defuns arg))
     (`comparison-fun #'company-coq-string-lessp-match-beginning)
     (`require-match 'never)))
 
