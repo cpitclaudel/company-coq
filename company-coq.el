@@ -210,10 +210,7 @@ Name Only].")
 (defconst company-coq-goal-lines-regexp "\\`   "
   "Regexp used to find goal lines in goals output")
 
-(defconst company-coq-path-part-regexp  "\\([^ ]+\\)")
-(defconst company-coq-path-begin-regexp (concat "\\`"   company-coq-path-part-regexp " +\\'"))
-(defconst company-coq-path-end-regexp   (concat "\\` +" company-coq-path-part-regexp   "\\'"))
-(defconst company-coq-path-full-regexp  (concat "\\`"   company-coq-path-part-regexp " +" company-coq-path-part-regexp "\\'"))
+(defconst company-coq-path-regexp  (concat "\\`\\(\\S-*\\) +\\(\\S-*\\)\\'"))
 
 (defun company-coq-make-headers-regexp (headers &optional regexp-base)
   (concat "^[[:blank:]]*\\<\\(" (regexp-opt headers) "\\)\\>"
@@ -511,8 +508,14 @@ about shorter names, and other matches")
 
 (defun company-coq-ask-prover-swallow-errors (question &optional preserve-window-start)
   (company-coq-unless-error (company-coq-ask-prover question preserve-window-start)))
-(defun company-coq-split-lines (str)
-  (if str (split-string str "\n")))
+
+(defun company-coq-split-lines (str &optional omit-nulls)
+  (if str (split-string str "\n" omit-nulls)))
+
+(defun company-coq-split-wrapped-lines (str &optional omit-nulls)
+  (when str
+    (let ((unwrapped (replace-regexp-in-string "\n +" " " str)))
+      (company-coq-split-lines unwrapped omit-nulls))))
 
 (defun company-coq-join-lines (lines sep &optional trans)
   (if lines (mapconcat (or trans 'identity) lines sep)))
@@ -692,30 +695,22 @@ line if empty). Calls `indent-region' on the inserted lines."
 (defun company-coq-line-is-block-end-p ()
   (looking-back company-coq-block-end-regexp (point-at-bol)))
 
-(defun company-coq-parse-path-specs (loadpath-lines)
-  "Parse lines of output from company-coq-modules-cmd. Output is
-a list of pairs of paths in the form (LOGICAL . PHYSICAL)"
-  ;; (message "Path specs: discarding %s" current-spec)))
-  (cl-loop for     line
-           in      loadpath-lines
-           with    current-spec = `(nil . nil)
-           if      (string-match company-coq-path-begin-regexp line)
-           do      (setcar current-spec (match-string 1 line))
-           else if (string-match company-coq-path-end-regexp line)
-           do      (setcdr current-spec (match-string 1 line))
-           else if (string-match company-coq-path-full-regexp line)
-           do      (setq current-spec `(,(match-string 1 line) . ,(match-string 2 line)))
-           when    (and (car-safe current-spec) (cdr-safe current-spec))
-           collect current-spec
-           and do  (setq current-spec `(nil . nil))))
+(defun company-coq-parse-path-specs (loadpath-output)
+  "Parse output of `company-coq-modules-cmd'. Output is a list of
+pairs of paths in the form (LOGICAL . PHYSICAL)"
+  (when loadpath-output
+    (save-match-data
+      (cdr-safe (cl-loop for     line
+                         in      (company-coq-split-wrapped-lines loadpath-output)
+                         if      (string-match company-coq-path-regexp line)
+                         collect (cons (match-string 1 line) (match-string 2 line)))))))
 
 (defun company-coq-get-path-specs ()
   "Load modules by issuing command company-coq-modules-cmd and parsing the results. Do not call if proof process is busy."
   (interactive)
   (let* ((time       (current-time))
-         (output     (company-coq-ask-prover company-coq-modules-cmd))
-         (lines      (cdr-safe (company-coq-split-lines output)))
-         (path-specs (company-coq-parse-path-specs lines)))
+         (output     (company-coq-ask-prover-swallow-errors company-coq-modules-cmd))
+         (path-specs (company-coq-parse-path-specs output)))
     (company-coq-dbg "Loaded %d modules paths (%.03f seconds)" (length path-specs) (float-time (time-since time)))
     path-specs))
 
@@ -1205,14 +1200,6 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
   (interactive)
   (company-coq-dbg "company-coq-prefix-simple: Called")
   (when (company-coq-in-coq-mode)
-    (company-coq-grab-prefix)))
-
-(defun company-coq-prefix-module ()
-  (interactive)
-  (company-coq-dbg "company-coq-prefix-module: Called")
-  (when (and (company-coq-in-coq-mode)
-             (company-coq-in-scripting-mode)
-             (company-coq-line-is-import-p))
     (company-coq-grab-prefix)))
 
 (defun company-coq-prefix-block-end ()
@@ -1816,7 +1803,7 @@ definitions."
   (company-coq-dbg "modules backend: called with command %s" command)
   (pcase command
     (`interactive (company-begin-backend 'company-coq-modules))
-    (`prefix (company-coq-prefix-module)) ;; FIXME Completion at beginning of hole
+    (`prefix (company-coq-prefix-simple)) ;; FIXME Completion at beginning of hole
     (`candidates (company-coq-candidates-modules arg))
     (`sorted t)
     (`duplicates nil)
