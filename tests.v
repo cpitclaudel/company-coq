@@ -39,7 +39,6 @@ Definition PrettySymbols : (nat -> nat -> Prop) :=
 Require Import Omega. (* This should autocomplete *)
 
 SearchAbout plus.
-
 (* plu should autocomplete after running this search *)
 
 Lemma clear_search : True. Proof I.
@@ -47,6 +46,7 @@ Lemma clear_search : True. Proof I.
 (* Does C-w (location) work? Is the point at the beginning of the preceeding comment? *)
 Locate le.
 Locate gcd.
+Locate PrettySymbols.
 
 Goal forall {A} f g (x: A), f = g -> f x -> g x.
 Proof.
@@ -118,6 +118,12 @@ Section TestSectionName.
 
   Section OtherSection.
     Hypothesis H: True.
+
+    Lemma t: True -> 1 + 1 = 2.
+    Proof.
+      intros.
+      (* Try lemma-from-goal here *)
+    Abort.
 
   End OtherSection. (* These names should autocomplete *)
 End TestSectionName.
