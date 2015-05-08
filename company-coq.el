@@ -2162,7 +2162,8 @@ to locate lines starting with \"^!!!\"."
           (occur regexp))
       (error "*coq* buffer not found"))))
 
-(defun company-coq-init-hook ()
+(defun company-coq-launching-prover ()
+  (company-coq-dbg "company-coq-launching-prover")
   (setq company-coq-needs-capability-detection t))
 
 ;;;###autoload
@@ -2184,7 +2185,7 @@ if it is already open."
 
 (defun company-coq-setup-hooks () ;; NOTE: This could be made callable at the beginning of every completion.
   ;; PG hooks
-  (add-hook 'proof-state-init-mode-hook #'company-coq-init-hook)
+  (add-hook 'proof-activate-scripting-hook #'company-coq-launching-prover)
   (add-hook 'proof-state-change-hook #'company-coq-state-change)
   (add-hook 'proof-shell-insert-hook #'company-coq-maybe-proof-input-reload-things)
   (add-hook 'proof-shell-handle-delayed-output-hook #'company-coq-maybe-proof-output-reload-things)
@@ -2314,7 +2315,7 @@ if it is already open."
   (when (featurep 'company-coq-abbrev)
     (unload-feature 'company-coq-abbrev t))
 
-  (remove-hook 'proof-state-init-mode-hook #'company-coq-init-hook)
+  (remove-hook 'proof-activate-scripting-hook #'company-coq-launching-prover)
   (remove-hook 'proof-shell-insert-hook #'company-coq-maybe-proof-input-reload-things)
   (remove-hook 'proof-shell-handle-delayed-output-hook #'company-coq-maybe-proof-output-reload-things)
   (remove-hook 'proof-shell-handle-error-or-interrupt-hook #'company-coq-maybe-reload-context)
