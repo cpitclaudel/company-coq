@@ -423,7 +423,8 @@ about shorter names, and other matches")
              '("\\(?1:assert\\) (.* := .*)" "\\(?1:double induction\\)"
                "\\(?1:appcontext\\>\\)[ a-zA-Z]*\\[" "\\(?1:cutrewrite\\) \\(?:<-\\|->\\)"
                "\\(?1:Backtrack [[:digit:]]+ [[:digit:]]+ [[:digit:]]+\\)" "\\(?1:SearchAbout\\>\\)"
-               "\\(?1:Save\\>\\(?: \\(?:Lemma\\|Theorem\\|Remark\\|Fact\\|Corollary\\|Proposition\\)\\>\\)?\\)")
+               "\\(?1:Save\\>\\(?: \\(?:Lemma\\|Theorem\\|Remark\\|Fact\\|Corollary\\|Proposition\\)\\>\\)?\\)"
+               "\\(?1:absurd_hyp\\>\\) [A-Za-z]+")
              "\\|"))
 
 (defconst company-coq-deprecated-re (concat "^[[:blank:]]*"
