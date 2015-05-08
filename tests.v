@@ -1,7 +1,13 @@
 Require Import Utf8.
 
 (* Global folding should work here *)
-Ltac TestLtac a b cde := idtac.
+Ltac SimpleLtac a b cde := idtac.
+
+(*
+(progn
+  (setq coq-prog-name "/build/coq-trunk-pr/bin/coqtop")
+  (setq coq-prog-args '("-emacs-U" "-coqlib" "/build/coq-trunk-pr/")))
+ *)
 
 Goal True = False -> False.
   intros.
@@ -33,7 +39,10 @@ Definition PrettySymbols : (nat -> nat -> Prop) :=
 Require Import Omega. (* This should autocomplete *)
 
 SearchAbout plus.
+
 (* plu should autocomplete after running this search *)
+
+Lemma clear_search : True. Proof I.
 
 (* Does C-w (location) work? Is the point at the beginning of the preceeding comment? *)
 Locate le.
@@ -55,11 +64,6 @@ Proof.
   (* Are subscripts displaying properly? *)
   constructor.
 Qed.
-(*
-(progn
-  (setq coq-prog-name "/build/coq-trunk-pr/bin/coqtop")
-  (setq coq-prog-args '("-emacs-U" "-coqlib" "/build/coq-trunk-pr/")))
- *)
 
 Print TestSubscripts.
 
@@ -142,9 +146,7 @@ Goal True.
   auto. (* company-coq-search-in-coq-buffer should show these calls *)
 Qed.
 
-(* This should show a special menu *)
-
-(* Print Instances *)
+(* Print Instances should show a dropdown when inserted *)
 
 Require Import Utf8.
 Lemma MathCompletion : ∀ x, x > 1 → x > 0. (* This can be typed using \forall *)
@@ -195,13 +197,12 @@ Proof.
   pose proof (inhabited_homogeneous unit Depth tt) as pr.
   simpl in *.
 
-  (* (company-coq-diff-unification-error) *)
   Fail exact pr.
+  (* (company-coq-diff-unification-error) *)
   Unset Printing All.
 
   (* Position in the goals buffer shouldn't change when thorem names are autocompleted. *)
 Admitted.
-
 
 (** Error messages **)
 
@@ -219,11 +220,30 @@ Goal True -> True -> True.
 
   Fail Check Const (Const nat).
 
-
-  Definition id {A} (a: A) := a.
-
   constructor.
 Qed.
+
+Require Import Qcanon.
+
+Lemma test : forall vvvvv, exists vvvvv', vvvvv' > vvvvv.
+Proof.
+  intros.
+  exists (Qcplus vvvvv 1). (* source view should be available here *)
+
+  setoid_rewrite Qclt_minus_iff.
+  rewrite Qcplus_comm.
+  rewrite Qcplus_assoc.
+  ring_simplify.
+  reflexivity.
+Qed.
+
+(* vvv shouldn't be available here *)
+
+Require Import Omega.
+
+(* Does [zif] yield a list of tactic names? Are they browsable? (C-w) *)
+
+(* Does [Simple] yield a tactic completion? Is it a snippet? Is there a source view feature? *)
 
 Require Import Bvector.
 Require Import DecBool.
@@ -628,18 +648,3 @@ Require Import RelationPairs.
 (* Loaded 8092 symbols (0.088 seconds) With optimized proof-general search *)
 (* Loaded 8092 symbols (0.136 seconds) With plain proof-general search *)
 (* Loaded 8092 symbols (0.155 seconds) With optimized proof-general search on battery *)
-
-Lemma test : forall vvvvv, exists vvvvv', vvvvv' > vvvvv.
-Proof.
-
-  intros.
-  exists (Qcplus vvvvv 1).
-
-  setoid_rewrite Qclt_minus_iff.
-  rewrite Qcplus_comm.
-  rewrite Qcplus_assoc.
-  ring_simplify.
-  reflexivity.
-Qed.
-
-(* vvv shouldn't be available here *)

@@ -140,6 +140,7 @@
                                          company-coq-keywords
                                          company-coq-defuns
                                          company-coq-search-results
+                                         company-coq-tactics
                                          company-coq-symbols)
   "List of all backends, listed in the order in which you want
 the results displayed. Note that the first backend that returns a
@@ -154,12 +155,19 @@ same prefix."
   "Indicates whether a reload of all symbols might be needed. This variable is
   set from places where immediate reloading is impossible, for example in proof-shell-insert-hook")
 
+(defvar company-coq-tactics-reload-needed nil
+  "Indicates whether a reload of all tactics might be needed. This variable is
+  set from places where immediate reloading is impossible, for example in proof-shell-insert-hook")
+
 (defvar company-coq-modules-reload-needed nil
   "Indicates whether a reload of all modules might be needed. This variable is
   set from places where immediate reloading is impossible, for example in proof-shell-insert-hook")
 
 (defvar company-coq-dynamic-symbols nil
   "Keeps track of defined symbols.")
+
+(defvar company-coq-dynamic-tactics nil
+  "Keeps track of defined tactics.")
 
 (defvar company-coq-buffer-defuns nil
   "Keeps track of buffer symbols, based on regexp searches")
@@ -252,6 +260,9 @@ This is mostly useful of company-coq-dynamic-autocompletion is nil.")
 (defconst company-coq-all-symbols-cmd "SearchPattern _"
   "Command used to list all symbols.")
 
+(defconst company-coq-all-tactics-cmd "Print Ltacs"
+  "Command used to list all tactics.")
+
 (defvar company-coq-extra-symbols-cmd nil
   "Command used to list more symbols ([SearchPattern _] doesn't search inside modules in 8.4).")
 
@@ -264,6 +275,9 @@ This is mostly useful of company-coq-dynamic-autocompletion is nil.")
 
 (defconst company-coq-def-cmd "Print %s"
   "Command used to retrieve the definition of a symbol.")
+
+(defconst company-coq-tactic-def-cmd "Print Ltac %s"
+  "Command used to retrieve the documentation of a symbol.")
 
 (defconst company-coq-symbols-meta-cmd "Check %s."
   "Command used to retrieve a short description of a symbol.")
@@ -635,14 +649,33 @@ line if empty). Calls `indent-region' on the inserted lines."
                (length names) (length lines) (float-time (time-subtract half-time start-time)) (float-time (time-since half-time)))
       names)))
 
+(defun company-coq-get-tactics ()
+  "Load symbols by issuing command company-coq-all-symbols-cmd and parsing the results. Do not call if proof process is busy."
+  (let* ((start-time     (current-time))
+         (output         (cdr (company-coq-ask-prover-redirect company-coq-all-tactics-cmd)))
+         (lines          (company-coq-split-wrapped-lines output t))
+         (tactics        (mapcar #'company-coq-parse-dynamic-db-entry lines)))
+    (company-coq-dbg "Loaded %d tactics in %.03f seconds"
+                     (length tactics) (float-time (time-since start-time)))
+    tactics))
+
 (defun company-coq-force-reload-symbols ()
   (when company-coq--has-dynamic-completion
     (company-coq-force-reload-with-prover
      'company-coq-symbols-reload-needed 'company-coq-dynamic-symbols #'company-coq-get-symbols)))
 
+(defun company-coq-force-reload-tactics ()
+  (when company-coq--has-dynamic-completion
+    (company-coq-force-reload-with-prover
+     'company-coq-tactics-reload-needed 'company-coq-dynamic-tactics #'company-coq-get-tactics)))
+
 (defun company-coq-init-symbols ()
   (company-coq-dbg "company-coq-init-symbols: Loading symbols (if never loaded)")
   (company-coq-init-db 'company-coq-dynamic-symbols 'company-coq-force-reload-symbols))
+
+(defun company-coq-init-tactics ()
+  (company-coq-dbg "company-coq-init-tactics: Loading tactics (if never loaded)")
+  (company-coq-init-db 'company-coq-dynamic-tactics 'company-coq-force-reload-tactics))
 
 (defun company-coq-init-defuns ()
   (company-coq-dbg "company-coq-init-defuns: Loading symbols from buffer")
@@ -738,6 +771,14 @@ pairs of paths in the form (LOGICAL . PHYSICAL)"
                 'source 'own
                 'anchor anchor
                 'insert abbrev
+                'stripped (company-coq-normalize-abbrev abbrev))))
+
+(defun company-coq-parse-dynamic-db-entry (line)
+  "Prepare a proper completion entry from one line of output of
+`company-coq-all-tactics-cmd'."
+  (let ((abbrev (replace-regexp-in-string " \\(\\S-+\\)" " @{\\1}" line)))
+    (propertize abbrev
+                'source 'dynamic 'insert abbrev
                 'stripped (company-coq-normalize-abbrev abbrev))))
 
 (defun company-coq-parse-custom-db-entry (abbrev)
@@ -1048,6 +1089,7 @@ search term and a qualifier."
                    company-coq-modules-reload-needed)
   (when (company-coq-prover-available)
     (when company-coq-needs-capability-detection (company-coq-detect-capabilities))
+    (when company-coq-tactics-reload-needed (company-coq-force-reload-tactics))
     (when company-coq-symbols-reload-needed (company-coq-force-reload-symbols))
     (when company-coq-modules-reload-needed (company-coq-force-reload-modules))))
 
@@ -1102,9 +1144,11 @@ search term and a qualifier."
     (setq company-coq-last-goals-output output)))
 
 (defun company-coq-maybe-proof-output-reload-things ()
-  "Updates company-coq-symbols-reload-needed if a proof just
-completed or if output mentions new symbol, then calls
-company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
+  "Updates `company-coq-tactics-reload-needed' and
+`company-coq-symbols-reload-needed' if a proof just completed or
+if output mentions new symbol, then calls
+`company-coq-maybe-reload-each'. Also calls
+`company-coq-maybe-reload-context'."
   (interactive)
   (company-coq-dbg "company-coq-maybe-proof-output-reload-things: Called")
   (unless company-coq-asking-question
@@ -1117,6 +1161,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
       (when is-aborted      (company-coq-dbg "company-coq-maybe-proof-output-reload-things: Proof aborted"))
       ;; (message "[%s] [%s] [%s]" company-coq-symbols-reload-needed is-end-of-def is-end-of-proof)
       (setq company-coq-symbols-reload-needed (or company-coq-symbols-reload-needed is-end-of-def is-end-of-proof))
+      (setq company-coq-tactics-reload-needed (or company-coq-tactics-reload-needed is-end-of-def))
       (company-coq-maybe-reload-context (or is-end-of-def is-end-of-proof is-aborted))
       (if is-error (company-coq-dbg "Last output was an error; not reloading")
         ;; Delay call until after we have returned to the command loop
@@ -1136,6 +1181,7 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
       (when is-import     (company-coq-dbg "company-coq-maybe-proof-input-reload-things: New import"))
       (when is-load       (company-coq-dbg "company-coq-maybe-proof-input-reload-things: Touching load path"))
       (setq company-coq-symbols-reload-needed (or company-coq-symbols-reload-needed is-import)) ;; is-retracting
+      (setq company-coq-tactics-reload-needed (or company-coq-tactics-reload-needed is-import))
       (setq company-coq-modules-reload-needed (or company-coq-modules-reload-needed is-import is-load))
       (when is-retracting (company-coq-maybe-reload-context t)))))
 
@@ -1587,6 +1633,7 @@ output size is cached in `company-coq-last-search-scan-size'."
 ;; (company-coq-dabbrev-to-yas-with-choices "Typeclasses eauto := @{dfs|bfs} @{depth}.")
 
 (defconst company-coq-abbrevs-transforms-alist '((own . company-coq-dabbrev-to-yas-with-choices)
+                                                 (dynamic . company-coq-dabbrev-to-yas)
                                                  (pg  . company-coq-dabbrev-to-yas)))
 
 (defun company-coq-abbrev-to-yas (abbrev source)
@@ -1731,6 +1778,27 @@ definitions."
     (`annotation "<symb>")
     (`location (company-coq-location-symbols arg))
     (`doc-buffer (company-coq-doc-buffer-symbols arg))
+    (`comparison-fun #'company-coq-string-lessp-match-beginning)
+    (`require-match 'never)))
+
+(defun company-coq-tactics (command &optional arg &rest ignored)
+  "A company-mode backend for dynamically known Coq tactics."
+  (interactive (list 'interactive))
+  (company-coq-dbg "dynamic symbols backend: called with command %s" command)
+  (pcase command
+    (`interactive (company-begin-backend 'company-coq-tactics))
+    (`prefix (company-coq-prefix-simple))
+    (`candidates (company-coq-candidates-tactics arg))
+    (`sorted t)
+    (`duplicates nil)
+    (`ignore-case nil)
+    (`meta (company-coq-meta-keyword arg))
+    (`no-cache t)
+    (`match (company-coq-match arg))
+    (`annotation "<ltac>")
+    (`location (company-coq-location-tactics arg))
+    (`post-completion (company-coq-post-completion-keyword arg))
+    (`doc-buffer (company-coq-doc-buffer-tactics arg))
     (`comparison-fun #'company-coq-string-lessp-match-beginning)
     (`require-match 'never)))
 
@@ -2173,6 +2241,7 @@ if it is already open."
   (when company-coq-autocomplete-symbols
     (add-to-list 'company-coq-backends #'company-coq-defuns t)
     (when company-coq-dynamic-autocompletion
+      (add-to-list 'company-coq-backends #'company-coq-tactics t)
       (add-to-list 'company-coq-backends #'company-coq-symbols t)))
 
   (when company-coq-autocomplete-block-end
