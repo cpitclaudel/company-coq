@@ -1250,7 +1250,7 @@ if output mentions new symbol, then calls
                  (format company-coq-symbols-meta-cmd name))))
     (when output
       (company-coq-truncate-to-minibuf
-       (replace-regexp-in-string "\\s+" " " (company-coq-trim output))))))
+       (replace-regexp-in-string "\\s-+" " " (company-coq-trim output))))))
 
 (defun company-coq-meta-keyword (name)
   (company-coq-dbg "company-coq-meta-keyword: Called for name %s" name)
