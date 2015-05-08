@@ -259,10 +259,6 @@ This is mostly useful of company-coq-dynamic-autocompletion is nil.")
                                           '("Unset Search Output Name Only"))
   "Command to run after listing all symbols, using a patched version of Coq")
 
-(defun company-coq-all-symbols-filter-line (line)
-  "Function used to filter each output line"
-  (> (length line) 0))
-
 (defconst company-coq-doc-cmd "About %s"
   "Command used to retrieve the documentation of a symbol.")
 
@@ -525,10 +521,6 @@ about shorter names, and other matches")
                while (not (string-equal line ""))
                collect line)))
 
-(defun company-coq-string-or-undefined (doc)
-  "Returns DOC, unless DOC is a message saying that a symbol is undefined"
-  (unless (string-match company-coq-undefined-regexp doc) doc))
-
 (defun company-coq-boundp-string-match (regexp symbol)
   (and (boundp symbol)
        (symbol-value symbol)
@@ -590,10 +582,10 @@ line if empty). Calls `indent-region' on the inserted lines."
     (split-string path "\\.")))
 
 (defun company-coq-prover-available ()
-  (let ((available (and (not company-coq-asking-question)
+  (and (company-coq-value-or-nil 'proof-script-buffer)
+       (not company-coq-asking-question)
                         (fboundp 'proof-shell-available-p)
-                        (proof-shell-available-p))))
-    available))
+       (proof-shell-available-p)))
 
 (defun company-coq-force-reload-with-prover (track-symbol store-symbol load-function)
   (company-coq-dbg "company-coq-force-reload-from-prover: %s %s %s"
@@ -604,12 +596,9 @@ line if empty). Calls `indent-region' on the inserted lines."
     (set store-symbol (funcall load-function))))
 
 (defun company-coq-init-db (db initfun)
-  (interactive)
   (company-coq-dbg "company-coq-init-db: Loading %s (if nil; currently has %s elems)" db (length (symbol-value db)))
   (or (symbol-value db)
-      (progn
-        (company-coq-dbg "company-coq-init-db: reloading")
-        (funcall initfun))))
+      (funcall initfun)))
 
 (defun company-coq-format-redirection (cmd fname)
   (format company-coq-redirection-template fname cmd))
@@ -633,7 +622,6 @@ line if empty). Calls `indent-region' on the inserted lines."
 
 (defun company-coq-get-symbols ()
   "Load symbols by issuing command company-coq-all-symbols-cmd and parsing the results. Do not call if proof process is busy."
-  (interactive)
   (with-temp-message "company-coq: Loading symbols..."
     (let* ((start-time     (current-time))
            (_              (mapc #'company-coq-ask-prover company-coq-all-symbols-prelude))
@@ -641,28 +629,22 @@ line if empty). Calls `indent-region' on the inserted lines."
            (extras         (cdr (company-coq-ask-prover-redirect company-coq-extra-symbols-cmd)))
            (_              (mapc #'company-coq-ask-prover company-coq-all-symbols-coda))
            (half-time      (current-time))
-           (lines          (nconc (company-coq-split-lines output) (company-coq-split-lines extras)))
-           (filtered-lines (cl-remove-if-not #'company-coq-all-symbols-filter-line lines))
-           (names          (company-coq-union-sort #'string-equal #'string-lessp filtered-lines)))
+           (lines          (nconc (company-coq-split-lines output t) (company-coq-split-lines extras t)))
+           (names          (company-coq-union-sort #'string-equal #'string-lessp lines)))
       (message "Loaded %d symbols (%d lines) in %.03f+%.03f seconds"
                (length names) (length lines) (float-time (time-subtract half-time start-time)) (float-time (time-since half-time)))
       names)))
 
 (defun company-coq-force-reload-symbols ()
-  (interactive)
-  (company-coq-dbg "company-coq--has-dynamic-symbols is [%s]" company-coq--has-dynamic-symbols)
-  (when company-coq--has-dynamic-symbols
-    (company-coq-force-reload-with-prover 'company-coq-symbols-reload-needed
-                                          'company-coq-dynamic-symbols
-                                          #'company-coq-get-symbols)))
+  (when company-coq--has-dynamic-completion
+    (company-coq-force-reload-with-prover
+     'company-coq-symbols-reload-needed 'company-coq-dynamic-symbols #'company-coq-get-symbols)))
 
 (defun company-coq-init-symbols ()
-  (interactive)
   (company-coq-dbg "company-coq-init-symbols: Loading symbols (if never loaded)")
   (company-coq-init-db 'company-coq-dynamic-symbols 'company-coq-force-reload-symbols))
 
 (defun company-coq-init-defuns ()
-  (interactive)
   (company-coq-dbg "company-coq-init-defuns: Loading symbols from buffer")
   (company-coq-reload-buffer-defuns))
 
@@ -1175,10 +1157,6 @@ company-coq-maybe-reload-things. Also calls company-coq-maybe-reload-context."
 (defun company-coq-in-coq-mode (&optional silent)
   (or (derived-mode-p 'coq-mode)
       (ignore (or silent (company-coq-dbg "Not in Coq mode")))))
-
-(defun company-coq-in-scripting-mode ()
-  (or (company-coq-value-or-nil 'proof-script-buffer)
-      (ignore (company-coq-dbg "Not in scripting mode"))))
 
 (defun company-coq-grab-prefix ()
   ;; Only one grab function; otherwise the first backend in the list of backend shadows the others
