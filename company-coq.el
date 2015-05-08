@@ -292,7 +292,7 @@ This is mostly useful of company-coq-dynamic-autocompletion is nil.")
   "Command used to retrieve the qualified name of an Ltac. Needed
 in 8.4, not in 8.5.")
 
-(defconst company-coq-locate-output-format (concat "\\`" (regexp-opt company-coq-defuns-kwds) "\\> +"
+(defconst company-coq-locate-output-format (concat "\\`" (regexp-opt (cons "Constant" company-coq-defuns-kwds)) "\\> +"
                                                    "\\(" company-coq-rich-id-regexp-base "+\\)")
   "Output of `company-coq-locate-tactic-cmd' and `company-coq-locate-symbol-cmd'; it can contain details
 about shorter names, and other matches")
