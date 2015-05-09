@@ -600,9 +600,7 @@ line if empty). Calls `indent-region' on the inserted lines."
     (split-string path "\\.")))
 
 (defun company-coq-prover-available ()
-  (and (company-coq-value-or-nil 'proof-script-buffer)
-       (not company-coq-asking-question)
-       (fboundp 'proof-shell-available-p)
+  (and (not company-coq-asking-question)
        (proof-shell-available-p)))
 
 (defun company-coq-force-reload-with-prover (track-symbol store-symbol load-function)
