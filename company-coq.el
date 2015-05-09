@@ -321,7 +321,8 @@ about shorter names, and other matches")
 (defconst company-coq-error-regexps `(,company-coq-error-regexp
                                       " not a defined object.\\s-\\'"
                                       "\\`No object of basename"
-                                      "\\`Toplevel input, characters")
+                                      "\\`Toplevel input, characters"
+                                      "\\`No Ltac definition is referred to by")
   "Regexp used to detect invalid output")
 
 (defconst company-coq-abort-proof-regexp "Current goals? aborted"
