@@ -251,6 +251,11 @@ Require Import Omega.
 
 (* Does [Simple] yield a tactic completion? Is it a snippet? Is there a source view feature? *)
 
+Tactic Notation "myR" constr(from) "->" constr(to) "by" tactic(tac) := idtac.
+Tactic Notation "myR" constr(from) "->" constr(to) "in" hyp(hyp) "by" tactic(tac) := idtac.
+
+(* Do these notations autocomplete properly? *)
+
 Require Import Bvector.
 Require Import DecBool.
 Require Import Bool.
