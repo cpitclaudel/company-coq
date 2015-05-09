@@ -260,7 +260,7 @@ This is mostly useful of company-coq-dynamic-autocompletion is nil.")
 (defconst company-coq-all-symbols-cmd "SearchPattern _"
   "Command used to list all symbols.")
 
-(defconst company-coq-all-tactics-cmd "Print Ltacs"
+(defconst company-coq-all-ltacs-cmd "Print Ltacs"
   "Command used to list all tactics.")
 
 (defvar company-coq-extra-symbols-cmd nil
@@ -637,7 +637,7 @@ line if empty). Calls `indent-region' on the inserted lines."
       (cons answer (company-coq-read-and-delete (concat fname ".out"))))))
 
 (defun company-coq-get-symbols ()
-  "Load symbols by issuing command company-coq-all-symbols-cmd and parsing the results. Do not call if proof process is busy."
+  "Load symbols by issuing command `company-coq-all-symbols-cmd' and parsing the results. Do not call if proof process is busy."
   (with-temp-message "company-coq: Loading symbols..."
     (let* ((start-time     (current-time))
            (_              (mapc #'company-coq-ask-prover company-coq-all-symbols-prelude))
@@ -651,12 +651,12 @@ line if empty). Calls `indent-region' on the inserted lines."
                (length names) (length lines) (float-time (time-subtract half-time start-time)) (float-time (time-since half-time)))
       names)))
 
-(defun company-coq-get-tactics ()
-  "Load symbols by issuing command company-coq-all-symbols-cmd and parsing the results. Do not call if proof process is busy."
+(defun company-coq-get-ltacs ()
+  "Load ltacs by issuing command `company-coq-all-ltacs-cmd' and parsing the results. Do not call if proof process is busy."
   (let* ((start-time     (current-time))
-         (output         (cdr (company-coq-ask-prover-redirect company-coq-all-tactics-cmd)))
+         (output         (cdr (company-coq-ask-prover-redirect company-coq-all-ltacs-cmd)))
          (lines          (company-coq-split-wrapped-lines output t))
-         (tactics        (mapcar #'company-coq-parse-dynamic-db-entry lines)))
+         (tactics        (mapcar #'company-coq-parse-dynamic-ltacs-db-entry lines)))
     (company-coq-dbg "Loaded %d tactics in %.03f seconds"
                      (length tactics) (float-time (time-since start-time)))
     tactics))
@@ -746,7 +746,7 @@ pairs of paths in the form (LOGICAL . PHYSICAL)"
          (mapcar #'company-coq-value-or-nil ;; Don't fail when PG is missing
                  '(coq-tactics-db coq-solve-tactics-db coq-solve-cheat-tactics-db coq-tacticals-db coq-commands-db))))
 
-(defun company-coq-get-own-keywords-db ()
+(defun company-coq-get-man-keywords-db ()
   company-coq-abbrevs)
 
 (defun company-coq-normalize-abbrev (kwd)
@@ -766,21 +766,21 @@ pairs of paths in the form (LOGICAL . PHYSICAL)"
                 'insert-fun insert-fun
                 'stripped (company-coq-normalize-abbrev insert)))) ;; TODO: Remove inter-word spaces
 
-(defun company-coq-parse-own-db-entry (abbrev-and-anchor)
+(defun company-coq-parse-man-db-entry (abbrev-and-anchor)
   (let ((abbrev (car abbrev-and-anchor))
         (anchor (cdr abbrev-and-anchor)))
     (propertize abbrev
-                'source 'own
+                'source 'man
                 'anchor anchor
                 'insert abbrev
                 'stripped (company-coq-normalize-abbrev abbrev))))
 
-(defun company-coq-parse-dynamic-db-entry (line)
+(defun company-coq-parse-dynamic-ltacs-db-entry (line)
   "Prepare a proper completion entry from one line of output of
-`company-coq-all-tactics-cmd'."
+`company-coq-all-ltacs-cmd'."
   (let ((abbrev (replace-regexp-in-string " \\(\\S-+\\)" " @{\\1}" line)))
     (propertize abbrev
-                'source 'dynamic 'insert abbrev
+                'source 'ltac 'insert abbrev
                 'stripped (company-coq-normalize-abbrev abbrev))))
 
 (defun company-coq-parse-custom-db-entry (abbrev)
@@ -847,12 +847,12 @@ pairs of paths in the form (LOGICAL . PHYSICAL)"
   (let ((pg-keywords     (remove nil (mapcar (lambda (db-entry)
                                                (apply 'company-coq-parse-keywords-pg-entry db-entry))
                                              (company-coq-get-pg-keywords-db))))
-        (own-keywords    (company-coq-number
-                          (mapcar #'company-coq-parse-own-db-entry (company-coq-get-own-keywords-db))))
+        (man-keywords    (company-coq-number
+                          (mapcar #'company-coq-parse-man-db-entry (company-coq-get-man-keywords-db))))
         (custom-keywords (mapcar #'company-coq-parse-custom-db-entry company-coq-custom-snippets)))
     (company-coq-union-nosort
      #'company-coq-abbrev-equal #'string-lessp #'company-coq-read-normalized-abbrev
-     custom-keywords own-keywords pg-keywords)))
+     custom-keywords man-keywords pg-keywords)))
 
 (defun company-coq-force-reload-keywords ()
   (company-coq-dbg "company-coq-force-reload-keywords: Called")
@@ -891,7 +891,7 @@ pairs of paths in the form (LOGICAL . PHYSICAL)"
     (company-coq-string-lessp-foldcase str1 str2)))
 
 (defun company-coq-string-lessp-keywords (str1 str2)
-  ;; Rank 'custom first (before 'own)
+  ;; Rank 'custom first (before 'man)
   (company-coq-attr-lessp 'source str1 str2 eq 'custom
     ;; Rank lowercase (tactics) before uppercase (vernacs)
     (company-coq-bool-lessp-fallback (company-coq-is-lower str1) (company-coq-is-lower str2)
@@ -1634,8 +1634,9 @@ output size is cached in `company-coq-last-search-scan-size'."
 
 ;; (company-coq-dabbrev-to-yas-with-choices "Typeclasses eauto := @{dfs|bfs} @{depth}.")
 
-(defconst company-coq-abbrevs-transforms-alist '((own     . company-coq-dabbrev-to-yas-with-choices)
-                                                 (dynamic . company-coq-dabbrev-to-yas)
+(defconst company-coq-abbrevs-transforms-alist '((man  . company-coq-dabbrev-to-yas-with-choices)
+                                                 (ltac . company-coq-dabbrev-to-yas)
+                                                 (tacn . company-coq-dabbrev-to-yas)
                                                  (pg      . company-coq-dabbrev-to-yas)))
 
 (defun company-coq-abbrev-to-yas (abbrev source)
