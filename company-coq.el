@@ -2203,8 +2203,11 @@ to locate lines starting with \"^!!!\"."
           (occur regexp))
       (error "*coq* buffer not found"))))
 
-(defun company-coq-launching-prover ()
-  (company-coq-dbg "company-coq-launching-prover")
+(defun company-coq-prover-init ()
+  "This function runs every time a new instance of the prover
+starts. It does basic capability detection, and records known
+tactic notations, thus ensuring that they are ignored in
+subsequent invocations."
   (setq company-coq-needs-capability-detection t))
 
 ;;;###autoload
@@ -2226,7 +2229,7 @@ if it is already open."
 
 (defun company-coq-setup-hooks () ;; NOTE: This could be made callable at the beginning of every completion.
   ;; PG hooks
-  (add-hook 'proof-activate-scripting-hook #'company-coq-launching-prover)
+  (add-hook 'proof-shell-init-hook #'company-coq-prover-init)
   (add-hook 'proof-state-change-hook #'company-coq-state-change)
   (add-hook 'proof-shell-insert-hook #'company-coq-maybe-proof-input-reload-things)
   (add-hook 'proof-shell-handle-delayed-output-hook #'company-coq-maybe-proof-output-reload-things)
@@ -2354,10 +2357,11 @@ if it is already open."
   (company-coq-setup-keybindings))
 
 (defun company-coq-unload-function ()
-  (when (featurep 'company-coq-abbrev)
-    (unload-feature 'company-coq-abbrev t))
+  (cl-loop for feature in '(company-coq-abbrev company-coq-tg company-coq-tg-data)
+           when (featurep feature)
+           do (unload-feature feature t))
 
-  (remove-hook 'proof-activate-scripting-hook #'company-coq-launching-prover)
+  (remove-hook 'proof-shell-init-hook #'company-coq-prover-init)
   (remove-hook 'proof-shell-insert-hook #'company-coq-maybe-proof-input-reload-things)
   (remove-hook 'proof-shell-handle-delayed-output-hook #'company-coq-maybe-proof-output-reload-things)
   (remove-hook 'proof-shell-handle-error-or-interrupt-hook #'company-coq-maybe-reload-context)
