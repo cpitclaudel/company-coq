@@ -67,6 +67,7 @@
 (require 'diff-mode)    ;; Browsing through large error messages
 
 (require 'company-coq-abbrev)
+(require 'company-coq-tg)
 
 (unless (require 'proof-site nil t)
   (message "company-coq: Unable to load proof-site. Is ProofGeneral installed, and did you add it to your load-path?"))
@@ -157,6 +158,10 @@ same prefix."
 
 (defvar company-coq-tactics-reload-needed nil
   "Indicates whether a reload of all tactics might be needed. This variable is
+  set from places where immediate reloading is impossible, for example in proof-shell-insert-hook")
+
+(defvar company-coq-notations-reload-needed nil
+  "Indicates whether a reload of all tactic notations might be needed. This variable is
   set from places where immediate reloading is impossible, for example in proof-shell-insert-hook")
 
 (defvar company-coq-modules-reload-needed nil
@@ -263,6 +268,9 @@ This is mostly useful of company-coq-dynamic-autocompletion is nil.")
 (defconst company-coq-all-ltacs-cmd "Print Ltacs"
   "Command used to list all tactics.")
 
+(defconst company-coq-all-notations-cmd "Print Grammar tactic"
+  "Command used to list all tactic notations.")
+
 (defvar company-coq-extra-symbols-cmd nil
   "Command used to list more symbols ([SearchPattern _] doesn't search inside modules in 8.4).")
 
@@ -330,6 +338,9 @@ about shorter names, and other matches")
 
 (defconst company-coq-import-regexp (regexp-opt '("From" "Require" "Import" "Export"))
   "Regexp used to detect signs that new definitions will be added to the context")
+
+(defconst company-coq-tac-notation-regexp (regexp-opt '("Tactic Notation"))
+  "Regexp used to detect signs that a tactic notation will be added to the context")
 
 (defconst company-coq-load-regexp "\\(LoadPath\\)"
   "Regexp used to detect signs that new paths will be added to the load path")
@@ -661,6 +672,31 @@ line if empty). Calls `indent-region' on the inserted lines."
                      (length tactics) (float-time (time-since start-time)))
     tactics))
 
+(defun company-coq-get-all-notations ()
+   "Load all tactic notations by parsing the output of
+`company-coq-all-notations-cmd'. Do not call if proof process is
+busy."
+   (let ((output (company-coq-ask-prover-swallow-errors company-coq-all-notations-cmd)))
+     (and output (company-coq-tg--extract-notations output))))
+
+(defun company-coq-get-notations ()
+  "Load tactic notations, filtering out notations listed in
+`company-coq-tg--useless'. Initialization of that variable
+is done at init. If this fails, the first sucessful call to this
+function will set the ignore list and return nil. Do not call if
+proof process is busy."
+  (let ((tactics (company-coq-get-all-notations)))
+    (unless company-coq-tg--useless ;; Fallback if initialization failed
+      (setq company-coq-tg--useless (company-coq--list-to-table tactics)))
+    (mapcar #'company-coq-parse-dynamic-notations-db-entry
+            (company-coq--filter-using-table tactics company-coq-tg--useless))))
+
+(defun company-coq-get-tactics ()
+  (append (company-coq-get-ltacs) (company-coq-get-notations)))
+
+(defun company-coq-initialize-notations-filter ()
+  (setq company-coq-tg--useless (company-coq--list-to-table (company-coq-get-all-notations))))
+
 (defun company-coq-force-reload-symbols ()
   (when company-coq--has-dynamic-completion
     (company-coq-force-reload-with-prover
@@ -782,6 +818,13 @@ pairs of paths in the form (LOGICAL . PHYSICAL)"
     (propertize abbrev
                 'source 'ltac 'insert abbrev
                 'stripped (company-coq-normalize-abbrev abbrev))))
+
+;; TODO this should be in tg
+(defun company-coq-parse-dynamic-notations-db-entry (tactic)
+  "Annotate a tactic notation'."
+  (propertize tactic
+              'source 'tacn 'insert tactic
+              'stripped (company-coq-normalize-abbrev tactic)))
 
 (defun company-coq-parse-custom-db-entry (abbrev)
   (propertize abbrev
@@ -1177,13 +1220,14 @@ if output mentions new symbol, then calls
   (unless company-coq-asking-question
     (let* ((is-advancing  (company-coq-boundp-equal 'action 'proof-done-advancing))
            (is-retracting (company-coq-boundp-equal 'action 'proof-done-retracting))
+           (is-tac-not    (and is-advancing (company-coq-boundp-string-match company-coq-tac-notation-regexp 'string)))
            (is-import     (and is-advancing (company-coq-boundp-string-match company-coq-import-regexp 'string)))
            (is-load       (and is-advancing (company-coq-boundp-string-match company-coq-load-regexp   'string))))
       (when is-retracting (company-coq-dbg "company-coq-maybe-proof-input-reload-things: Rewinding"))
       (when is-import     (company-coq-dbg "company-coq-maybe-proof-input-reload-things: New import"))
       (when is-load       (company-coq-dbg "company-coq-maybe-proof-input-reload-things: Touching load path"))
       (setq company-coq-symbols-reload-needed (or company-coq-symbols-reload-needed is-import)) ;; is-retracting
-      (setq company-coq-tactics-reload-needed (or company-coq-tactics-reload-needed is-import))
+      (setq company-coq-tactics-reload-needed (or company-coq-tactics-reload-needed is-import is-tac-not))
       (setq company-coq-modules-reload-needed (or company-coq-modules-reload-needed is-import is-load))
       (when is-retracting (company-coq-maybe-reload-context t)))))
 
@@ -1433,6 +1477,9 @@ fully qualified name of NAME."
 (defun company-coq-annotation-context (_)
   "<h>")
 
+(defun company-coq-annotation-tactic (arg)
+  (concat "<" (or (symbol-name (get-text-property 0 'source arg)) "") ">"))
+
 (defun company-coq-doc-buffer-collect-outputs (name templates)
   (cl-loop for template in templates
            for cmd = (format template name)
@@ -1637,7 +1684,7 @@ output size is cached in `company-coq-last-search-scan-size'."
 (defconst company-coq-abbrevs-transforms-alist '((man  . company-coq-dabbrev-to-yas-with-choices)
                                                  (ltac . company-coq-dabbrev-to-yas)
                                                  (tacn . company-coq-dabbrev-to-yas)
-                                                 (pg      . company-coq-dabbrev-to-yas)))
+                                                 (pg   . company-coq-dabbrev-to-yas)))
 
 (defun company-coq-abbrev-to-yas (abbrev source)
   (company-coq-dbg "company-coq-abbrev-to-yas: Transforming %s" abbrev)
@@ -1798,7 +1845,7 @@ definitions."
     (`meta (company-coq-meta-keyword arg))
     (`no-cache t)
     (`match (company-coq-match arg))
-    (`annotation "<ltac>")
+    (`annotation (company-coq-annotation-tactic arg))
     (`location (company-coq-location-tactics arg))
     (`post-completion (company-coq-post-completion-keyword arg))
     (`doc-buffer (company-coq-doc-buffer-tactics arg))
@@ -2208,7 +2255,11 @@ to locate lines starting with \"^!!!\"."
 starts. It does basic capability detection, and records known
 tactic notations, thus ensuring that they are ignored in
 subsequent invocations."
-  (setq company-coq-needs-capability-detection t))
+  (setq company-coq-needs-capability-detection t)
+  (when (proof-shell-available-p)
+    (company-coq-dbg "Doing early capability detection and filter initialization")
+    (company-coq-detect-capabilities)
+    (company-coq-initialize-notations-filter)))
 
 ;;;###autoload
 (defun company-coq-tutorial ()
@@ -2357,7 +2408,7 @@ if it is already open."
   (company-coq-setup-keybindings))
 
 (defun company-coq-unload-function ()
-  (cl-loop for feature in '(company-coq-abbrev company-coq-tg company-coq-tg-data)
+  (cl-loop for feature in '(company-coq-abbrev company-coq-tg)
            when (featurep feature)
            do (unload-feature feature t))
 
