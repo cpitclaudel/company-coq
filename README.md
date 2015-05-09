@@ -119,9 +119,11 @@ most advanced features require a patched version of coqtop.
 
 <img src="img/symbol-completion-doc.png" alt="Auto-completion of symbol names with type annotations" />
 
-### Auto-completion of user-defined tactics (w/ patched `coqtop`)
+### Auto-completion of user-defined tactics and tactic notations (w/ patched `coqtop`)
 
 <img src="img/ltac-completion.png" alt="Auto-completion of user-defined tactics" />
+
+<img src="img/tactic-notation-completion.png" alt="Auto-completion of user-defined tactic notations" />
 
 ### Source view (with patched `coqtop`)
 
