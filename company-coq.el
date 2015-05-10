@@ -203,13 +203,11 @@ same prefix."
 required for proper completion: [Redirect]ion to a file, and [Search Output
 Name Only].")
 
-(defconst company-coq-id-regexp      "[a-zA-Z0-9_][a-zA-Z0-9_']*")
+(defconst company-coq-id-regexp            "\\(?:[a-zA-Z0-9_][a-zA-Z0-9_']*\\)")
+(defconst company-coq-prefix-regexp        "\\(?:[a-zA-Z0-9_][a-zA-Z0-9_.'!]*\\)?") ;; '!' included for patterns like [intros!]
+(defconst company-coq-symbol-regexp        "\\(?:[a-zA-Z0-9_]\\(?:[a-zA-Z0-9_.']*[a-zA-Z0-9_.']\\)?\\)")
 
-(defconst company-coq-rich-id-regexp "[a-zA-Z0-9_][a-zA-Z0-9_.']*")
-
-(defconst company-coq-prefix-regexp  "\\(?:[a-zA-Z0-9_][a-zA-Z0-9_.'!]*\\)?") ;; '!' included so that patterns like [intros!] work
-
-(defconst company-coq-all-symbols-slow-regexp (concat "^\\(" company-coq-rich-id-regexp "\\):")
+(defconst company-coq-all-symbols-slow-regexp (concat "^\\(" company-coq-symbol-regexp "\\):")
   "Regexp used to filter out lines without symbols in output of SearchPattern")
 
 (defconst company-coq-goals-hyp-regexp (concat "\\`  \\(" company-coq-id-regexp "\\) : \\(.*\\)\\'")
@@ -300,7 +298,7 @@ This is mostly useful of company-coq-dynamic-autocompletion is nil.")
 in 8.4, not in 8.5.")
 
 (defconst company-coq-locate-output-format (concat "\\`" (regexp-opt (cons "Constant" company-coq-defuns-kwds)) "\\> +"
-                                                   "\\(" company-coq-rich-id-regexp "\\)")
+                                                   "\\(" company-coq-symbol-regexp "\\)")
   "Output of `company-coq-locate-tactic-cmd' and `company-coq-locate-symbol-cmd'; it can contain details
 about shorter names, and other matches")
 
@@ -312,9 +310,6 @@ about shorter names, and other matches")
 
 (defconst company-coq-compiled-regexp "\\.vi?o\\'"
   "Regexp matching the extension of compiled Coq files.")
-
-(defconst company-coq-symbol-regexp company-coq-rich-id-regexp
-  "Regexp used to find symbol at point")
 
 (defconst company-coq-end-of-def-regexp "\\(is\\|are\\) \\(recursively \\)?\\(defined\\|assumed\\)"
   "Regexp used to detect signs that new definitions have been added to the context")
@@ -543,6 +538,14 @@ dependent]).")
     (let ((unwrapped (replace-regexp-in-string "\n +" " " str)))
       (company-coq-split-lines unwrapped omit-nulls))))
 
+(defun company-coq-looking-back (regexp limit)
+  "A greedier version of `looking-back`"
+  (save-excursion
+    (save-restriction
+      (narrow-to-region limit (point))
+      (goto-char limit)
+      (re-search-forward (concat "\\(?:" regexp "\\)\\'") nil t))))
+
 (defun company-coq-join-lines (lines sep &optional trans)
   (if lines (mapconcat (or trans 'identity) lines sep)))
 
@@ -740,14 +743,15 @@ proof process is busy."
             (company-coq-find-all company-coq-defuns-regexp (point-min) (point-at-bol))))))
 
 (defun company-coq-line-is-import-p ()
-  (save-excursion
-    (let* ((bol           (point-at-bol))
+  (save-excursion ;; FIXME Multi line imports
+    (let* ((limit         (point))
+           (bol           (point-at-bol))
            (command-begin (or (search-backward ". " bol t) bol)))
       (goto-char command-begin)
-      (looking-at (concat " *" company-coq-import-regexp " *")))))
+      (re-search-forward company-coq-import-regexp limit t))))
 
 (defun company-coq-line-is-block-end-p ()
-  (looking-back company-coq-block-end-regexp (point-at-bol)))
+  (company-coq-looking-back company-coq-block-end-regexp (point-at-bol)))
 
 (defun company-coq-parse-path-specs (loadpath-output)
   "Parse output of `company-coq-modules-cmd'. Output is a list of
@@ -1257,15 +1261,17 @@ if output mentions new symbol, then calls
   ;; FIXME: Should not return nil at the beginning of a hole
   (unless (and (char-after) (memq (char-syntax (char-after)) '(?w ?_)))
     (save-excursion ;; TODO could be optimized
-      (when (looking-back company-coq-prefix-regexp (point-at-bol) t)
+      (when (company-coq-looking-back company-coq-prefix-regexp (point-at-bol))
         (match-string-no-properties 0)))))
 
 (defun company-coq-symbol-at-point () ;; FIXME could use (coq-id-or-notation-at-point)
-  (let ((before (and (looking-back company-coq-symbol-regexp (point-at-bol) t)
-                     (match-string-no-properties 0)))
-        (after  (and (looking-at company-coq-symbol-regexp)
-                     (match-string-no-properties 0))))
-    (and before after (replace-regexp-in-string "\\`[\\.]*\\(.+?\\)[\\.]*\\'" "\\1" (concat before after)))))
+  (let* ((start  (and (company-coq-looking-back company-coq-prefix-regexp (point-at-bol))
+                      (match-beginning 0)))
+         (symbol (and start (save-excursion
+                              (goto-char start)
+                              (when (looking-at company-coq-symbol-regexp)
+                                (match-string-no-properties 0))))))
+    symbol))
 
 (defun company-coq-prefix-simple ()
   (interactive)
