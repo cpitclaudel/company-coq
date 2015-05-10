@@ -223,19 +223,46 @@ Technical note: Proof-General [also offers](http://proofgeneral.inf.ed.ac.uk/htm
 For font beautification to work properly, you'll need a font with proper symbol support. DejaVu Sans Mono, Symbola, FreeMono, STIX, Unifont, Segoe UI Symbol, Arial Unicode and Cambria Math do. If Emacs doesn't fallback properly, you can use the following snippet:
 
 ```elisp
-(set-fontset-font "fontset-default" 'unicode (font-spec :name "Symbola") nil)
+(set-fontset-font t 'unicode (font-spec :name "Symbola") nil 'append)
 ```
 
 ### Registering your own symbols and math operators
 
-Adjust and use the following snippet to register your own keywords to prettify:
+Adjust and use the following snippet to register your own keywords. This needs be called before `(company-coq-initialize)`, so the code needs to be added after the code listed above.
 
 ```elisp
 (add-hook 'coq-mode-hook
           (lambda ()
-            (setq-local prettify-symbols-alist
+            (set (make-local-variable 'prettify-symbols-alist)
                         '((":=" . ?≜) ("Proof." . ?∵) ("Qed." . ?■)
-                          ("Defined." . ?□) ("Time" . ?⏱)))))
+                   ("Defined." . ?□) ("Time" . ?⏱) ("Admitted." . ?😱)))))
+```
+
+Greek symbols can be obtained using the following mappings:
+
+```elisp
+'(("Alpha" . ?Α) ("Beta" . ?Β) ("Gamma" . ?Γ)
+  ("Delta" . ?Δ) ("Epsilon" . ?Ε) ("Zeta" . ?Ζ)
+  ("Eta" . ?Η) ("Theta" . ?Θ) ("Iota" . ?Ι)
+  ("Kappa" . ?Κ) ("Lambda" . ?Λ) ("Mu" . ?Μ)
+  ("Nu" . ?Ν) ("Xi" . ?Ξ) ("Omicron" . ?Ο)
+  ("Pi" . ?Π) ("Rho" . ?Ρ) ("Sigma" . ?Σ)
+  ("Tau" . ?Τ) ("Upsilon" . ?Υ) ("Phi" . ?Φ)
+  ("Chi" . ?Χ) ("Psi" . ?Ψ) ("Omega" . ?Ω)
+  ("alpha" . ?α) ("beta" . ?β) ("gamma" . ?γ)
+  ("delta" . ?δ) ("epsilon" . ?ε) ("zeta" . ?ζ)
+  ("eta" . ?η) ("theta" . ?θ) ("iota" . ?ι)
+  ("kappa" . ?κ) ("lambda" . ?λ) ("mu" . ?μ)
+  ("nu" . ?ν) ("xi" . ?ξ) ("omicron" . ?ο)
+  ("pi" . ?π) ("rho" . ?ρ) ("sigma" . ?σ)
+  ("tau" . ?τ) ("upsilon" . ?υ) ("phi" . ?φ)
+  ("chi" . ?χ) ("psi" . ?ψ) ("omega" . ?ω))
+```
+
+in which case you may want to use a custom font for Greek characters:
+
+```
+  (set-fontset-font t 'greek (font-spec :name "DejaVu Sans Mono") nil)
 ```
 
 ### Autocompleting symbols and tactics defined externally
