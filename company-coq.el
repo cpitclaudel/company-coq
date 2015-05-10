@@ -1279,12 +1279,6 @@ if output mentions new symbol, then calls
   (when (company-coq-in-coq-mode)
     (company-coq-grab-prefix)))
 
-(defun company-coq-prefix-block-end ()
-  (interactive)
-  (company-coq-dbg "company-coq-prefix-block-end: Called")
-  (when (company-coq-line-is-block-end-p)
-    (company-coq-prefix-simple)))
-
 (defun company-coq-trim (str)
   (replace-regexp-in-string "\\` *" "" (replace-regexp-in-string " *\\'" "" str)))
 
@@ -1640,7 +1634,7 @@ fully qualified name of NAME."
 (defun company-coq-candidates-block-end (prefix)
   "Find the closest section/chapter/... opening, if it matches the prefix at point"
   (interactive)
-  (when (and prefix (boundp 'show-paren-data-function) (functionp show-paren-data-function))
+  (when (and prefix (company-coq-line-is-block-end-p) (boundp 'show-paren-data-function) (functionp show-paren-data-function))
     (save-excursion
       ;; Find matching delimiter
       (when (re-search-backward company-coq-block-end-regexp)
@@ -1961,7 +1955,7 @@ definitions."
   (company-coq-dbg "section end backend: called with command %s" command)
   (pcase command
     (`interactive (company-begin-backend 'company-coq-block-end))
-    (`prefix (company-coq-prefix-block-end))
+    (`prefix (company-coq-prefix-simple))
     (`candidates (company-coq-candidates-block-end arg))
     (`sorted t)
     (`duplicates nil)
