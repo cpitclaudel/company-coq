@@ -1370,17 +1370,20 @@ inside a comment, at the beginning of the comment."
                    (point))))
         0)))
 
-(defun company-coq-location-simple (name &optional target)
+(defun company-coq-location-simple (name &optional target interactive)
   (company-coq-dbg "company-coq-location-simple: Called for name %s" name)
   (let* ((fname-or-buffer (get-text-property 0 'location name))
          (is-buffer       (and fname-or-buffer (bufferp fname-or-buffer)))
          (is-fname        (and fname-or-buffer (stringp fname-or-buffer) (file-exists-p fname-or-buffer))))
-    (when (or is-buffer is-fname)
+    (if (or is-buffer is-fname)
       (company-coq-with-clean-doc-buffer
         (cond (is-buffer (insert-buffer-substring fname-or-buffer))
               (is-fname  (insert-file-contents fname-or-buffer nil nil nil t)))
         (company-coq-setup-temp-coq-buffer)
-        (cons (current-buffer) (company-coq-search-then-scroll-up target))))))
+        (cons (current-buffer)
+              (set-window-start nil (goto-char (company-coq-search-then-scroll-up target)))))
+      (when interactive
+        (error "No location found for %s" name)))))
 
 (defun company-coq-longest-matching-path-spec (qname)
   "Finds the longest matching logical name, and returns the
