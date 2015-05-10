@@ -66,8 +66,8 @@
 (require 'smie)         ;; Move around the source code
 (require 'diff-mode)    ;; Browsing through large error messages
 
-(require 'company-coq-abbrev)
-(require 'company-coq-tg)
+(require 'company-coq-abbrev) ;; Tactics from the manual
+(require 'company-coq-tg)     ;; Parsing code for tactic notations
 
 (unless (require 'proof-site nil t)
   (message "company-coq: Unable to load proof-site. Is ProofGeneral installed, and did you add it to your load-path?"))
