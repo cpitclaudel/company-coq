@@ -43,13 +43,15 @@ most advanced features require a patched version of coqtop.
 
 * Automatic [highlighting](img/deprecated.png) of deprecated forms (`assert (_ := _)`, `SearchAbout`, etc.).
 
+* Limited form of source view for same-buffer definitions, or using `company-coq-location-defun` (needs `.v` files).
+
 ### Advanced features
 
 (These require a [patched](https://github.com/coq/coq/pull/56) [version](https://github.com/coq/coq/pull/64) of `coqtop`)
 
-* Auto-completion of all known [types and theorems](img/symbol-completion.png) with [annotations](img/symbol-completion-doc.png), and of all [user-defined tactics](ltac-completion.png)
+* Auto-completion of all known [types and theorems](img/symbol-completion.png) with [annotations](img/symbol-completion-doc.png), and of all [user-defined tactics](ltac-completion.png) and [tactic notations](img/tactic-notation-completion.png).
 
-* [Source view](img/source-view.png) for auto-completed symbols and [tactics](img/source-view-ltac.png) (requires `.v` files).
+* [Source view](img/source-view.png) for auto-completed symbols and [user-defined tactics](img/source-view-ltac.png) (needs `.v` files). Works to a limited with an unpatched `coqtop`.
 
 ## Screenshots
 
@@ -234,7 +236,7 @@ Adjust and use the following snippet to register your own keywords. This needs b
 (add-hook 'coq-mode-hook
           (lambda ()
             (set (make-local-variable 'prettify-symbols-alist)
-                        '((":=" . ?≜) ("Proof." . ?∵) ("Qed." . ?■)
+                 '((":=" . ?≜) ("Proof." . ?∵) ("Qed." . ?■)
                    ("Defined." . ?□) ("Time" . ?⏱) ("Admitted." . ?😱)))))
 ```
 
