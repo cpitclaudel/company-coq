@@ -439,17 +439,23 @@ dependent]).")
                                                     (regexp-opt company-coq-deprecated-options) "\\)")
   "Regexp to spot uses of deprecated options.")
 
+(defconst company-coq-deprecated-vernacs-re (concat "\\(?1:" (regexp-opt '("Include Type"
+                                                                           "Arguments Scope"
+                                                                           "Implicit Arguments")) "\\)")
+  "Regexp to spot uses of deprecated vernacs.")
+
 (defconst company-coq-deprecated-man-re
   (mapconcat (lambda (x) (concat "\\(?:\\<" x "\\)"))
              '("\\(?1:assert\\) (.* := .*)" "\\(?1:double induction\\)"
                "\\(?1:appcontext\\>\\)[ a-zA-Z]*\\[" "\\(?1:cutrewrite\\) \\(?:<-\\|->\\)"
                "\\(?1:Backtrack [[:digit:]]+ [[:digit:]]+ [[:digit:]]+\\)" "\\(?1:SearchAbout\\>\\)"
                "\\(?1:Save\\>\\(?: \\(?:Lemma\\|Theorem\\|Remark\\|Fact\\|Corollary\\|Proposition\\)\\>\\)?\\)"
-               "\\(?1:absurd_hyp\\>\\) [A-Za-z]+")
+               "\\(?1:absurd_hyp\\>\\) [A-Za-z]")
              "\\|"))
 
 (defconst company-coq-deprecated-re (concat "^[[:blank:]]*"
                                             "\\(?:" company-coq-deprecated-options-re "\\)\\|"
+                                            "\\(?:" company-coq-deprecated-vernacs-re "\\)\\|"
                                             "\\(?:" company-coq-deprecated-man-re "\\)")
   "Deprecated forms.")
 
