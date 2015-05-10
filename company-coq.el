@@ -1426,14 +1426,14 @@ such a case, try [Locate Library Peano] in 8.4pl3)."
                           (replace-regexp-in-string "\\.vi?o\\'" ".v" (match-string-no-properties 2 output)))))
           (and fallback-spec (expand-file-name (concat mod-name ".v") (cdr fallback-spec)))))))
 
-(defun company-coq-location-source (name locate-cmds)
+(defun company-coq-location-source (name locate-cmds &optional interactive)
   "Shows the definition of NAME in its surrounding source
 context. LOCATE-CMDS is a list of queries to use to guess the
 fully qualified name of NAME."
-  (company-coq-dbg "company-coq-location-symbol: Called for [%s]" name)
+  (company-coq-dbg "company-coq-location-source: Called for [%s]" name)
   (let* ((qname (company-coq-fully-qualified-name name locate-cmds)))
-    (when qname
-      (company-coq-dbg "company-coq-location-symbol: qname is [%s]" qname)
+    (company-coq-dbg "company-coq-location-source: qname is [%s]" qname)
+    (if qname
       (let* ((spec       (company-coq-longest-matching-path-spec qname))
              (logical    (if spec (concat (car spec) ".") ""))
              (short-name (replace-regexp-in-string "\\`.*\\." "" qname))
@@ -1441,18 +1441,35 @@ fully qualified name of NAME."
              (fname      (company-coq-library-path logical mod-name spec))
              (target     (concat (company-coq-make-headers-regexp company-coq-named-outline-kwds)
                                  "\\s-*" (regexp-quote short-name) "\\>")))
-        (company-coq-location-simple (propertize name 'location fname) target)))))
+        (company-coq-location-simple (propertize name 'location fname) target interactive))
+      (when interactive (error "No location found for %s" name)))))
 
-(defun company-coq-location-symbols (name)
-  (company-coq-location-source name (list company-coq-locate-symbol-cmd)))
+(defvar company-coq-location-history nil
+  "Keeps track of manual location queries")
 
-(defun company-coq-location-tactics (name)
+(defun company-coq-location-interact (dynamic-pool)
+  (let ((completions (apply #'append
+                            (and company-coq-autocomplete-symbols (company-coq-init-defuns))
+                            (and company-coq--has-dynamic-completion dynamic-pool))))
+    (list (completing-read "Name to find sources for? " completions
+                           (lambda (choice) (not (eq (get-text-property 0 'source choice) 'tacn)))
+                           nil nil 'company-coq-location-history (company-coq-symbol-at-point) t)
+          t)))
+
+(defun company-coq-location-symbol (name &optional interactive)
+  (interactive (company-coq-location-interact (list company-coq-dynamic-symbols)))
+  (company-coq-location-source name (list company-coq-locate-symbol-cmd) interactive))
+
+(defun company-coq-location-tactic (name &optional interactive)
+  (interactive (company-coq-location-interact (list company-coq-dynamic-tactics)))
   (setq name (replace-regexp-in-string " .*" "" name))
-  (company-coq-location-source name (list company-coq-locate-tactic-cmd)))
+  (company-coq-location-source name (list company-coq-locate-tactic-cmd) interactive))
 
-(defun company-coq-location-defuns (name)
+(defun company-coq-location-defun (name &optional interactive)
+  (interactive (company-coq-location-interact (list company-coq-dynamic-symbols company-coq-dynamic-tactics)))
   (company-coq-location-source name (list company-coq-locate-symbol-cmd
-                                          company-coq-locate-tactic-cmd)))
+                                          company-coq-locate-tactic-cmd)
+                               interactive))
 
 (defun company-coq-make-title-line (face &optional skip-space)
   (let* ((start   (save-excursion (goto-char (point-at-bol))
@@ -1507,16 +1524,16 @@ fully qualified name of NAME."
           (company-coq-make-title-line 'company-coq-doc-header-face-docs)
           (current-buffer))))))
 
-(defun company-coq-doc-buffer-symbols (name)
+(defun company-coq-doc-buffer-symbol (name)
   (company-coq-doc-buffer-generic name (list company-coq-doc-cmd
                                              company-coq-def-cmd)))
 
-(defun company-coq-doc-buffer-defuns (name)
+(defun company-coq-doc-buffer-defun (name)
   (company-coq-doc-buffer-generic name (list company-coq-doc-cmd
                                              company-coq-def-cmd
                                              company-coq-tactic-def-cmd)))
 
-(defun company-coq-doc-buffer-tactics (name)
+(defun company-coq-doc-buffer-tactic (name)
   (setq name (replace-regexp-in-string " .*" "" name))
   (company-coq-doc-buffer-generic name (list company-coq-tactic-def-cmd)))
 
@@ -1831,8 +1848,8 @@ definitions."
     (`no-cache t)
     (`match (company-coq-match arg))
     (`annotation "<symb>")
-    (`location (company-coq-location-symbols arg))
-    (`doc-buffer (company-coq-doc-buffer-symbols arg))
+    (`location (company-coq-location-symbol arg))
+    (`doc-buffer (company-coq-doc-buffer-symbol arg))
     (`comparison-fun #'company-coq-string-lessp-match-beginning)
     (`require-match 'never)))
 
@@ -1851,9 +1868,9 @@ definitions."
     (`no-cache t)
     (`match (company-coq-match arg))
     (`annotation (company-coq-annotation-tactic arg))
-    (`location (company-coq-location-tactics arg))
+    (`location (company-coq-location-tactic arg))
     (`post-completion (company-coq-post-completion-keyword arg))
-    (`doc-buffer (company-coq-doc-buffer-tactics arg))
+    (`doc-buffer (company-coq-doc-buffer-tactic arg))
     (`comparison-fun #'company-coq-string-lessp-match-beginning)
     (`require-match 'never)))
 
@@ -1872,8 +1889,8 @@ definitions."
     (`no-cache t)
     (`match (company-coq-match arg))
     (`annotation "<lsymb>")
-    (`location (company-coq-location-defuns arg))
-    (`doc-buffer (company-coq-doc-buffer-defuns arg))
+    (`location (company-coq-location-defun arg))
+    (`doc-buffer (company-coq-doc-buffer-defun arg))
     (`comparison-fun #'company-coq-string-lessp-match-beginning)
     (`require-match 'never)))
 
@@ -1973,8 +1990,8 @@ definitions."
     (`sorted t)
     (`duplicates nil)
     (`ignore-case nil)
-    (`location (company-coq-location-defuns arg))
-    (`doc-buffer (company-coq-doc-buffer-defuns arg))
+    (`location (company-coq-location-defun arg))
+    (`doc-buffer (company-coq-doc-buffer-defun arg))
     (`meta (company-coq-meta-symbol arg))
     (`no-cache t)
     (`comparison-fun #'company-coq-string-lessp-match-beginning)
