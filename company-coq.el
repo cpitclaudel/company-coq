@@ -1598,42 +1598,35 @@ fully qualified name of NAME."
 
 (defun company-coq-candidates-symbols (prefix)
   "List elements of company-coq-dynamic-symbols or company-coq-buffer-defuns containing PREFIX"
-  (interactive)
   (when (and company-coq--has-dynamic-completion (company-coq-init-symbols))
     (company-coq-complete-prefix-substring prefix company-coq-dynamic-symbols)))
 
 (defun company-coq-candidates-tactics (prefix)
   "List elements of company-coq-dynamic-symbols or company-coq-buffer-defuns containing PREFIX"
-  (interactive)
   (when (and company-coq--has-dynamic-completion (company-coq-init-tactics))
     (company-coq-complete-sub-re prefix company-coq-dynamic-tactics)))
 
 (defun company-coq-candidates-defuns (prefix)
   "List elements of `company-coq-buffer-defuns' containing PREFIX"
-  (interactive)
   (when (company-coq-init-defuns)
     (company-coq-complete-prefix-substring prefix company-coq-buffer-defuns)))
 
 (defun company-coq-candidates-keywords (prefix)
   "List elements of company-coq-known-keywords starting with PREFIX"
-  (interactive)
   (company-coq-dbg "company-coq-candidates-keywords: Called")
   (when (company-coq-init-keywords)
     (company-coq-complete-sub-re prefix company-coq-known-keywords)))
 
 (defun company-coq-candidates-context (prefix)
   "List elements of company-coq-current-context containing PREFIX"
-  (interactive)
   (company-coq-complete-prefix-substring prefix company-coq-current-context))
 
 (defun company-coq-candidates-modules (prefix)
-  (interactive)
   (when (and (company-coq-line-is-import-p) (company-coq-init-modules))
     (company-coq-complete-modules prefix)))
 
 (defun company-coq-candidates-block-end (prefix)
   "Find the closest section/chapter/... opening, if it matches the prefix at point"
-  (interactive)
   (when (and prefix (company-coq-line-is-block-end-p) (boundp 'show-paren-data-function) (functionp show-paren-data-function))
     (save-excursion
       ;; Find matching delimiter
@@ -1679,7 +1672,6 @@ output size is cached in `company-coq-last-search-scan-size'."
   (company-coq-complete-prefix-substring prefix company-coq-last-search-results))
 
 (defun company-coq-match (completion)
-  (company-coq-dbg "company-coq-match: matching %s" completion)
   (get-text-property 0 'match-end completion))
 
 (defun company-coq-dabbrev-to-yas-format-one (match)
@@ -2366,7 +2358,7 @@ if it is already open."
     (if (and comment-string-start
              (ignore-errors (save-excursion
                               (goto-char comment-string-start)
-                              (looking-at-p (regexp-quote "(** ")))))
+                              (looking-at-p (regexp-quote "(**")))))
         font-lock-doc-face
       font-lock-comment-face))))
 
