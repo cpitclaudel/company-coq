@@ -94,8 +94,8 @@
 (defun company-coq-tg--parse-toplevel (sexp)
   (pcase sexp
     (`nil nil)
-    (`(Entry ,name is ,_s ,entries . ,rest) (company-coq-tg--parse-toplevel-helper name entries rest))
-    (`(Entry ,name is ,entries     . ,rest) (company-coq-tg--parse-toplevel-helper name entries rest))
+    (`(Entry ,name is ,(and entries (pred listp))     . ,rest) (company-coq-tg--parse-toplevel-helper name entries rest))
+    (`(Entry ,name is ,_s ,(and entries (pred listp)) . ,rest) (company-coq-tg--parse-toplevel-helper name entries rest))
     (_ (error "Toplevel parsing failure [%s]" sexp))))
 
 (defun company-coq-tg--mk-placeholder (symbol sep)
