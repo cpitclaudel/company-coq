@@ -203,16 +203,16 @@ same prefix."
 required for proper completion: [Redirect]ion to a file, and [Search Output
 Name Only].")
 
-(defconst company-coq-id-regexp-base "[a-zA-Z0-9_]")
+(defconst company-coq-id-regexp      "[a-zA-Z0-9_][a-zA-Z0-9_']*")
 
-(defconst company-coq-rich-id-regexp-base "[a-zA-Z0-9_.]")
+(defconst company-coq-rich-id-regexp "[a-zA-Z0-9_][a-zA-Z0-9_.']*")
 
-(defconst company-coq-prefix-regexp-base "[a-zA-Z0-9_.!]") ;; '!' included so that patterns like [intros!] still work
+(defconst company-coq-prefix-regexp  "\\(?:[a-zA-Z0-9_][a-zA-Z0-9_.'!]*\\)?") ;; '!' included so that patterns like [intros!] work
 
-(defconst company-coq-all-symbols-slow-regexp (concat "^\\(" company-coq-rich-id-regexp-base "+\\):")
+(defconst company-coq-all-symbols-slow-regexp (concat "^\\(" company-coq-rich-id-regexp "\\):")
   "Regexp used to filter out lines without symbols in output of SearchPattern")
 
-(defconst company-coq-goals-hyp-regexp (concat "\\`  \\(" company-coq-id-regexp-base "+\\) : \\(.*\\)\\'")
+(defconst company-coq-goals-hyp-regexp (concat "\\`  \\(" company-coq-id-regexp "\\) : \\(.*\\)\\'")
   "Regexp used to find hypotheses in goals output")
 
 (defconst company-coq-goal-separator-regexp "  \\(=============================*\\)")
@@ -225,9 +225,9 @@ Name Only].")
 
 (defconst company-coq-path-regexp  (concat "\\`\\(\\S-*\\) +\\(\\S-*\\)\\'"))
 
-(defun company-coq-make-headers-regexp (headers &optional regexp-base)
+(defun company-coq-make-headers-regexp (headers &optional body)
   (concat "^[[:blank:]]*\\<\\(" (regexp-opt headers) "\\)\\>"
-          (when regexp-base (concat "\\s-*\\(" regexp-base "+\\)"))))
+          (when body (concat "\\s-*\\(" body "\\)"))))
 
 (defconst company-coq-defuns-kwds `("Class" "CoFixpoint" "CoInductive" "Corollary"
                                     "Definition" "Example" "Fact" "Fixpoint"
@@ -236,12 +236,11 @@ Name Only].")
                                     "Record" "Theorem" "with"))
 
 (defconst company-coq-defuns-regexp (company-coq-make-headers-regexp company-coq-defuns-kwds
-                                                                     company-coq-id-regexp-base)
+                                                                     company-coq-id-regexp)
   "Regexp used to locate symbol definitions in the current buffer.
 This is mostly useful of company-coq-dynamic-autocompletion is nil.")
 
-(defconst company-coq-block-end-regexp (company-coq-make-headers-regexp '("End")
-                                                                          company-coq-id-regexp-base)
+(defconst company-coq-block-end-regexp (company-coq-make-headers-regexp '("End") company-coq-id-regexp)
   "Regexp used to find section endings")
 
 (defcustom company-coq-search-blacklist '("_ind" "_rec" "_rect" "Raw" "Proofs") ;; "_refl" "_sym" "_trans"
@@ -301,7 +300,7 @@ This is mostly useful of company-coq-dynamic-autocompletion is nil.")
 in 8.4, not in 8.5.")
 
 (defconst company-coq-locate-output-format (concat "\\`" (regexp-opt (cons "Constant" company-coq-defuns-kwds)) "\\> +"
-                                                   "\\(" company-coq-rich-id-regexp-base "+\\)")
+                                                   "\\(" company-coq-rich-id-regexp "\\)")
   "Output of `company-coq-locate-tactic-cmd' and `company-coq-locate-symbol-cmd'; it can contain details
 about shorter names, and other matches")
 
@@ -314,10 +313,7 @@ about shorter names, and other matches")
 (defconst company-coq-compiled-regexp "\\.vi?o\\'"
   "Regexp matching the extension of compiled Coq files.")
 
-(defconst company-coq-prefix-regexp (concat company-coq-prefix-regexp-base "*")
-  "Regexp used to find completion prefixes")
-
-(defconst company-coq-symbol-regexp (concat company-coq-rich-id-regexp-base "*")
+(defconst company-coq-symbol-regexp company-coq-rich-id-regexp
   "Regexp used to find symbol at point")
 
 (defconst company-coq-end-of-def-regexp "\\(is\\|are\\) \\(recursively \\)?\\(defined\\|assumed\\)"
@@ -371,12 +367,12 @@ about shorter names, and other matches")
 (defconst company-coq-anonymous-outline-kwds '("Goal"))
 
 (defconst company-coq-section-regexp (company-coq-make-headers-regexp company-coq-section-kwds
-                                                                      company-coq-id-regexp-base)
+                                                                      company-coq-id-regexp)
   "Regexp used to locate the closest section opening")
 
 ;; TODO: Would be nice to fold [Require Import]s together instead of hiding them entirely
 (defconst company-coq-outline-regexp
-  (concat "\\(?:" (company-coq-make-headers-regexp company-coq-named-outline-kwds company-coq-id-regexp-base)
+  (concat "\\(?:" (company-coq-make-headers-regexp company-coq-named-outline-kwds company-coq-id-regexp)
           "\\)\\|\\(?:" (company-coq-make-headers-regexp company-coq-anonymous-outline-kwds nil) "\\)")
   "Regexp used to locate headings")
 
