@@ -26,7 +26,7 @@ Definition PrettySymbols : (nat -> nat -> Prop) :=
   (fun (n m: nat) =>
      forall p, p <> n -> p >= m -> True \/ False).
 
-(* Try typing an arrow `->' here: *)
+(* Try typing an arrow `->' here: *) 
 
 (******************************************************************************)
 
@@ -34,14 +34,14 @@ Definition PrettySymbols : (nat -> nat -> Prop) :=
     enough to locate a tactic, and pressing RET inserts it. If a tactic contains
     holes, you can navigate them using TAB *)
 
-(* Try typing `SLD RET' here: *)
-(* Try typing `applin RET' here: *)
+(* Try typing `SLD RET' here: *) 
+(* Try typing `applin RET' here: *) 
 
 (******************************************************************************)
 
 (** You can also insert math symbols directly in the source file, using LaTeX *)
 
-(* Try typing `\gam RET' here: *)
+(* Try typing `\gam RET' here: *) 
 
 (******************************************************************************)
 
@@ -60,7 +60,7 @@ Ltac BasicTactic :=
 
 (** Not sure what a tactic does? Type part of its name, and press C-h. *)
 
-(* Try typing `appl C-h' here: *)
+(* Try typing `appl C-h' here: *) 
 
 (******************************************************************************)
 
@@ -68,26 +68,41 @@ Ltac BasicTactic :=
     buffer (and with the proper Coq patches, in the whole library). For example,
     it knows about BasicTactic and PrettySymbols *)
 
-(* Try typing `BasicTac' here: *)
+(* Try typing `BasicTac' here: *) 
+
+(******************************************************************************)
+
+(** Not only does it know about them; it can print their types and
+    definitions. *)
+
+(* Try typing `PrettySymb' here, and press C-h *) 
+
+(******************************************************************************)
+
+(** And if type information is not enough, you can ask company-coq to print the
+    definition, from the source, of any symbol for which sources are
+    available. *)
+
+(* Try typing BasicTac and pressing C-w here: *)  
 
 (******************************************************************************)
 
 (** company-coq can extract an outline of your proof script; it includes links
     to each definition, theorem, and lemma. *)
 
-(* Try pressing `C-c C-,'. Press q to exit the outline buffer. *)
+(* Try pressing `C-c C-,'. Press q to exit the outline buffer. *) 
 
 (******************************************************************************)
 
 (** Now for a few interactive features. You'll want to start the prover *)
 
-(* Start Coq by pressing C-c RET here *)
+(* Start Coq by pressing C-c RET here: *) 
 
 (******************************************************************************)
 
 (** Now that Coq is started, company-coq can auto-complete library modules *)
 
-(* Try typing `Require Import Coq.Z.B' here: *)
+(* Try typing `Require Coq.Z.B' here: *) 
 
 (******************************************************************************)
 
@@ -95,7 +110,7 @@ Ltac BasicTactic :=
     buffer, company-coq also monitors Coq's responses for lists of identifiers,
     and adjusts completions accordingly *)
 
-(* Run the following snippet, then try typing `plus': *)
+(* Run the following snippet, then try typing `plus' *)
 SearchAbout eq. 
 
 (******************************************************************************)
@@ -150,14 +165,15 @@ Lemma LargeGoal : inhabited (Tt (@MkLarge Type 5 unit nat)).
   (* This message is not very readable, as the two terms are very similar. It
      would be much nicer with just a diff of the two types. company-coq supports
      this: type `M-x company-coq-diff-unification-error'. Type q to exit. *)
-
+  
   Unset Printing All.
 Abort.
 
 (******************************************************************************)
 
-(** Another nice feature is goal extraction. Let's prove a theorem by
-    induction: *)
+(** In many cases, you'll want to extract part of your current goal (say, the
+    goal plus a few hypotheses) to a separate lemma. Lemma extraction does just
+    that. Let's prove a theorem by induction: *)
 
 Lemma my_plus_comm :
   forall p q r,
@@ -179,15 +195,24 @@ Abort.
 
 (******************************************************************************)
 
-(** To conclude, here's one final neat feature: source view. You can ask
-    company-coq to print the definition, from the source, of any symbol for
-    which sources are available. *)
-
-(* Try typing PrettySymb and pressing C-w *)
+(** That's it for the core features; good luck with your proofs! Don't hesitate
+    to submit ideas and patches to https://github.com/cpitclaudel/company-coq/,
+    and if you use Coq, Proof-General, and company-coq for your research, don't
+    forget that citations are highly appreciated! *)
 
 (******************************************************************************)
 
-(** Good luck with your proofs! Don't hesitate to submit ideas and patches to
-    https://github.com/cpitclaudel/company-coq/, and if you use Coq, Proof-
-    General, and company-coq for your research, don't forget that citations are
-    highly appreciated! *)
+(** Here's one final tip: with the right settings and a few patches to coqtop,
+    company-coq can also autocomplete externally defined symbols, tactics, and
+    even tactic notations. One the patches are installed, enable these features
+    by adding (setq company-coq-dynamic-autocompletion t) to your .emacs. *)
+
+(* (Symbols) Try typing plu here: *) 
+
+(* (Tactics) Try typing zif here: *) 
+
+(** And if you also installed Coq sources (i.e. if you have .v files in addition to
+    .vo files in your installation), then you can press C-w in both cases above
+    to show the original definitions in context. *)
+
+
