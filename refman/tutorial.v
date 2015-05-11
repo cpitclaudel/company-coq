@@ -171,6 +171,17 @@ Abort.
 
 (******************************************************************************)
 
+(** Your favourite Proof-General commands are still available; company-coq just
+makes them more easily accessible: *)
+
+Lemma Transitive_eq : forall A (x y z: A), x = y -> y = z -> x = z.
+Proof.
+  (* Start the proof by pressing C-c RET here: *) 
+  (* Now try typing intros! RET here: *) 
+Abort.
+
+(******************************************************************************)
+
 (** In many cases, you'll want to extract part of your current goal (say, the
     goal plus a few hypotheses) to a separate lemma. Lemma extraction does just
     that. Let's prove a theorem by induction: *)
