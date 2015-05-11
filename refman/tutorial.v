@@ -208,8 +208,35 @@ Abort.
 
 (** That's it for the core features; good luck with your proofs! Don't hesitate
     to submit ideas and patches to https://github.com/cpitclaudel/company-coq/,
-    and if you use Coq, Proof-General, and company-coq for your research, don't
-    forget that citations are highly appreciated! *)
+    and if you use Coq, Proof-General, and company-coq for your research, please
+    consider a citation!
+
+    @Manual{Coq,
+      title =        {The Coq proof assistant reference manual},
+      author =       {The Coq development team},
+      organization = {LogiCal Project},
+      note =         {Version 8.0},
+      year =         {2004},
+      url =          "http://coq.inria.fr"
+    }
+
+    @InCollection{raey,
+      Title                    = {Proof General: A Generic Tool for Proof Development},
+      Author                   = {Aspinall, David},
+      Booktitle                = {Tools and Algorithms for the Construction and
+                                  Analysis of Systems, {TACAS} 2000},
+      Publisher                = {Springer Berlin Heidelberg},
+      Year                     = {2000},
+      Editor                   = {Graf, Susanne and Schwartzbach, Michael},
+      Pages                    = {38--43},
+      Series                   = {Lecture Notes in Computer Science},
+      Volume                   = {1785},
+      Doi                      = {10.1007/3-540-46419-0_3},
+      ISBN                     = {978-3-540-67282-1},
+      Language                 = {English},
+      Url                      = {http://dx.doi.org/10.1007/3-540-46419-0_3}
+    } *)
+
 
 (******************************************************************************)
 
