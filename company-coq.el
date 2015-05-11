@@ -73,7 +73,7 @@
   (message "company-coq: Unable to load proof-site. Is ProofGeneral installed, and did you add it to your load-path?"))
 
 (defgroup company-coq nil
-  "Options for the Coq company mode"
+  "Completion back-end for Coq"
   :group 'company)
 
 (defcustom company-coq-debug nil
@@ -224,7 +224,7 @@ Name Only].")
 (defconst company-coq-path-regexp  (concat "\\`\\(\\S-*\\) +\\(\\S-*\\)\\'"))
 
 (defun company-coq-make-headers-regexp (headers &optional body)
-  (concat "^[[:blank:]]*\\<\\(" (regexp-opt headers) "\\)\\>"
+  (concat "^[[:blank:]]*\\_<\\(" (regexp-opt headers) "\\)\\_>"
           (when body (concat "\\s-*\\(" body "\\)"))))
 
 (defconst company-coq-defuns-kwds `("Class" "CoFixpoint" "CoInductive" "Corollary"
@@ -297,7 +297,7 @@ This is mostly useful of company-coq-dynamic-autocompletion is nil.")
   "Command used to retrieve the qualified name of an Ltac. Needed
 in 8.4, not in 8.5.")
 
-(defconst company-coq-locate-output-format (concat "\\`" (regexp-opt (cons "Constant" company-coq-defuns-kwds)) "\\> +"
+(defconst company-coq-locate-output-format (concat "\\`" (regexp-opt (cons "Constant" company-coq-defuns-kwds)) "\\_> +"
                                                    "\\(" company-coq-symbol-regexp "\\)")
   "Output of `company-coq-locate-tactic-cmd' and `company-coq-locate-symbol-cmd'; it can contain details
 about shorter names, and other matches")
@@ -436,12 +436,12 @@ dependent]).")
   "Regexp to spot uses of deprecated vernacs.")
 
 (defconst company-coq-deprecated-man-re
-  (mapconcat (lambda (x) (concat "\\(?:\\<" x "\\)"))
+  (mapconcat (lambda (x) (concat "\\(?:\\_<" x "\\)"))
              '("\\(?1:assert\\) (.* := .*)" "\\(?1:double induction\\)"
-               "\\(?1:appcontext\\>\\)[ a-zA-Z]*\\[" "\\(?1:cutrewrite\\) \\(?:<-\\|->\\)"
-               "\\(?1:Backtrack [[:digit:]]+ [[:digit:]]+ [[:digit:]]+\\)" "\\(?1:SearchAbout\\>\\)"
-               "\\(?1:Save\\>\\(?: \\(?:Lemma\\|Theorem\\|Remark\\|Fact\\|Corollary\\|Proposition\\)\\>\\)?\\)"
-               "\\(?1:absurd_hyp\\>\\) [A-Za-z]")
+               "\\(?1:appcontext\\_>\\)[ a-zA-Z]*\\[" "\\(?1:cutrewrite\\) \\(?:<-\\|->\\)"
+               "\\(?1:Backtrack [[:digit:]]+ [[:digit:]]+ [[:digit:]]+\\)" "\\(?1:SearchAbout\\_>\\)"
+               "\\(?1:Save\\_>\\(?: \\(?:Lemma\\|Theorem\\|Remark\\|Fact\\|Corollary\\|Proposition\\)\\_>\\)?\\)"
+               "\\(?1:absurd_hyp\\_>\\) [A-Za-z]")
              "\\|"))
 
 (defconst company-coq-deprecated-re (concat "^[[:blank:]]*"
@@ -984,7 +984,7 @@ pairs of paths in the form (LOGICAL . PHYSICAL)"
 
 (defun company-coq-complete-sub-re (prefix candidates)
   (let* ((chars (string-to-list prefix)) ;; The regexp says: skip stuff before beginning a new word, or skip nothing
-         (re    (concat "\\`\\W*" (mapconcat (lambda (c) (regexp-quote (char-to-string c))) chars "\\(\\|.+?\\<\\)")))
+         (re    (concat "\\`\\W*" (mapconcat (lambda (c) (regexp-quote (char-to-string c))) chars "\\(\\|.+?\\_<\\)")))
          (case-fold-search nil))
     (save-match-data
       (cl-loop for     candidate
@@ -1440,7 +1440,7 @@ fully qualified name of NAME."
              (mod-name   (replace-regexp-in-string "\\..*\\'" "" qname nil nil nil (length logical)))
              (fname      (company-coq-library-path logical mod-name spec))
              (target     (concat (company-coq-make-headers-regexp company-coq-named-outline-kwds)
-                                 "\\s-*" (regexp-quote short-name) "\\>")))
+                                 "\\s-*" (regexp-quote short-name) "\\_>")))
         (company-coq-location-simple (propertize name 'location fname) target interactive))
       (when interactive (error "No location found for %s" name)))))
 
@@ -2371,8 +2371,8 @@ if it is already open."
 (defun company-coq-setup-fontlock ()
   (set (make-local-variable 'font-lock-syntactic-face-function) #'company-coq-syntactic-face-function)
   (font-lock-add-keywords nil '(("\\_<pose proof\\_>" 0 'proof-tactics-name-face prepend)) 'add)
-  (font-lock-add-keywords nil '(("\\(\\W\\|\\`\\)\\(@\\)\\<" 2 'font-lock-constant-face append)) 'add)
-  (font-lock-add-keywords nil '(("\\(\\W\\|\\`\\)\\(\\?\\sw+\\)\\>" 2 'font-lock-variable-name-face append)) 'add)
+  (font-lock-add-keywords nil '(("\\(\\W\\|\\`\\)\\(@\\)\\_<" 2 'font-lock-constant-face append)) 'add)
+  (font-lock-add-keywords nil '(("\\(\\W\\|\\`\\)\\(\\?\\s_+\\)\\_>" 2 'font-lock-variable-name-face append)) 'add)
   (add-to-list (make-local-variable 'font-lock-extra-managed-props) 'help-echo)
   (font-lock-add-keywords nil company-coq-deprecated-spec t))
 

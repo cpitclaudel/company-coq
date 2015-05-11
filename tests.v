@@ -18,6 +18,9 @@ Qed.
 (* This should be underlined. *)
 Unset Undo.
 
+(* This should not be underlined *)
+Fail abc_Unset Undo.
+
 Inductive AAABBB :=
 | AAA1
 | AAA2 : BBBCCC -> AAABBB
@@ -55,6 +58,8 @@ Proof.
   match goal with
   | [ H: ?a |- _ ] => eauto (* Is the variable name highlighted? But not in comments: ?a *)
   end.
+  Undo 1.
+  congruence.
 Qed.
 
 Lemma TestSubscripts :
@@ -151,6 +156,8 @@ Goal True.
   idtac "!!!" 4.
   auto. (* company-coq-search-in-coq-buffer should show these calls *)
 Qed.
+
+(* M-x company-coq-tutorial should work *)
 
 (* Print Instances should show a dropdown when inserted *)
 
