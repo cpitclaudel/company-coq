@@ -3,8 +3,6 @@ Require Import Utf8.
 (* Global folding should work here *)
 Ltac SimpleLtac a b cde := idtac.
 
-
-
 (*
 (progn
   (setq coq-prog-name "/build/coq-trunk-pr/bin/coqtop")
@@ -13,7 +11,6 @@ Ltac SimpleLtac a b cde := idtac.
 
 Goal True = False -> False.
   intros.
-  rewrite.
   rewrite <- ?H. (* Is this variable properly colored? Ideally it should not be colored at all *)
   apply I.
 Qed.
@@ -39,7 +36,7 @@ Definition PrettySymbols : (nat -> nat -> Prop) :=
 (* AAABBB and BBBCCC should autocomplete without starting the prover, and appear in the outline (C-c C-,) *)
 
 (* Start prover *)
-Require Import Omega. (* This should autocomplete *)
+Require Import Omega Coq.Arith.Arith. (* This should autocomplete *)
 
 SearchAbout plus.
 (* plu should autocomplete after running this search *)
