@@ -87,7 +87,7 @@ most advanced features require a patched version of coqtop.
 
 ### Quick help (inline docs)
 
-<img src="img/quick-help.gif" alt="Quick help (inline docs)" />
+<img src="img/inline-docs.gif" alt="Quick help (inline docs)" />
 
 Currently works for symbols and user-defined tactics (prover must be started)
 
