@@ -2322,16 +2322,19 @@ to locate lines starting with \"^!!!\"."
 
 (defun company-coq--show-definition-overlay-at-point ()
   (let* ((sb-pos (company-coq-symbol-at-point-with-pos))
-         (docs   (and sb-pos (company-coq-doc-buffer-collect-outputs
+         (ins-pos (and sb-pos (save-excursion (and (forward-line 1)
+                                                   (> (point-at-bol) (cdr sb-pos))
+                                                   (point-at-bol)))))
+         (docs    (and ins-pos (company-coq-doc-buffer-collect-outputs
                               (car sb-pos) (list company-coq-doc-cmd
                                                  company-coq-tactic-def-cmd
                                                  company-coq-def-cmd)))))
     (cond
-     (docs (let ((ins-pos (save-excursion (forward-line 1) (point-at-bol)))
-                 (ins-str (company-coq--prepare-for-definition-overlay docs (- (cdr sb-pos) (point-at-bol)))))
+     (docs (let ((ins-str (company-coq--prepare-for-definition-overlay docs (- (cdr sb-pos) (point-at-bol)))))
              (setq company-coq-definition-overlay (make-overlay ins-pos ins-pos))
              (overlay-put company-coq-definition-overlay 'after-string ins-str)))
-     (sb-pos (error "No information found for %s" (car sb-pos)))
+     (ins-pos (error "No information found for %s" (car sb-pos)))
+     (sb-pos  (error "No newline at end of file"))
      (t      (error "No symbol here")))))
 
 (defun company-coq-show-definition-overlay-under-pointer (event)
