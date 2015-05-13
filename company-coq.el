@@ -559,9 +559,10 @@ dependent]).")
              until (eobp) do (forward-line 1))))
 
 (defun company-coq-truncate-buffer (start n-lines &optional ellipsis)
+  (cl-assert (and n-lines (> n-lines 0)))
   (save-excursion
     (goto-char start)
-    (forward-line (or n-lines 5))
+    (forward-line n-lines)
     (unless (eobp)
       (delete-region (point) (point-max))
       (forward-line -1)
@@ -2115,6 +2116,7 @@ proceed."
     (define-key cc-map (kbd "RET")              #'company-coq-maybe-exit-snippet)
     (define-key cc-map (kbd "<C-down-mouse-1>") #'company-coq-show-definition-overlay-under-pointer)
     (define-key cc-map (kbd "<C-mouse-1>")      #'company-coq-clear-definition-overlay)
+    (define-key cc-map (kbd "<menu>")           #'company-coq-show-definition-overlay)
     (define-key cc-map [remap proof-goto-point] #'company-coq-proof-goto-point)
     (define-key cc-map [remap narrow-to-defun]  #'company-coq-narrow-to-defun) ;; FIXME handle sections properly
     cc-map)
@@ -2336,6 +2338,33 @@ to locate lines starting with \"^!!!\"."
      (ins-pos (error "No information found for %s" (car sb-pos)))
      (sb-pos  (error "No newline at end of file"))
      (t      (error "No symbol here")))))
+
+(defcustom company-coq-keyboard-repeat-delay 0.5
+  "Duration before a key starts repeating. Customize if the inline definition showed by pressing <menu> flickers."
+  :group 'company-coq)
+
+(defcustom company-coq-keyboard-repeat-interval 0.1
+  "Duration between two repeats of the same key. Customize if the inline definition showed by pressing <menu> flickers."
+  :group 'company-coq)
+
+(defun company-coq-show-definition-overlay ()
+  "Displays info about the symbol at point, inline. The display
+disappears shortly after the key that this function is bound to
+is released."
+  ;; Implementation note: The true part of the if case could be made to return
+  ;; nil, and the timer made to run after company-coq-keyboard-repeat-interval,
+  ;; but this causes the overlay to flicker when used when a list of suggestions
+  ;; is also being displayed.
+  (interactive)
+  (if company-coq-definition-overlay
+      ;; Already displayed. Keypress is going to fire again soon, just wait for a tiny bit
+      (sit-for company-coq-keyboard-repeat-interval)
+    ;; First key press. Show the overlay
+    (company-coq--show-definition-overlay-at-point)
+    ;; ... then start a timer
+    (run-with-idle-timer 0 nil #'company-coq-clear-definition-overlay)
+    ;; ... and prevent it from firing while we wait for the next key repeat
+    (sit-for company-coq-keyboard-repeat-delay)))
 
 (defun company-coq-show-definition-overlay-under-pointer (event)
   (interactive "e")
