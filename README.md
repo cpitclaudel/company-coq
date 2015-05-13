@@ -29,6 +29,8 @@ most advanced features require a patched version of coqtop.
 
 * Interactive lemma extraction: press <kbd>C-c C-a C-x</kbd> to extract the current goal into a separate lemma, keeping the hypotheses of your choice.
 
+* Convenient snippets: easily insert [new `match` cases](img/match-function.gif) and [`match goal` rules](img/match-goal.gif).
+
 * Visual [word diff](img/unification.png) of large unification error messages (<code>The term "<i>blah</i>" has type "<i>huge blob</i>" while it is expected to have type "<i>slightly different blob</i>"</code>).
 
 * Interactive [proof script outline](img/outline.png) and [in-buffer folding](img/folding.png).
@@ -37,11 +39,11 @@ most advanced features require a patched version of coqtop.
 
 * Extended [font beautification](img/prettify.png): keywords are transparently replaced with the corresponding symbols (`⊢⊤⊥→⇒λ∀∃∧∨¬≠⧺𝓝ℤℕℚℝ𝔹𝓟`), and the goals line (`========`) actually looks like a line (`════════`).
 
-* Convenient snippets: easily insert [new `match` cases](img/match-function.gif) and [`match goal` rules](img/match-goal.gif).
-
-* Occur in `*coq*` buffer (`company-coq-search-in-coq-buffer`).
+* Minimal [quick help](img/inline-docs.gif) (inline documentation).
 
 * Automatic [highlighting](img/deprecated.png) of deprecated forms (`assert (_ := _)`, `SearchAbout`, etc.).
+
+* Occur in `*coq*` buffer (`company-coq-search-in-coq-buffer`).
 
 * Limited form of source view for same-buffer definitions, or using `company-coq-location-defun` (needs `.v` files).
 
@@ -82,6 +84,12 @@ most advanced features require a patched version of coqtop.
 ### Keyword beautification
 
 <img src="img/prettify.png" alt="Keyword beautification" />
+
+### Quick help (inline docs)
+
+<img src="img/quick-help.gif" alt="Quick help (inline docs)" />
+
+Currently works for symbols and user-defined tactics (prover must be started)
 
 ### Neat snippets
 
