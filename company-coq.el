@@ -195,6 +195,9 @@ same prefix."
 (defvar company-coq-last-search-scan-size nil
   "If the response buffer has this size, search results are deemed up to date.")
 
+(defvar company-coq-definition-overlay nil
+  "Overlay used to show a definition for the symbol under point")
+
 (defvar company-coq-needs-capability-detection t
   "Tracks whether capability detection has already happened.")
 
@@ -2110,6 +2113,8 @@ proceed."
     (define-key cc-map (kbd "<M-S-return>")     #'company-coq-insert-match-rule-complex)
     (define-key cc-map (kbd "SPC")              #'company-coq-maybe-exit-snippet)
     (define-key cc-map (kbd "RET")              #'company-coq-maybe-exit-snippet)
+    (define-key cc-map (kbd "<C-down-mouse-1>") #'company-coq-show-definition-overlay-under-pointer)
+    (define-key cc-map (kbd "<C-mouse-1>")      #'company-coq-clear-definition-overlay)
     (define-key cc-map [remap proof-goto-point] #'company-coq-proof-goto-point)
     (define-key cc-map [remap narrow-to-defun]  #'company-coq-narrow-to-defun) ;; FIXME handle sections properly
     cc-map)
@@ -2296,6 +2301,57 @@ to locate lines starting with \"^!!!\"."
         (with-current-buffer coq-buffer
           (occur regexp))
       (error "*coq* buffer not found"))))
+
+(defun company-coq--prepare-for-definition-overlay (strs offset &optional max-lines)
+  (let* ((line-width (window-width))
+         (max-lines  (or max-lines 8))
+         (strs       (mapcar #'company-coq-get-header strs)))
+    (with-temp-buffer
+      (cl-loop for str in strs ;;  for len in lengths   for ins-point = (point)
+               do (insert str "\n"))
+      (company-coq-truncate-buffer (point-min) max-lines "...")
+      (let ((real-offset (max 0 (min offset (- line-width (company-coq-max-line-length))))))
+        (company-coq-prefix-all-lines (make-string real-offset 32)))
+      (coq-mode)
+      (font-lock-ensure)
+      ;; Prevent text from inheriting properties of neighbouring characters
+      (add-face-text-property (point-min) (point-max) 'default t)
+      (company-coq-insert-spacer (point-min))
+      (company-coq-insert-spacer (point-max))
+      (buffer-string))))
+
+(defun company-coq--show-definition-overlay-at-point ()
+  (let* ((sb-pos (company-coq-symbol-at-point-with-pos))
+         (docs   (and sb-pos (company-coq-doc-buffer-collect-outputs
+                              (car sb-pos) (list company-coq-doc-cmd
+                                                 company-coq-tactic-def-cmd
+                                                 company-coq-def-cmd)))))
+    (cond
+     (docs (let ((ins-pos (save-excursion (forward-line 1) (point-at-bol)))
+                 (ins-str (company-coq--prepare-for-definition-overlay docs (- (cdr sb-pos) (point-at-bol)))))
+             (setq company-coq-definition-overlay (make-overlay ins-pos ins-pos))
+             (overlay-put company-coq-definition-overlay 'after-string ins-str)))
+     (sb-pos (error "No information found for %s" (car sb-pos)))
+     (t      (error "No symbol here")))))
+
+(defun company-coq-show-definition-overlay-under-pointer (event)
+  (interactive "e")
+  (let* ((window  (posn-window (event-start event)))
+         (buffer  (and window (window-buffer window))))
+    (if buffer
+        (save-excursion
+          (with-current-buffer buffer
+            (when (eq major-mode 'coq-mode)
+              (mouse-set-point event)
+              (company-coq-clear-definition-overlay)
+              (company-coq--show-definition-overlay-at-point))))
+      (mouse-set-point event))))
+
+(defun company-coq-clear-definition-overlay ()
+  (interactive)
+  (when company-coq-definition-overlay
+    (delete-overlay company-coq-definition-overlay)
+    (setq company-coq-definition-overlay nil)))
 
 (defun company-coq-prover-init ()
   "This function runs every time a new instance of the prover
