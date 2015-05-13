@@ -549,11 +549,41 @@ dependent]).")
 (defun company-coq-join-lines (lines sep &optional trans)
   (if lines (mapconcat (or trans 'identity) lines sep)))
 
-(defun company-coq-take-while-non-empty (lines)
-  (if lines
-      (cl-loop for line in lines
-               while (not (string-equal line ""))
-               collect line)))
+(defun company-coq-max-line-length ()
+  (save-excursion
+    (goto-char (point-min))
+    (cl-loop maximize (- (point-at-eol) (point-at-bol))
+             until (eobp) do (forward-line 1))))
+
+(defun company-coq-truncate-buffer (start n-lines &optional ellipsis)
+  (save-excursion
+    (goto-char start)
+    (forward-line (or n-lines 5))
+    (unless (eobp)
+      (delete-region (point) (point-max))
+      (forward-line -1)
+      (goto-char (point-at-eol))
+      (insert (or ellipsis "...")))))
+
+(defun company-coq-prefix-all-lines (prefix)
+  (save-excursion
+    (goto-char (point-min))
+    (while (not (eobp))
+      (insert prefix)
+      (forward-line 1))))
+
+(defun company-coq-insert-spacer (pos)
+  (save-excursion
+    (goto-char pos)
+    (let* ((from  (point))
+           (to    (progn (insert "\n") (point)))
+           (color (or (face-attribute 'highlight :background) "black")))
+      (add-face-text-property from to `(:height 1 :background ,color)))))
+
+(defun company-coq-get-header (str)
+  (save-match-data
+    (let ((header-end (and (string-match "\n\\s-*\\(\n\\|\\'\\)" str) (match-beginning 0))))
+      (substring-no-properties str 0 header-end))))
 
 (defun company-coq-boundp-string-match (regexp symbol)
   (and (boundp symbol)
