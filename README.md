@@ -65,7 +65,7 @@ most advanced features require a patched version of coqtop.
 
 ### Auto-completion of local definitions
 
-<img src="img/defuns-completion.png" alt="Auto-completion of local definitions" />
+<img src="img/defun-completion.png" alt="Auto-completion of local definitions" />
 
 ### Fuzzy auto-completion of module names
 
