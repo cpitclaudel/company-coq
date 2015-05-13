@@ -58,9 +58,28 @@ Ltac BasicTactic :=
 
 (******************************************************************************)
 
+(** company-coq can extract an outline of your proof script; it includes links
+    to each definition, theorem, and lemma. *)
+
+(* Try pressing `C-c C-,'. Press q to exit the outline buffer. *) 
+
+(******************************************************************************)
+
 (** Not sure what a tactic does? Type part of its name, and press C-h. *)
 
 (* Try typing `appl C-h' here: *) 
+
+(******************************************************************************)
+
+(** Now for a few interactive features. You'll want to start the prover *)
+
+(* Start Coq by pressing C-c RET here: *) 
+
+(******************************************************************************)
+
+(** Now that Coq is started, company-coq can auto-complete library modules *)
+
+(* Try typing `Require Coq.Z.B' here: *)
 
 (******************************************************************************)
 
@@ -83,26 +102,18 @@ Ltac BasicTactic :=
     definition, from the source, of any symbol for which sources are
     available. *)
 
-(* Try typing BasicTac and pressing C-w here: *)  
+(* Try typing BasicTac and pressing C-w here: *) 
 
 (******************************************************************************)
 
-(** company-coq can extract an outline of your proof script; it includes links
-    to each definition, theorem, and lemma. *)
+(** If you just want a quick peek at a symbol or theorem, though, it's often
+faster to just C-click the symbol. *)
 
-(* Try pressing `C-c C-,'. Press q to exit the outline buffer. *) 
-
-(******************************************************************************)
-
-(** Now for a few interactive features. You'll want to start the prover *)
-
-(* Start Coq by pressing C-c RET here: *) 
-
-(******************************************************************************)
-
-(** Now that Coq is started, company-coq can auto-complete library modules *)
-
-(* Try typing `Require Coq.Z.B' here: *) 
+(* Try clicking the words "le" and "exfalso" below, while holding the Control
+   key down. Release the mouse button to hide the info box. (This also works
+   without a graphic environment; just enable xterm-mouse-mode) *)
+Fail le.
+Fail exfalso.
 
 (******************************************************************************)
 
@@ -220,7 +231,7 @@ Abort.
       url =          "http://coq.inria.fr"
     }
 
-    @InCollection{raey,
+    @InCollection{ProofGeneral,
       Title                    = {Proof General: A Generic Tool for Proof Development},
       Author                   = {Aspinall, David},
       Booktitle                = {Tools and Algorithms for the Construction and
