@@ -201,6 +201,7 @@ Loading `company-coq` also binds the following keys:
 * <kbd>M-S-RET</kbd> inserts a new `match goal` rule (`| [ H: _ |- _ ] => _`).
 * <kbd>C-c C-a C-x</kbd> extracts the current goal into a separate lemma.
 * <kbd>C-c C-a C-e</kbd> tries to match the last output to a documented error message, and displays the relevant section of the manual if it finds one.
+* <kbd>C-down-mouse-1</kbd> (i.e. <kbd>C-click</kbd>) shows an inline quick help box for the symbol under point. The box disappears when the mouse is released. Pressing the <kbd>&lt;menu></kbd> key also works.
 * <kbd>C-c C-,</kbd> opens an outline of the code in a separate buffer (using `occur`).
 * <kbd>C-c C-/</kbd> folds the current code block, or all blocs in the file if repeated.
 * <kbd>C-c C-\\</kbd> unfolds the current code block, or all blocs in the file if repeated.
@@ -212,6 +213,7 @@ Loading `company-coq` also binds the following keys:
 * Module completion is fuzzy: you can type `Require Import C.N..Ab.ZPa` and press <kbd>RET</kbd> to insert `Coq.Numbers.Integer.Abstract.ZParity`.
 * Tactics completion is fuzzy too: typing `setrewin` and pressing <kbd>RET</kbd> is enough to insert <code>setoid_rewrite <i>term</i> in <i>ident</i></code>. You can (and must) omit spaces: `SLD` will insert `Set Ltac Debug` (of course `SetLtDeb` will also work), and `ULD` will insert `Unset Ltac Debug`.
 * Using <kdb>M-S-RET</kbd> to insert new cases in a `match goal` saves a lot of time (and finger contortions).
+* The point-and-click feature (quick help) also works in non-graphic mode, if you enable `xterm-mouse-mode`.
 
 ## Troubleshooting
 
