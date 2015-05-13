@@ -43,6 +43,7 @@ Require Import Omega Coq.Arith.Arith. (* This should autocomplete *)
 
 SearchAbout plus.
 (* plu should autocomplete after running this search *)
+(* Pressing <menu> on plus should show a definition inline. Same for SimpleLtac *)
 
 Lemma clear_search : True. Proof I.
 
@@ -262,6 +263,15 @@ Tactic Notation "myR" constr(from) "->" constr(to) "by" tactic(tac) := idtac.
 Tactic Notation "myR" constr(from) "->" constr(to) "in" hyp(hyp) "by" tactic(tac) := idtac.
 
 (* Do these notations autocomplete properly? *)
+
+Ltac ABC := idtac.
+Fixpoint ABC n :=
+  match n with
+  | 0 => 0
+  | 1 => 0
+  | 2 => 0
+  | _ => 0
+  end.
 
 Require Import Bvector.
 Require Import DecBool.
