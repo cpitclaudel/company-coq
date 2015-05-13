@@ -2323,21 +2323,21 @@ to locate lines starting with \"^!!!\"."
       (buffer-string))))
 
 (defun company-coq--show-definition-overlay-at-point ()
-  (let* ((sb-pos (company-coq-symbol-at-point-with-pos))
+  (let* ((sb-pos  (company-coq-symbol-at-point-with-pos))
          (ins-pos (and sb-pos (save-excursion (and (forward-line 1)
                                                    (> (point-at-bol) (cdr sb-pos))
                                                    (point-at-bol)))))
          (docs    (and ins-pos (company-coq-doc-buffer-collect-outputs
-                              (car sb-pos) (list company-coq-doc-cmd
-                                                 company-coq-tactic-def-cmd
-                                                 company-coq-def-cmd)))))
+                                (car sb-pos) (list company-coq-doc-cmd
+                                                   company-coq-tactic-def-cmd
+                                                   company-coq-def-cmd)))))
     (cond
      (docs (let ((ins-str (company-coq--prepare-for-definition-overlay docs (- (cdr sb-pos) (point-at-bol)))))
              (setq company-coq-definition-overlay (make-overlay ins-pos ins-pos))
              (overlay-put company-coq-definition-overlay 'after-string ins-str)))
      (ins-pos (error "No information found for %s" (car sb-pos)))
      (sb-pos  (error "No newline at end of file"))
-     (t      (error "No symbol here")))))
+     (t       (error "No symbol here")))))
 
 (defcustom company-coq-keyboard-repeat-delay 0.5
   "Duration before a key starts repeating. Customize if the inline definition showed by pressing <menu> flickers."
@@ -2492,8 +2492,8 @@ if it is already open."
 (defun company-coq-setup-fontlock ()
   (set (make-local-variable 'font-lock-syntactic-face-function) #'company-coq-syntactic-face-function)
   (font-lock-add-keywords nil '(("\\_<pose proof\\_>" 0 'proof-tactics-name-face prepend)) 'add)
-  (font-lock-add-keywords nil '(("\\(\\W\\|\\`\\)\\(@\\)\\_<" 2 'font-lock-constant-face append)) 'add)
-  (font-lock-add-keywords nil '(("\\(\\W\\|\\`\\)\\(\\?\\s_+\\)\\_>" 2 'font-lock-variable-name-face append)) 'add)
+  (font-lock-add-keywords nil '(("\\(?:\\W\\|\\`\\)\\(@\\)\\_<" 1 'font-lock-constant-face append)) 'add)
+  (font-lock-add-keywords nil '(("\\(?:\\W\\|\\`\\)\\(\\?\\(?:\\s_\\|\\sw\\)+\\)\\_>" 1 'font-lock-variable-name-face append)) 'add)
   (add-to-list (make-local-variable 'font-lock-extra-managed-props) 'help-echo)
   (font-lock-add-keywords nil company-coq-deprecated-spec t))
 
