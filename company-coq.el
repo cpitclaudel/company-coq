@@ -1264,14 +1264,17 @@ if output mentions new symbol, then calls
       (when (company-coq-looking-back company-coq-prefix-regexp (point-at-bol))
         (match-string-no-properties 0)))))
 
-(defun company-coq-symbol-at-point () ;; FIXME could use (coq-id-or-notation-at-point)
+(defun company-coq-symbol-at-point-with-pos () ;; FIXME could use (coq-id-or-notation-at-point)
   (let* ((start  (and (company-coq-looking-back company-coq-prefix-regexp (point-at-bol))
                       (match-beginning 0)))
          (symbol (and start (save-excursion
                               (goto-char start)
                               (when (looking-at company-coq-symbol-regexp)
                                 (match-string-no-properties 0))))))
-    symbol))
+    (and symbol (cons symbol start))))
+
+(defun company-coq-symbol-at-point ()
+  (car-safe (company-coq-symbol-at-point-with-pos)))
 
 (defun company-coq-prefix-simple ()
   (interactive)
