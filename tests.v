@@ -40,12 +40,13 @@ Definition PrettySymbols : (nat -> nat -> Prop) :=
 
 (* Start prover *)
 Require Import Omega Coq.Arith.Arith. (* This should autocomplete *)
-
 SearchAbout plus.
 (* plu should autocomplete after running this search *)
 (* Pressing <menu> on plus should show a definition inline. Same for SimpleLtac *)
 
 Lemma clear_search : True. Proof I.
+
+Fail Fix_F_inv. (* Does the infobox resize properly? *)
 
 (* Does C-w (location) work? Is the point at the beginning of the preceeding comment? *)
 Locate le.

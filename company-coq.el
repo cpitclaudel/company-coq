@@ -2305,22 +2305,33 @@ to locate lines starting with \"^!!!\"."
       (error "*coq* buffer not found"))))
 
 (defun company-coq--prepare-for-definition-overlay (strs offset &optional max-lines)
-  (let* ((line-width (window-width))
+  (let* ((line-width (window-body-width))
          (max-lines  (or max-lines 8))
          (strs       (mapcar #'company-coq-get-header strs)))
     (with-temp-buffer
       (cl-loop for str in strs ;;  for len in lengths   for ins-point = (point)
                do (insert str "\n"))
       (company-coq-truncate-buffer (point-min) max-lines "...")
-      (let ((real-offset (max 0 (min offset (- line-width (company-coq-max-line-length))))))
-        (company-coq-prefix-all-lines (make-string real-offset 32)))
+      (let* ((block-width (company-coq-max-line-length))
+             (real-offset (max 0 (min offset (- line-width block-width)))))
+        (company-coq-prefix-all-lines (propertize " " 'display `(space . (:width ,real-offset)))))
       (coq-mode)
       (font-lock-ensure)
+      ;; (add-face-text-property (point-min) (point-max) '(:height 0.9) t)
       ;; Prevent text from inheriting properties of neighbouring characters
       (add-face-text-property (point-min) (point-max) 'default t)
       (company-coq-insert-spacer (point-min))
       (company-coq-insert-spacer (point-max))
       (buffer-string))))
+
+(defun company-coq--count-lines-under-point (&optional max-lines) ;; FIXME this could be much more efficient
+  (setq max-lines (or max-lines (window-body-height)))
+  (save-excursion
+    (let ((line-move-visual 1))
+      (cl-loop for x = 0 then (1+ x)
+               while (and (< x max-lines) (pos-visible-in-window-p))
+               do (vertical-motion 1)
+               finally return x))))
 
 (defun company-coq--show-definition-overlay-at-point ()
   (let* ((sb-pos  (company-coq-symbol-at-point-with-pos))
@@ -2330,9 +2341,11 @@ to locate lines starting with \"^!!!\"."
          (docs    (and ins-pos (company-coq-doc-buffer-collect-outputs
                                 (car sb-pos) (list company-coq-doc-cmd
                                                    company-coq-tactic-def-cmd
-                                                   company-coq-def-cmd)))))
+                                                   company-coq-def-cmd))))
+         (offset  (- (cdr sb-pos) (point-at-bol)))
+         (max-h   (max 4 (min 16 (- (company-coq--count-lines-under-point) 3)))))
     (cond
-     (docs (let ((ins-str (company-coq--prepare-for-definition-overlay docs (- (cdr sb-pos) (point-at-bol)))))
+     (docs (let ((ins-str (company-coq--prepare-for-definition-overlay docs offset max-h)))
              (setq company-coq-definition-overlay (make-overlay ins-pos ins-pos))
              (overlay-put company-coq-definition-overlay 'after-string ins-str)))
      (ins-pos (error "No information found for %s" (car sb-pos)))
@@ -2340,11 +2353,11 @@ to locate lines starting with \"^!!!\"."
      (t       (error "No symbol here")))))
 
 (defcustom company-coq-keyboard-repeat-delay 0.5
-  "Duration before a key starts repeating. Customize if the inline definition showed by pressing <menu> flickers."
+  "Duration before a key starts repeating. Increase if the inline definition showed by pressing <menu> flickers."
   :group 'company-coq)
 
 (defcustom company-coq-keyboard-repeat-interval 0.1
-  "Duration between two repeats of the same key. Customize if the inline definition showed by pressing <menu> flickers."
+  "Duration between two repeats of the same key. Increase if the inline definition showed by pressing <menu> flickers."
   :group 'company-coq)
 
 (defun company-coq-show-definition-overlay ()
