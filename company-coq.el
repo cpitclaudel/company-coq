@@ -552,10 +552,16 @@ dependent]).")
 (defun company-coq-join-lines (lines sep &optional trans)
   (if lines (mapconcat (or trans 'identity) lines sep)))
 
+(defun company-coq-text-width (from to)
+  (interactive "r")
+  ;; TODO: Is this faster? (string-width (buffer-substring (point-at-bol) (point-at-eol)))
+  (- (save-excursion (goto-char to)   (current-column))
+     (save-excursion (goto-char from) (current-column))))
+
 (defun company-coq-max-line-length ()
   (save-excursion
     (goto-char (point-min))
-    (cl-loop maximize (- (point-at-eol) (point-at-bol))
+    (cl-loop maximize (company-coq-text-width (point-at-bol) (point-at-eol))
              until (eobp) do (forward-line 1))))
 
 (defun company-coq-truncate-buffer (start n-lines &optional ellipsis)
@@ -2342,7 +2348,7 @@ to locate lines starting with \"^!!!\"."
                                 (car sb-pos) (list company-coq-doc-cmd
                                                    company-coq-tactic-def-cmd
                                                    company-coq-def-cmd))))
-         (offset  (- (cdr sb-pos) (point-at-bol)))
+         (offset  (company-coq-text-width (point-at-bol) (cdr sb-pos)))
          (max-h   (max 4 (min 16 (- (company-coq--count-lines-under-point) 3)))))
     (cond
      (docs (let ((ins-str (company-coq--prepare-for-definition-overlay docs offset max-h)))
