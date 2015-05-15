@@ -1292,9 +1292,8 @@ if output mentions new symbol, then calls
     (when (and goals-buf goals-win)
       (set-window-buffer goals-win goals-buf))))
 
-(defun company-coq-in-coq-mode (&optional silent)
-  (or (derived-mode-p 'coq-mode)
-      (ignore (or silent (company-coq-dbg "Not in Coq mode")))))
+(defun company-coq-coq-mode-p ()
+  (derived-mode-p 'coq-mode))
 
 (defun company-coq-grab-prefix ()
   ;; Only one grab function; otherwise the first backend in the list of backend shadows the others
@@ -1319,7 +1318,7 @@ if output mentions new symbol, then calls
 (defun company-coq-prefix-simple ()
   (interactive)
   (company-coq-dbg "company-coq-prefix-simple: Called")
-  (when (company-coq-in-coq-mode)
+  (when (company-coq-coq-mode-p)
     (company-coq-grab-prefix)))
 
 (defun company-coq-trim (str)
@@ -2542,7 +2541,7 @@ if it is already open."
 ;;;###autoload
 (defun company-coq-initialize () ;; TODO this could be a minor mode
   (interactive)
-  (when (not (company-coq-in-coq-mode))
+  (when (not (company-coq-coq-mode-p))
     (error "company-coq only works with coq-mode."))
 
   ;; Setup backends and relevant minor modes
@@ -2585,7 +2584,7 @@ if it is already open."
 
   (cl-loop for buffer in (buffer-list)
            do (with-current-buffer buffer
-                (when (company-coq-in-coq-mode t)
+                (when (company-coq-coq-mode-p)
                   (company-mode -1)
                   (yas-minor-mode -1)
                   (outline-minor-mode -1)
