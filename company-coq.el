@@ -284,6 +284,9 @@ This is mostly useful of company-coq-dynamic-autocompletion is nil.")
 (defconst company-coq-def-cmd "Print %s"
   "Command used to retrieve the definition of a symbol.")
 
+(defconst company-coq-type-cmd "Check %s"
+  "Command used to retrieve the type of a symbol.")
+
 (defconst company-coq-tactic-def-cmd "Print Ltac %s"
   "Command used to retrieve the documentation of a symbol.")
 
@@ -1544,11 +1547,12 @@ fully qualified name of NAME."
 (defun company-coq-annotation-tactic (arg)
   (concat "<" (or (symbol-name (get-text-property 0 'source arg)) "") ">"))
 
-(defun company-coq-doc-buffer-collect-outputs (name templates)
-  (cl-loop for template in templates
+(defun company-coq-doc-buffer-collect-outputs (name templates &optional fallbacks)
+  (let ((outputs (cl-loop for template in templates
            for cmd = (format template name)
            for output = (company-coq-ask-prover-swallow-errors cmd)
-           when output collect output))
+                         when output collect output)))
+    (or outputs (and fallbacks (company-coq-doc-buffer-collect-outputs name fallbacks)))))
 
 (defun company-coq-doc-buffer-generic (name cmds)
   (company-coq-dbg "company-coq-doc-buffer-generic: Called for name %s" name)
@@ -2346,11 +2350,12 @@ to locate lines starting with \"^!!!\"."
          (docs    (and ins-pos (company-coq-doc-buffer-collect-outputs
                                 (car sb-pos) (list company-coq-doc-cmd
                                                    company-coq-tactic-def-cmd
-                                                   company-coq-def-cmd))))
-         (offset  (company-coq-text-width (point-at-bol) (cdr sb-pos)))
+                                                   company-coq-def-cmd)
+                                (list company-coq-type-cmd))))
          (max-h   (max 4 (min 16 (- (company-coq--count-lines-under-point) 3)))))
     (cond
-     (docs (let ((ins-str (company-coq--prepare-for-definition-overlay docs offset max-h)))
+     (docs (let* ((offset  (company-coq-text-width (point-at-bol) (cdr sb-pos)))
+                  (ins-str (company-coq--prepare-for-definition-overlay docs offset max-h)))
              (setq company-coq-definition-overlay (make-overlay ins-pos ins-pos))
              (overlay-put company-coq-definition-overlay 'after-string ins-str)))
      (ins-pos (error "No information found for %s" (car sb-pos)))
