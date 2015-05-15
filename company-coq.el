@@ -2487,19 +2487,26 @@ if it is already open."
          (append prettify-symbols-alist company-coq-prettify-symbols-alist))
     (prettify-symbols-mode 1)))
 
+(defun company-coq-get-comment-opener (comment-start)
+  (ignore-errors
+    (when comment-start
+      (save-excursion
+        (goto-char comment-start)
+        (buffer-substring (point) (progn (skip-chars-forward "(*!+" (+ 5 (point))) (1+ (point))))))))
+
 (defun company-coq-syntactic-face-function-aux (_depth _innermost-start _last-complete-start
                                                 in-string comment-depth _after-quote _min-paren-depth
                                                 _comment-style comment-string-start _continuation)
   (cond
-   (in-string
-    font-lock-string-face)
+   (in-string font-lock-string-face)
    ((or comment-depth (numberp comment-depth))
-    (if (and comment-string-start
-             (ignore-errors (save-excursion
-                              (goto-char comment-string-start)
-                              (looking-at-p (regexp-quote "(**")))))
-        font-lock-doc-face
-      font-lock-comment-face))))
+    (let ((comment-opener (company-coq-get-comment-opener comment-string-start)))
+      (pcase comment-opener
+        (`"(* "   font-lock-comment-face)
+        (`"(*! "  '(:inherit font-lock-doc-face :height 1.2))
+        (`"(*+ "  '(:inherit font-lock-doc-face :height 1.8))
+        (`"(*** " '(:inherit font-lock-doc-face :height 2.5))
+        (_        font-lock-doc-face))))))
 
 (defun company-coq-syntactic-face-function (args)
   (apply #'company-coq-syntactic-face-function-aux args))
