@@ -1,7 +1,12 @@
-(*******************************************)
-(** Welcome to this company-coq tutorial! **)
-(** Here's a demo of a few nice features  **)
-(*******************************************)
+(***    company-coq    ***)
+
+(*+ A better environment for writing +*)
+(*+            Coq proofs            +*)
+
+(*! ************************************************* !*)
+(*!       Welcome to this company-coq tutorial!       !*)
+(*!       Here's a demo of a few nice features        !*)
+(*! ************************************************* !*)
 
 (** First of all, let's ensure that company-coq is running. Did you add
 
@@ -16,6 +21,8 @@
     to your .emacs? If not, you can try company-coq temporarily; just type
     `M-x company-coq-initialize'. *)
 
+(******************************************************************************)
+
 (** Let's get started! If you use emacs >= 24.4, the symbols below should be
     prettified, though they appear as ASCII in the source file. You can disable
     this feature by typing M-x prettify-symbols-mode. If the symbols show as
@@ -26,48 +33,33 @@ Definition PrettySymbols : (nat -> nat -> Prop) :=
   (fun (n m: nat) =>
      forall p, p <> n -> p >= m -> True \/ False).
 
+Ltac MySimpleTactic :=
+  match goal with
+  | [ H: False |- _ ] => exfalso; assumption
+  end.
+
 (* Try typing an arrow `->' here: *) 
 
 (******************************************************************************)
 
-(** company-coq knows most basic Coq tactics. Typing just a few letters are
+(** company-coq knows most basic Coq tactics. Typing just a few letters is
     enough to locate a tactic, and pressing RET inserts it. If a tactic contains
     holes, you can navigate them using TAB *)
 
-(* Try typing `SLD RET' here: *) 
 (* Try typing `applin RET' here: *) 
-
-(******************************************************************************)
-
-(** You can also insert math symbols directly in the source file, using LaTeX *)
-
-(* Try typing `\gam RET' here: *) 
-
-(******************************************************************************)
-
-(** company-coq adds a few convenient shortcuts, like M-RET and M-S-RET, to
-    insert additional match cases *)
-
-Ltac BasicTactic :=
-  match goal with
-  | [ H: ?a /\ ?b |- _ ] => destruct H
-  (* Place the point on the empty line before `end', and press `M-S-RET'. *)
-  (* You can press C-d to remove the contents of a field and move to the next *)
-
-  end.
-
-(******************************************************************************)
-
-(** company-coq can extract an outline of your proof script; it includes links
-    to each definition, theorem, and lemma. *)
-
-(* Try pressing `C-c C-,'. Press q to exit the outline buffer. *) 
+(* Try typing `SLD RET' here: *) 
 
 (******************************************************************************)
 
 (** Not sure what a tactic does? Type part of its name, and press C-h. *)
 
 (* Try typing `appl C-h' here: *) 
+
+(******************************************************************************)
+
+(** You can also insert math symbols directly in the source file, using TeX *)
+
+(* Try typing `\gam RET' here: *) 
 
 (******************************************************************************)
 
@@ -85,9 +77,9 @@ Ltac BasicTactic :=
 
 (** Completion is smart enough to look for theorems and tactics in the current
     buffer (and with the proper Coq patches, in the whole library). For example,
-    it knows about BasicTactic and PrettySymbols *)
+    it knows about MySimpleTactic and PrettySymbols *)
 
-(* Try typing `BasicTac' here: *) 
+(* Try typing `MySimple' here: *) 
 
 (******************************************************************************)
 
@@ -102,7 +94,28 @@ Ltac BasicTactic :=
     definition, from the source, of any symbol for which sources are
     available. *)
 
-(* Try typing BasicTac and pressing C-w here: *) 
+(* Try typing MySimp and pressing C-w here: *) 
+
+(******************************************************************************)
+
+(** In addition to lemmas, tactics, and type definitions from the current
+    buffer, company-coq also monitors Coq's responses for lists of identifiers,
+    and adjusts completions accordingly *)
+
+(* Run the following snippet, then try typing `plus' *)
+SearchAbout eq.
+
+
+(******************************************************************************)
+
+(** Your favourite Proof-General commands are still available; company-coq just
+    makes them more easily accessible: *)
+
+Lemma Transitive_eq : forall A (x y z: A), x = y -> y = z -> x = z.
+Proof.
+  (* Start the proof by pressing C-c RET here: *) 
+  (* Now try typing intros! RET here: *) 
+Abort.
 
 (******************************************************************************)
 
@@ -117,12 +130,23 @@ Fail exfalso.
 
 (******************************************************************************)
 
-(** In addition to lemmas, tactics, and type definitions from the current
-    buffer, company-coq also monitors Coq's responses for lists of identifiers,
-    and adjusts completions accordingly *)
+(** company-coq can show an outline of your proof script; it includes links
+    to each definition, theorem, and lemma. *)
 
-(* Run the following snippet, then try typing `plus' *)
-SearchAbout eq. 
+(* Try pressing `C-c C-,'. Press q to exit the outline buffer. *) 
+
+(******************************************************************************)
+
+(** company-coq also adds a few convenient snippets to Proof General, like M-RET
+    and M-S-RET to insert additional match cases *)
+
+Ltac BasicTactic :=
+  match goal with
+  | [ H: ?a /\ ?b |- _ ] => destruct H
+  (* Place the point on the empty line before `end', and press `M-S-RET'. *)
+  (* You can press C-d to remove the contents of a field and move to the next *)
+  
+  end.
 
 (******************************************************************************)
 
@@ -143,17 +167,14 @@ Proof.
   (* Try running omega again: *)
   Fail omega.
 
-  (* Pressing C-c C-a C-e again. Suggests that this wasn't the right approach
+  (* Pressing C-c C-a C-e again suggests that this wasn't the right approach
      after all. *)
   eauto.
-
-  (* By the way, did you notice that the goals line looked different? (If you're
-  using Emacs ≥ 24.4) *)
 Qed.
 
 (******************************************************************************)
 
-(** Even if you know what the error means, sometimes it's hard to parse: *)
+(** Even if you know what an error means, sometimes it's hard to parse: *)
 
 (* Evaluate the following block: *)
 
@@ -182,27 +203,13 @@ Abort.
 
 (******************************************************************************)
 
-(** Your favourite Proof-General commands are still available; company-coq just
-makes them more easily accessible: *)
-
-Lemma Transitive_eq : forall A (x y z: A), x = y -> y = z -> x = z.
-Proof.
-  (* Start the proof by pressing C-c RET here: *) 
-  (* Now try typing intros! RET here: *) 
-Abort.
-
-(******************************************************************************)
-
 (** In many cases, you'll want to extract part of your current goal (say, the
     goal plus a few hypotheses) to a separate lemma. Lemma extraction does just
     that. Let's prove a theorem by induction: *)
 
 Lemma my_plus_comm :
-  forall p q r,
-    (p < q /\ q < r) ->
-    (p + q < q + r) ->
-    (exists s, p + q + r < s) ->
-    forall n m, n + m = m + n.
+  forall p q r, (p < q /\ q < r) -> (p + q < q + r) ->
+           (exists s, p + q + r < s) -> forall n m, n + m = m + n.
 Proof.
   induction m.
   - auto.
@@ -260,8 +267,12 @@ Abort.
 
 (* (Tactics) Try typing zif here: *) 
 
-(** And if you also installed Coq sources (i.e. if you have .v files in addition to
-    .vo files in your installation), then you can press C-w in both cases above
-    to show the original definitions in context. *)
+(** And if you also installed Coq sources (i.e. if you have .v files in addition
+    to .vo files in your installation), then you can press C-w in both cases
+    above to show the original definitions in context. *)
 
+(******************************************************************************)
 
+(** This tutorial is licensed under the Creative Commons Attribution-ShareAlike
+    4.0 International License. To view a copy of this license, visit
+    http://creativecommons.org/licenses/by-sa/4.0/. *)
