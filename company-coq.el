@@ -330,9 +330,6 @@ about shorter names, and other matches")
                                       "\\`No Ltac definition is referred to by")
   "Regexp used to detect invalid output")
 
-(defconst company-coq-abort-proof-regexp "Current goals? aborted"
-  "Regexp used to detect signs that new definitions have been added to the context")
-
 (defconst company-coq-import-regexp (regexp-opt '("From" "Require" "Import" "Export"))
   "Regexp used to detect signs that new definitions will be added to the context")
 
@@ -1151,10 +1148,6 @@ search term and a qualifier."
   "Checks whether the output of the last command matches company-coq-end-of-def-regexp"
   (company-coq-boundp-string-match company-coq-end-of-def-regexp 'proof-shell-last-output))
 
-(defun company-coq-shell-output-proof-aborted ()
-  "Checks whether the output of the last command matches company-coq-end-of-def-regexp"
-  (company-coq-boundp-string-match company-coq-abort-proof-regexp 'proof-shell-last-output))
-
 (defun company-coq-shell-output-is-end-of-proof ()
   "Checks whether proof-general signaled a finished proof"
   (company-coq-value-or-nil 'proof-shell-proof-completed))
@@ -1247,16 +1240,13 @@ if output mentions new symbol, then calls
   (company-coq-dbg "company-coq-maybe-proof-output-reload-things: Called")
   (unless company-coq-asking-question
     (let ((is-error         (company-coq-shell-output-is-error))
-          (is-aborted       (company-coq-shell-output-proof-aborted))
           (is-end-of-def    (company-coq-shell-output-is-end-of-def))
           (is-end-of-proof  (company-coq-shell-output-is-end-of-proof)))
       (when is-end-of-proof (company-coq-dbg "company-coq-maybe-proof-output-reload-things: At end of proof"))
       (when is-end-of-def   (company-coq-dbg "company-coq-maybe-proof-output-reload-things: At end of definition"))
-      (when is-aborted      (company-coq-dbg "company-coq-maybe-proof-output-reload-things: Proof aborted"))
-      ;; (message "[%s] [%s] [%s]" company-coq-symbols-reload-needed is-end-of-def is-end-of-proof)
       (setq company-coq-symbols-reload-needed (or company-coq-symbols-reload-needed is-end-of-def is-end-of-proof))
       (setq company-coq-tactics-reload-needed (or company-coq-tactics-reload-needed is-end-of-def))
-      (company-coq-maybe-reload-context (or is-end-of-def is-end-of-proof is-aborted))
+      (company-coq-maybe-reload-context (or is-end-of-def is-end-of-proof))
       (if is-error (company-coq-dbg "Last output was an error; not reloading")
         ;; Delay call until after we have returned to the command loop
         (company-coq-dbg "This could be a good time to reload things?")
