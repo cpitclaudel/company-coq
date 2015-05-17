@@ -66,6 +66,7 @@
 (require 'paren)        ;; Find matching block start
 (require 'smie)         ;; Move around the source code
 (require 'diff-mode)    ;; Browsing through large error messages
+(require 'dash)         ;; -when-let and -if-let ;; FIXME: Require only on compilation
 
 (require 'company-coq-abbrev) ;; Tactics from the manual
 (require 'company-coq-tg)     ;; Parsing code for tactic notations
@@ -1210,13 +1211,12 @@ search term and a qualifier."
            collect line))
 
 (defun company-coq-run-and-parse-context (command)
-  (let ((output (company-coq-ask-prover-swallow-errors command)))
-    (if (not output)
-        (error (format "company-coq-parse-context: failed with message %s" output))
+  (-if-let* ((output (company-coq-ask-prover-swallow-errors command)))
       (let* ((lines   (company-coq-split-lines output))
              (context (company-coq-extract-context lines))
              (goal    (company-coq-extract-goal lines)))
-        (cons context goal)))))
+        (cons context goal))
+    (error (format "company-coq-parse-context: failed with message %s" output))))
 
 (defun company-coq-maybe-reload-context (&optional end-of-proof)
   "Updates company-coq-current-context."
@@ -1278,13 +1278,11 @@ if output mentions new symbol, then calls
     (setq company-coq-goals-window (company-coq-get-goals-window)))
 
   ;; Hide the docs and redisplay the goals buffer
-  (let* ((doc-buf   (get-buffer "*company-documentation*"))
-         (goals-buf (company-coq-get-goals-buffer))
-         (goals-win (company-coq-get-goals-window)))
-    (when doc-buf
-      (bury-buffer doc-buf))
-    (when (and goals-buf goals-win)
-      (set-window-buffer goals-win goals-buf))))
+  (-when-let* ((doc-buf   (get-buffer "*company-documentation*")))
+    (bury-buffer doc-buf))
+  (-when-let* ((goals-buf (company-coq-get-goals-buffer))
+             (goals-win (company-coq-get-goals-window)))
+    (set-window-buffer goals-win goals-buf)))
 
 (defun company-coq-coq-mode-p ()
   (derived-mode-p 'coq-mode))
@@ -1327,11 +1325,10 @@ if output mentions new symbol, then calls
 
 (defun company-coq-meta-symbol (name)
   (company-coq-dbg "company-coq-meta-symbol: Called for name %s" name)
-  (let ((output (company-coq-ask-prover-swallow-errors
-                 (format company-coq-symbols-meta-cmd name))))
-    (when output
-      (company-coq-truncate-to-minibuf
-       (replace-regexp-in-string "\\s-+" " " (company-coq-trim output))))))
+  (-when-let* ((output (company-coq-ask-prover-swallow-errors
+                      (format company-coq-symbols-meta-cmd name))))
+    (company-coq-truncate-to-minibuf
+     (replace-regexp-in-string "\\s-+" " " (company-coq-trim output)))))
 
 (defun company-coq-meta-keyword (name)
   (company-coq-dbg "company-coq-meta-keyword: Called for name %s" name)
@@ -1359,11 +1356,11 @@ if output mentions new symbol, then calls
   ;; fixes this, except when it yields an out of memory exception (eg. for the
   ;; mutually co-inductive records error documentation)
   (company-coq-dbg "Called company-coq-display-in-pg-buffer with %s %s" buffer alist)
-  (let ((pg-window (company-coq-get-goals-window)))
-    (when pg-window
-      (set-window-dedicated-p pg-window nil)
-      (set-window-buffer pg-window buffer))
-    (or pg-window (display-buffer buffer))))
+  (-if-let* ((pg-window (company-coq-get-goals-window)))
+      (progn (set-window-dedicated-p pg-window nil)
+             (set-window-buffer pg-window buffer)
+             pg-window)
+    (display-buffer buffer)))
 
 (defmacro company-coq-with-clean-doc-buffer (&rest body)
   (declare (indent defun)
@@ -1433,11 +1430,10 @@ corresponding (logical name . real name) pair."
            finally return longest))
 
 (defun company-coq-fully-qualified-name-simple (name cmd)
-  (let ((output (company-coq-ask-prover-swallow-errors (format cmd name))))
-    (when output
-      (save-match-data
-        (when (string-match company-coq-locate-output-format output)
-          (match-string-no-properties 1 output))))))
+  (-when-let* ((output (company-coq-ask-prover-swallow-errors (format cmd name))))
+    (save-match-data
+      (when (string-match company-coq-locate-output-format output)
+        (match-string-no-properties 1 output)))))
 
 (defun company-coq-fully-qualified-name (name cmds)
   "Finds the fully qualified name of NAME, successively issuing
@@ -1467,9 +1463,7 @@ such a case, try [Locate Library Peano] in 8.4pl3)."
 context. LOCATE-CMDS is a list of queries to use to guess the
 fully qualified name of NAME."
   (company-coq-dbg "company-coq-location-source: Called for [%s]" name)
-  (let* ((qname (company-coq-fully-qualified-name name locate-cmds)))
-    (company-coq-dbg "company-coq-location-source: qname is [%s]" qname)
-    (if qname
+  (-if-let* ((qname (company-coq-fully-qualified-name name locate-cmds)))
       (let* ((spec       (company-coq-longest-matching-path-spec qname))
              (logical    (if spec (concat (car spec) ".") ""))
              (short-name (replace-regexp-in-string "\\`.*\\." "" qname))
@@ -1478,7 +1472,7 @@ fully qualified name of NAME."
              (target     (concat (company-coq-make-headers-regexp company-coq-named-outline-kwds)
                                  "\\s-*" (regexp-quote short-name) "\\_>")))
         (company-coq-location-simple (propertize name 'location fname) target interactive))
-      (when interactive (error "No location found for %s" name)))))
+    (when interactive (error "No location found for %s" name))))
 
 (defvar company-coq-location-history nil
   "Keeps track of manual location queries")
@@ -1539,27 +1533,26 @@ fully qualified name of NAME."
   (concat "<" (or (symbol-name (get-text-property 0 'source arg)) "") ">"))
 
 (defun company-coq-doc-buffer-collect-outputs (name templates &optional fallbacks)
-  (let ((outputs (cl-loop for template in templates
+  (or (cl-loop for template in templates
            for cmd = (format template name)
            for output = (company-coq-ask-prover-swallow-errors cmd)
-                         when output collect output)))
-    (or outputs (and fallbacks (company-coq-doc-buffer-collect-outputs name fallbacks)))))
+               when output collect output)
+      (and fallbacks (company-coq-doc-buffer-collect-outputs name fallbacks))))
 
 (defun company-coq-doc-buffer-generic (name cmds)
   (company-coq-dbg "company-coq-doc-buffer-generic: Called for name %s" name)
-  (let ((chapters (company-coq-doc-buffer-collect-outputs name cmds)))
-    (when chapters
-      (let* ((fontized-name (propertize name 'font-lock-face 'company-coq-doc-i-face))
-             (doc-tagline   (format company-coq-doc-tagline fontized-name))
-             (doc-body      (mapconcat #'identity chapters company-coq-doc-def-sep))
-             (doc-full      (concat doc-tagline "\n\n" doc-body)))
-        (company-coq-with-clean-doc-buffer
-          (insert doc-full)
-          (when (fboundp 'coq-response-mode)
-            (coq-response-mode))
-          (goto-char (point-min))
-          (company-coq-make-title-line 'company-coq-doc-header-face-docs)
-          (current-buffer))))))
+  (-when-let* ((chapters (company-coq-doc-buffer-collect-outputs name cmds)))
+    (let* ((fontized-name (propertize name 'font-lock-face 'company-coq-doc-i-face))
+           (doc-tagline   (format company-coq-doc-tagline fontized-name))
+           (doc-body      (mapconcat #'identity chapters company-coq-doc-def-sep))
+           (doc-full      (concat doc-tagline "\n\n" doc-body)))
+      (company-coq-with-clean-doc-buffer
+       (insert doc-full)
+       (when (fboundp 'coq-response-mode)
+         (coq-response-mode))
+       (goto-char (point-min))
+       (company-coq-make-title-line 'company-coq-doc-header-face-docs)
+       (current-buffer)))))
 
 (defun company-coq-doc-buffer-symbol (name)
   (company-coq-doc-buffer-generic name (list company-coq-doc-cmd
@@ -1669,16 +1662,15 @@ fully qualified name of NAME."
       ;; Find matching delimiter
       (when (re-search-backward company-coq-block-end-regexp)
         (goto-char (+ 1 (match-beginning 1)))
-        (let ((delim-info (funcall show-paren-data-function)))
-          (when delim-info
-            (cl-destructuring-bind (_hb _he _tb there-end mismatch) delim-info
-                (when (and (not mismatch) there-end)
-                  (goto-char there-end)
-                  (re-search-backward company-coq-section-regexp nil t)
-                  (let ((nearest-section-name (match-string-no-properties 2)))
-                    (when (and nearest-section-name
-                               (equal prefix (substring nearest-section-name 0 (length prefix))))
-                      (list nearest-section-name)))))))))))
+        (-when-let* ((delim-info (funcall show-paren-data-function)))
+          (cl-destructuring-bind (_hb _he _tb there-end mismatch) delim-info
+            (when (and (not mismatch) there-end)
+              (goto-char there-end)
+              (re-search-backward company-coq-section-regexp nil t)
+              (let ((nearest-section-name (match-string-no-properties 2)))
+                (when (and nearest-section-name
+                           (equal prefix (substring nearest-section-name 0 (length prefix))))
+                  (list nearest-section-name))))))))))
 
 (defun company-coq-candidates-reserved (prefix)
   (interactive)
@@ -1712,12 +1704,12 @@ output size is cached in `company-coq-last-search-scan-size'."
   (get-text-property 0 'match-end completion))
 
 (defun company-coq-dabbrev-to-yas-format-one (match)
-  (let* ((identifier (or (match-string 1 match)
+  (let ((identifier (or (match-string 1 match)
                          (and company-coq-explicit-placeholders "_") "")))
     (concat  "${" identifier "}")))
 
 (defun company-coq-yasnippet-choicify-one (match)
-  (let* ((choices (save-match-data (split-string (match-string 1 match) "|"))))
+  (let ((choices (save-match-data (split-string (match-string 1 match) "|"))))
     (concat "${$$" (prin1-to-string `(company-coq-choose-value (list ,@choices))) "}")))
 
 (defun company-coq-dabbrev-to-yas (abbrev)
@@ -1739,9 +1731,9 @@ output size is cached in `company-coq-last-search-scan-size'."
 
 (defun company-coq-abbrev-to-yas (abbrev source)
   (company-coq-dbg "company-coq-abbrev-to-yas: Transforming %s" abbrev)
-  (let ((transform (cdr-safe (assq source company-coq-abbrevs-transforms-alist))))
-    (if transform (funcall transform abbrev)
-      abbrev)))
+  (-if-let* ((transform (cdr-safe (assq source company-coq-abbrevs-transforms-alist))))
+      (funcall transform abbrev)
+    abbrev))
 
 (defun company-coq-get-snippet (candidate)
   (let* ((abbrev  (get-text-property 0 'insert candidate))
@@ -1750,17 +1742,16 @@ output size is cached in `company-coq-last-search-scan-size'."
     snippet))
 
 (defun company-coq-post-completion-keyword (kwd)
-  (let* ((found   (search-backward kwd))
-         (start   (match-beginning 0))
-         (end     (match-end 0))
-         (snippet (company-coq-get-snippet kwd)))
-    (when (and found start end snippet)
-      (let ((insert-fun (get-text-property 0 'insert-fun kwd)))
-        (if insert-fun
-            (progn
-              (delete-region start end)
-              (funcall insert-fun))
-          (yas-expand-snippet snippet start end))))))
+  (-when-let* ((found   (search-backward kwd))
+             (start   (match-beginning 0))
+             (end     (match-end 0))
+             (snippet (company-coq-get-snippet kwd)))
+    (let ((insert-fun (get-text-property 0 'insert-fun kwd)))
+      (if insert-fun
+          (progn
+            (delete-region start end)
+            (funcall insert-fun))
+        (yas-expand-snippet snippet start end)))))
 
 (defun company-coq-goto-occurence (&optional _event)
   (interactive)
@@ -2297,12 +2288,11 @@ tactics in older versions of Coq: use [idtac \"!!!\" message] to
 print [message] to output, and `company-coq-search-in-coq-buffer'
 to locate lines starting with \"^!!!\"."
   (interactive "MRegexp search in *coq* buffer: ")
-  (let ((coq-buffer (get-buffer-create "*coq*"))
-        (same-window-buffer-names '("*Occur*")))
-    (if coq-buffer
-        (with-current-buffer coq-buffer
-          (occur regexp))
-      (error "*coq* buffer not found"))))
+  (-if-let* ((coq-buffer (get-buffer-create "*coq*"))
+             (same-window-buffer-names '("*Occur*")))
+      (with-current-buffer coq-buffer
+        (occur regexp))
+    (error "*coq* buffer not found")))
 
 (defun company-coq--prepare-for-definition-overlay (strs offset &optional max-lines)
   (let* ((line-width (window-body-width))
@@ -2385,9 +2375,9 @@ is released."
   (let* ((window  (posn-window (event-start event)))
          (buffer  (and window (window-buffer window))))
     (if buffer
-        (save-excursion
           (with-current-buffer buffer
             (when (eq major-mode 'coq-mode)
+            (save-excursion
               (mouse-set-point event)
               (company-coq-clear-definition-overlay)
               (company-coq--show-definition-overlay-at-point))))
