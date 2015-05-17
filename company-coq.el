@@ -1534,8 +1534,8 @@ fully qualified name of NAME."
 
 (defun company-coq-doc-buffer-collect-outputs (name templates &optional fallbacks)
   (or (cl-loop for template in templates
-           for cmd = (format template name)
-           for output = (company-coq-ask-prover-swallow-errors cmd)
+               for cmd = (format template name)
+               for output = (company-coq-ask-prover-swallow-errors cmd)
                when output collect output)
       (and fallbacks (company-coq-doc-buffer-collect-outputs name fallbacks))))
 
@@ -1705,7 +1705,7 @@ output size is cached in `company-coq-last-search-scan-size'."
 
 (defun company-coq-dabbrev-to-yas-format-one (match)
   (let ((identifier (or (match-string 1 match)
-                         (and company-coq-explicit-placeholders "_") "")))
+                        (and company-coq-explicit-placeholders "_") "")))
     (concat  "${" identifier "}")))
 
 (defun company-coq-yasnippet-choicify-one (match)
@@ -2307,7 +2307,6 @@ to locate lines starting with \"^!!!\"."
         (company-coq-prefix-all-lines (propertize " " 'display `(space . (:width ,real-offset)))))
       (coq-mode)
       (font-lock-ensure)
-      ;; (add-face-text-property (point-min) (point-max) '(:height 0.9) t)
       ;; Prevent text from inheriting properties of neighbouring characters
       (add-face-text-property (point-min) (point-max) 'default t)
       (company-coq-insert-spacer (point-min))
@@ -2473,11 +2472,11 @@ if it is already open."
          (append prettify-symbols-alist company-coq-prettify-symbols-alist))
     (prettify-symbols-mode 1)))
 
-(defun company-coq-get-comment-opener (comment-start)
+(defun company-coq-get-comment-opener (comment-string-start)
   (ignore-errors
-    (when comment-start
+    (when comment-string-start
       (save-excursion
-        (goto-char comment-start)
+        (goto-char comment-string-start)
         (buffer-substring (point) (progn (skip-chars-forward "(*!+" (+ 5 (point))) (1+ (point))))))))
 
 (defun company-coq-syntactic-face-function-aux (_depth _innermost-start _last-complete-start
