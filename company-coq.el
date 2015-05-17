@@ -265,7 +265,7 @@ This is mostly useful of company-coq-dynamic-autocompletion is nil.")
 (defconst company-coq-all-symbols-cmd "SearchPattern _"
   "Command used to list all symbols.")
 
-(defconst company-coq-all-ltacs-cmd "Print Ltacs"
+(defconst company-coq-all-ltacs-cmd "Print Ltac Signatures"
   "Command used to list all tactics.")
 
 (defconst company-coq-all-notations-cmd "Print Grammar tactic"
