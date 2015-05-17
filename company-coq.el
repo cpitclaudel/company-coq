@@ -24,7 +24,8 @@
 ;; many useful extensions to Proof-General.
 ;;
 ;; See https://github.com/cpitclaudel/company-coq/ for a full description,
-;; including screenshots and documentation.
+;; including screenshots and documentation. After installing, you may want to
+;; use M-x company-coq-tutorial to open the tutorial.
 ;;
 
 ;;; Code:
