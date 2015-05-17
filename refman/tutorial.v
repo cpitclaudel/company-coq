@@ -65,13 +65,13 @@ Ltac MySimpleTactic :=
 
 (** Now for a few interactive features. You'll want to start the prover *)
 
-(* Start Coq by pressing C-c RET here: *) 
+(* Start Coq by pressing C-c RET here: *)  
 
 (******************************************************************************)
 
 (** Now that Coq is started, company-coq can auto-complete library modules *)
 
-(* Try typing `Require Coq.Z.B' here: *)
+(* Try typing `Require Coq.Z.B' here: *) 
 
 (******************************************************************************)
 
@@ -120,7 +120,7 @@ Abort.
 (******************************************************************************)
 
 (** If you just want a quick peek at a symbol or theorem, though, it's often
-faster to just C-click the symbol. *)
+    faster to just C-click the symbol. *)
 
 (* Try clicking the words "le" and "exfalso" below, while holding the Control
    key down. Release the mouse button to hide the info box. (This also works
@@ -224,7 +224,7 @@ Abort.
 
 (******************************************************************************)
 
-(** That's it for the core features; good luck with your proofs! Don't hesitate
+(**  That's it for the core features; good luck with your proofs! Don't hesitate  
     to submit ideas and patches to https://github.com/cpitclaudel/company-coq/,
     and if you use Coq, Proof-General, and company-coq for your research, please
     consider a citation!
