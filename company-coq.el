@@ -277,7 +277,7 @@ This is mostly useful of company-coq-dynamic-autocompletion is nil.")
   "Command used to list more symbols ([SearchPattern _] doesn't search inside modules in 8.4).")
 
 (defconst company-coq-all-symbols-coda (cons company-coq-search-blacklist-rem-cmd
-                                          '("Unset Search Output Name Only"))
+                                             '("Unset Search Output Name Only"))
   "Command to run after listing all symbols, using a patched version of Coq")
 
 (defconst company-coq-doc-cmd "About %s"
@@ -720,11 +720,11 @@ line if empty). Calls `indent-region' on the inserted lines."
     tactics))
 
 (defun company-coq-get-all-notations ()
-   "Load all tactic notations by parsing the output of
+  "Load all tactic notations by parsing the output of
 `company-coq-all-notations-cmd'. Do not call if proof process is
 busy."
-   (let ((output (company-coq-ask-prover-swallow-errors company-coq-all-notations-cmd)))
-     (and output (company-coq-tg--extract-notations output))))
+  (let ((output (company-coq-ask-prover-swallow-errors company-coq-all-notations-cmd)))
+    (and output (company-coq-tg--extract-notations output))))
 
 (defun company-coq-get-notations ()
   "Load tactic notations, filtering out notations listed in
@@ -768,12 +768,12 @@ proof process is busy."
 
 (defun company-coq-find-all (re beg end)
   (when (< beg end) ;; point-at-bol may be before unproc-beg
-  (let ((case-fold-search nil)
-        (matches          nil))
-    (save-excursion
-      (goto-char beg)
-      (while (search-forward-regexp re end t)
-        (push (match-string-no-properties 2) matches)))
+    (let ((case-fold-search nil)
+          (matches          nil))
+      (save-excursion
+        (goto-char beg)
+        (while (search-forward-regexp re end t)
+          (push (match-string-no-properties 2) matches)))
       matches)))
 
 (defun company-coq-reload-buffer-defuns ()
@@ -1052,7 +1052,7 @@ cases:
   (pcase (company-coq-chomp module-atoms path-atoms)
     (`(,mod .  nil) (let ((subdirectory-atoms (butlast mod)))
                       (unless (member "" subdirectory-atoms) ;; We don't support skipping over subdirectories
-                       (cons (append path-atoms subdirectory-atoms) (cons mod nil)))))
+                        (cons (append path-atoms subdirectory-atoms) (cons mod nil)))))
     (`(nil  . ,pth) (cons path-atoms (cons nil pth)))
     (_              nil)))
 
@@ -1090,8 +1090,8 @@ extension." ;; TODO format directories properly
                             'match-end match-end))
               mod-names))))
 
-(defun company-coq-complete-module-qualified (qualid-atoms search-atoms physical-path
-                                              fully-matched-count part-matched-len)
+(defun company-coq-complete-module-qualified
+    (qualid-atoms search-atoms physical-path fully-matched-count part-matched-len)
   "Find qualified module names in PHYSICAL-PATH that match SEARCH-ATOMS."
   ;; (message "> [%s] [%s] [%s]" (prin1-to-string qualid-atoms) (prin1-to-string search-atoms) physical-path)
   (let* ((kwd           (car-safe (last search-atoms)))
@@ -1190,17 +1190,17 @@ search term and a qualifier."
          (push (propertize name 'meta type) ,context)))))
 
 (defun company-coq-extract-context (goal-lines)
- (cl-loop for     line
-          in      goal-lines
-          with    context  = nil
-          with    current-hyp = `(nil . nil)
-          while   (not (string-match-p company-coq-goal-separator-line-regexp line))
-          if      (string-match company-coq-goals-hyp-regexp line)
-          do      (company-coq-remember-hyp current-hyp context)
-          and do  (setq current-hyp `(,(match-string 1 line) . ,(list (match-string 2 line))))
-          else do (push line (cdr current-hyp))
-          finally (company-coq-remember-hyp current-hyp context)
-          finally return context))
+  (cl-loop for     line
+           in      goal-lines
+           with    context  = nil
+           with    current-hyp = `(nil . nil)
+           while   (not (string-match-p company-coq-goal-separator-line-regexp line))
+           if      (string-match company-coq-goals-hyp-regexp line)
+           do      (company-coq-remember-hyp current-hyp context)
+           and do  (setq current-hyp `(,(match-string 1 line) . ,(list (match-string 2 line))))
+           else do (push line (cdr current-hyp))
+           finally (company-coq-remember-hyp current-hyp context)
+           finally return context))
 
 (defun company-coq-extract-goal (goal-lines)
   (while (and goal-lines (not (string-match-p company-coq-goal-separator-line-regexp (car goal-lines))))
@@ -1281,7 +1281,7 @@ if output mentions new symbol, then calls
   (-when-let* ((doc-buf   (get-buffer "*company-documentation*")))
     (bury-buffer doc-buf))
   (-when-let* ((goals-buf (company-coq-get-goals-buffer))
-             (goals-win (company-coq-get-goals-window)))
+               (goals-win (company-coq-get-goals-window)))
     (set-window-buffer goals-win goals-buf)))
 
 (defun company-coq-coq-mode-p ()
@@ -1326,7 +1326,7 @@ if output mentions new symbol, then calls
 (defun company-coq-meta-symbol (name)
   (company-coq-dbg "company-coq-meta-symbol: Called for name %s" name)
   (-when-let* ((output (company-coq-ask-prover-swallow-errors
-                      (format company-coq-symbols-meta-cmd name))))
+                        (format company-coq-symbols-meta-cmd name))))
     (company-coq-truncate-to-minibuf
      (replace-regexp-in-string "\\s-+" " " (company-coq-trim output)))))
 
@@ -1409,12 +1409,12 @@ inside a comment, at the beginning of the comment."
          (is-buffer       (and fname-or-buffer (bufferp fname-or-buffer)))
          (is-fname        (and fname-or-buffer (stringp fname-or-buffer) (file-exists-p fname-or-buffer))))
     (if (or is-buffer is-fname)
-      (company-coq-with-clean-doc-buffer
-        (cond (is-buffer (insert-buffer-substring fname-or-buffer))
-              (is-fname  (insert-file-contents fname-or-buffer nil nil nil t)))
-        (company-coq-setup-temp-coq-buffer)
-        (cons (current-buffer)
-              (set-window-start nil (goto-char (company-coq-search-then-scroll-up target)))))
+        (company-coq-with-clean-doc-buffer
+          (cond (is-buffer (insert-buffer-substring fname-or-buffer))
+                (is-fname  (insert-file-contents fname-or-buffer nil nil nil t)))
+          (company-coq-setup-temp-coq-buffer)
+          (cons (current-buffer)
+                (set-window-start nil (goto-char (company-coq-search-then-scroll-up target)))))
       (when interactive
         (error "No location found for %s" name)))))
 
@@ -1448,7 +1448,7 @@ is nil, both of `company-coq-locate-tactic-cmd' and
 of (concat LIB-PATH MOD-NAME), or a buffer visiting that
 file. FALLBACK-SPEC is a module path specification to be used if
 [Locate Library] points to a non-existent file (for an example of
-such a case, try [Locate Library Peano] in 8.4pl3)."
+                                                    such a case, try [Locate Library Peano] in 8.4pl3)."
   (if (and (equal lib-path "") (equal mod-name "Top"))
       (current-buffer)
     (let* ((lib-name (concat lib-path mod-name))
@@ -1547,12 +1547,12 @@ fully qualified name of NAME."
            (doc-body      (mapconcat #'identity chapters company-coq-doc-def-sep))
            (doc-full      (concat doc-tagline "\n\n" doc-body)))
       (company-coq-with-clean-doc-buffer
-       (insert doc-full)
-       (when (fboundp 'coq-response-mode)
-         (coq-response-mode))
-       (goto-char (point-min))
-       (company-coq-make-title-line 'company-coq-doc-header-face-docs)
-       (current-buffer)))))
+        (insert doc-full)
+        (when (fboundp 'coq-response-mode)
+          (coq-response-mode))
+        (goto-char (point-min))
+        (company-coq-make-title-line 'company-coq-doc-header-face-docs)
+        (current-buffer)))))
 
 (defun company-coq-doc-buffer-symbol (name)
   (company-coq-doc-buffer-generic name (list company-coq-doc-cmd
@@ -1743,9 +1743,9 @@ output size is cached in `company-coq-last-search-scan-size'."
 
 (defun company-coq-post-completion-keyword (kwd)
   (-when-let* ((found   (search-backward kwd))
-             (start   (match-beginning 0))
-             (end     (match-end 0))
-             (snippet (company-coq-get-snippet kwd)))
+               (start   (match-beginning 0))
+               (end     (match-end 0))
+               (snippet (company-coq-get-snippet kwd)))
     (let ((insert-fun (get-text-property 0 'insert-fun kwd)))
       (if insert-fun
           (progn
@@ -2374,8 +2374,8 @@ is released."
   (let* ((window  (posn-window (event-start event)))
          (buffer  (and window (window-buffer window))))
     (if buffer
-          (with-current-buffer buffer
-            (when (eq major-mode 'coq-mode)
+        (with-current-buffer buffer
+          (when (eq major-mode 'coq-mode)
             (save-excursion
               (mouse-set-point event)
               (company-coq-clear-definition-overlay)
@@ -2444,8 +2444,8 @@ if it is already open."
   (when company-coq-autocomplete-block-end
     (add-to-list 'company-coq-backends #'company-coq-block-end t))
 
- (when company-coq-autocomplete-search-results
-   (add-to-list 'company-coq-backends #'company-coq-search-results t)))
+  (when company-coq-autocomplete-search-results
+    (add-to-list 'company-coq-backends #'company-coq-search-results t)))
 
 (defun company-coq-setup-company ()
   (company-mode 1)
