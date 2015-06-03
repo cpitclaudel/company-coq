@@ -2145,8 +2145,8 @@ proceed."
 ;; FIXME this should only happend in the last hole, and only if not in
 ;; nested parens, so as to prevent [assert true by (blah;] from
 ;; exiting.
-(defun company-coq-maybe-exit-snippet ()
-  (interactive)
+(defun company-coq-maybe-exit-snippet (arg)
+  (interactive "p")
   (let* ((after-exit-char (company-coq-after-exit-char))
          (snippet         (and after-exit-char (company-coq-snippet-at-point)))
          (company-coq--keybindings-minor-mode nil)
@@ -2154,7 +2154,7 @@ proceed."
     (when snippet
       (yas-exit-snippet snippet))
     (if original-func (call-interactively original-func)
-      (self-insert-command 1))))
+      (self-insert-command arg))))
 
 (defun company-coq-proof-goto-point (&rest args)
   (interactive)
