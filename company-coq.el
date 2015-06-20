@@ -449,10 +449,11 @@ dependent]).")
                "\\(?1:absurd_hyp\\_>\\) [A-Za-z]")
              "\\|"))
 
-(defconst company-coq-deprecated-re (concat "^[[:blank:]]*"
+(defconst company-coq-deprecated-re (concat "^[[:blank:]]*\\(?:"
                                             "\\(?:" company-coq-deprecated-options-re "\\)\\|"
                                             "\\(?:" company-coq-deprecated-vernacs-re "\\)\\|"
-                                            "\\(?:" company-coq-deprecated-man-re "\\)")
+                                            "\\(?:" company-coq-deprecated-man-re "\\)"
+                                            "\\)")
   "Deprecated forms.")
 
 (defconst company-coq-script-full-path load-file-name
