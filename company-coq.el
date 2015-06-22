@@ -398,7 +398,7 @@ about shorter names, and other matches")
   :group 'company-coq
   :type 'alist)
 
-(defconst company-coq-numeric-hypothesis-regexp "  .*[^0-9]\\([0-9]+\\) :"
+(defconst company-coq-numeric-hypothesis-regexp "\\(?:^  \\|, \\)[^0-9]\\([0-9]+\\)\\b"
   "Regexp used to detect hypotheses of the form Hyp25 and change them into Hyp_25")
 
 (defconst company-coq-lemma-introduction-forms
@@ -1191,6 +1191,8 @@ search term and a qualifier."
          (push (propertize name 'meta type) ,context)))))
 
 (defun company-coq-extract-context (goal-lines)
+  ;; FIXME: This does not properly deal with "a, b: nat", which was introduced in 8.5
+  ;; It doesn't matter too much though, because 8.5 lists hypotheses in search results.
   (cl-loop for     line
            in      goal-lines
            with    context  = nil
