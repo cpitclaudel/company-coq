@@ -1,5 +1,4 @@
-;;; -*- lexical-binding: t -*-
-;;; company-coq.el --- Company-mode backend for Proof General's coq-mode
+;;; company-coq.el --- Company-mode backend for Proof General's coq-mode -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2015  Clément Pit--Claudel
 ;; Author: Clément Pit--Claudel <clement.pitclaudel@live.com>
