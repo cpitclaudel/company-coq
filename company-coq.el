@@ -393,9 +393,18 @@ about shorter names, and other matches")
                                                 ("*" . ?×) ("++" . ?⧺) ("nat" . ?𝓝)
                                                 ("Z" . ?ℤ) ("N" . ?ℕ) ("Q" . ?ℚ)
                                                 ("Real" . ?ℝ) ("bool" . ?𝔹) ("Prop" . ?𝓟))
-  "An alist of symbols to prettify. Assigned to `prettify-symbols-alist' in emacs >= 24.4"
+  "An alist of symbols to prettify.
+Assigned to `prettify-symbols-alist' in emacs >= 24.4"
   :group 'company-coq
   :type 'alist)
+
+(defcustom company-coq-local-symbols nil
+  "An alist of file-specific symbols to prettify.
+Combined with `company-coq-prettify-symbols-alist'. Most useful
+as a file or dir-local variable."
+  :group 'company-coq
+  :type 'alist
+  :safe 'listp)
 
 (defconst company-coq-numeric-hypothesis-regexp "\\(?:^  \\|, \\)[^0-9]\\([0-9]+\\)\\b"
   "Regexp used to detect hypotheses of the form Hyp25 and change them into Hyp_25")
@@ -2430,7 +2439,9 @@ if it is already open."
   (add-hook 'coq-goals-mode-hook #'company-coq-setup-goals-buffer)
   (add-hook 'coq-response-mode-hook #'company-coq-setup-response-buffer)
   ;; Yasnippet
-  (add-hook 'yas-after-exit-snippet-hook #'company-coq-forget-choices))
+  (add-hook 'yas-after-exit-snippet-hook #'company-coq-forget-choices)
+  ;; Prettify
+  (add-hook 'hack-local-variables-hook #'company-coq-update-local-symbols))
 
 (defun company-coq-setup-optional-backends ()
   (when company-coq-autocomplete-context
@@ -2473,8 +2484,12 @@ if it is already open."
              (fboundp #'prettify-symbols-mode)
              company-coq-prettify-symbols)
     (set (make-local-variable 'prettify-symbols-alist)
-         (append prettify-symbols-alist company-coq-prettify-symbols-alist))
-    (prettify-symbols-mode 1)))
+         (append prettify-symbols-alist company-coq-prettify-symbols-alist company-coq-local-symbols))
+    (prettify-symbols-mode)))
+
+(defun company-coq-update-local-symbols ()
+  (when (assoc 'company-coq-local-symbols file-local-variables-alist)
+    (company-coq-setup-prettify)))
 
 (defun company-coq-get-comment-opener (comment-string-start)
   (ignore-errors
@@ -2570,6 +2585,7 @@ if it is already open."
   (remove-hook 'coq-response-mode-hook #'company-coq-setup-response-buffer)
 
   (remove-hook 'yas-after-exit-snippet-hook #'company-coq-forget-choices)
+  (remove-hook 'hack-local-variables-hook #'company-coq-update-local-symbols)
 
   (setq font-lock-syntactic-face-function (default-value 'font-lock-syntactic-face-function))
   (help-at-pt-cancel-timer)
