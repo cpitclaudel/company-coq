@@ -2318,7 +2318,7 @@ to locate lines starting with \"^!!!\"."
         (company-coq-prefix-all-lines (propertize " " 'display `(space . (:width ,real-offset)))))
       (coq-mode)
       (if (company-coq-is-old-emacs)
-          (font-lock-fontify-buffer)
+          (with-no-warnings (font-lock-fontify-buffer))
         (font-lock-ensure))
       ;; Prevent text from inheriting properties of neighbouring characters
       (add-face-text-property (point-min) (point-max) 'default t)
