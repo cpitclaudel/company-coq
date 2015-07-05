@@ -72,6 +72,11 @@ Proof.
   constructor.
 Qed.
 
+Goal 1 = 1.
+  (* Are the two numbers displaying properly? *)
+  reflexivity.
+Qed.
+
 Print TestSubscripts.
 
 Lemma TestLemma : (* This is a template *)

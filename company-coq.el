@@ -406,7 +406,7 @@ as a file or dir-local variable."
   :type 'alist
   :safe 'listp)
 
-(defconst company-coq-numeric-hypothesis-regexp "\\(?:^  \\|, \\)[^0-9]\\([0-9]+\\)\\b"
+(defconst company-coq-numeric-hypothesis-regexp "\\(?:^  \\|, \\)[A-Za-zΑ-Ωα-ω]\\([0-9]+\\)\\b"
   "Regexp used to detect hypotheses of the form Hyp25 and change them into Hyp_25")
 
 (defconst company-coq-lemma-introduction-forms
