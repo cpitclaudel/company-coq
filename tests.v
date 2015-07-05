@@ -65,7 +65,7 @@ Proof.
 Qed.
 
 Lemma TestSubscripts :
-  forall x: True, True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> nat.
+  forall x: True, True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> nat -> nat.
 Proof.
   intros.
   (* Are subscripts displaying properly? *)

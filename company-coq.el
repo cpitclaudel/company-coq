@@ -2112,6 +2112,7 @@ proceed."
     (define-key cc-map (kbd "C-<return>")       #'company-manual-begin)
     (define-key cc-map (kbd "C-c C-a C-e")      #'company-coq-document-error)
     (define-key cc-map (kbd "C-c C-a C-x")      #'company-coq-lemma-from-goal)
+    (define-key cc-map (kbd "C-c C-a RET")      #'company-coq-insert-match-construct)
     (define-key cc-map (kbd "<M-return>")       #'company-coq-insert-match-rule-simple)
     (define-key cc-map (kbd "<M-S-return>")     #'company-coq-insert-match-rule-complex)
     (define-key cc-map (kbd "SPC")              #'company-coq-maybe-exit-snippet)
@@ -2217,7 +2218,7 @@ proceed."
         (candidates (cons "" (car-safe (company-coq-run-and-parse-context "Show")))))
     (while (string-equal lemma-name "")
       (setq lemma-name (read-string "Lemma name? ")))
-    (while candidates
+    (while candidates ;; TODO consider completing-read-multiple
       (let ((hyp (completing-read "Hypothesis to keep? " candidates nil t)))
         (if (string-equal hyp "")
             (setq candidates nil)
@@ -2229,6 +2230,7 @@ proceed."
   "Inserts a new lemma into the buffer, called LEMMA-NAME, with
 hypotheses HYPS, and everything that they depend on."
   (interactive (company-coq-lemma-from-goal-interact))
+  (proof-shell-ready-prover)
   (let* ((gen-cmds  (mapcar (lambda (hyp) (concat "generalize dependent " hyp)) hyps))
          (full-cmd  (mapconcat 'identity (nconc gen-cmds company-coq-lemma-introduction-forms) ";"))
          (ctx-goal  (company-coq-run-and-parse-context full-cmd))
@@ -2240,6 +2242,22 @@ hypotheses HYPS, and everything that they depend on."
            ,@(mapconcat #'identity lemma "\n")
            ".\nProof.\n"))
       (error "Lemma extraction failed"))))
+
+(defun company-coq-insert-match-construct-interact ()
+  (list (read-from-minibuffer "Type of the matched expression (e.g. nat, bool, list, ...): ")))
+
+(defun company-coq-insert-match-construct (type)
+  "Insert a match expression.
+Similar to `coq-insert-match', but using YAS."
+  (interactive (company-coq-insert-match-construct-interact))
+  (proof-shell-ready-prover)
+  (let* ((question (concat "Show Match " type))
+         (response (company-coq-ask-prover question)))
+    (if (company-coq-unless-error response)
+        (let* ((cleaned (replace-regexp-in-string "\\s-+\\'" "" response))
+               (snippet (replace-regexp-in-string "=>$" "=> #" cleaned)))
+          (yas-expand-snippet (company-coq-dabbrev-to-yas snippet)))
+      (error response))))
 
 (defun company-coq-normalize-error (msg)
   (let* ((truncated (replace-regexp-in-string "\\(?:.\\|[\n]\\)*Error:\\s-" "" msg))
