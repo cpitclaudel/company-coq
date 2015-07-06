@@ -85,8 +85,9 @@
                                          "Chapter ${1:ChapterName}.\n$0\nEnd $1." ;; Commented out in RefMan-ext.v
                                          "Module ${1:ModuleName}.\n$0\nEnd $1."
                                          "Module Type ${1:ModuleTypeName}.\n$0\nEnd $1."
-                                         "match ${ident} with")
-  "Custom YAS snippets")
+                                         "match ${ident} with"
+                                         "match goal with\n$0\nend")
+  "Custom YAS snippets") ;; FIXME add to tutorial
 
 (defcustom company-coq-dynamic-autocompletion nil
   "Autocomplete theorem and tactic names by periodically querying coq about defined identifiers. This is an experimental feature. It requires a patched version of Coq to work properly; it will be very slow otherwise."
