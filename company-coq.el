@@ -2154,6 +2154,9 @@ proceed."
     (if original-func (call-interactively original-func)
       (self-insert-command arg))))
 
+;; Needed for delete-selection-mode to work properly
+(put 'company-coq-maybe-exit-snippet 'delete-selection t)
+
 (defun company-coq-proof-goto-point (&rest args)
   (interactive)
   (when (bound-and-true-p company-mode)
