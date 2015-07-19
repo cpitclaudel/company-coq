@@ -2370,11 +2370,11 @@ to locate lines starting with \"^!!!\"."
      (sb-pos  (error "No newline at end of file"))
      (t       (error "No symbol here")))))
 
-(defcustom company-coq-keyboard-repeat-delay 0.5
+(defcustom company-coq-keyboard-repeat-delay 0.75
   "Duration before a key starts repeating. Increase if the inline definition showed by pressing <menu> flickers."
   :group 'company-coq)
 
-(defcustom company-coq-keyboard-repeat-interval 0.1
+(defcustom company-coq-keyboard-repeat-interval 0.2
   "Duration between two repeats of the same key. Increase if the inline definition showed by pressing <menu> flickers."
   :group 'company-coq)
 
@@ -2388,13 +2388,15 @@ is released."
   ;; is also being displayed.
   (interactive)
   (if company-coq-definition-overlay
-      ;; Already displayed. Keypress is going to fire again soon, just wait for a tiny bit
+      ;; Already displayed. Keypress is going to fire again soon, just wait for
+      ;; a tiny bit. This will be called again if it does, and otherwise the
+      ;; company-coq-clear-definition-overlay timer will fire
       (sit-for company-coq-keyboard-repeat-interval)
     ;; First key press. Show the overlay
     (company-coq--show-definition-overlay-at-point)
     ;; ... then start a timer
     (run-with-idle-timer 0 nil #'company-coq-clear-definition-overlay)
-    ;; ... and prevent it from firing while we wait for the next key repeat
+    ;; ... but prevent it from firing while we wait for the next key repeat
     (sit-for company-coq-keyboard-repeat-delay)))
 
 (defun company-coq-show-definition-overlay-under-pointer (event)
