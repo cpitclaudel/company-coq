@@ -162,10 +162,6 @@ same prefix."
   "Indicates whether a reload of all tactics might be needed. This variable is
   set from places where immediate reloading is impossible, for example in proof-shell-insert-hook")
 
-(defvar company-coq-notations-reload-needed nil
-  "Indicates whether a reload of all tactic notations might be needed. This variable is
-  set from places where immediate reloading is impossible, for example in proof-shell-insert-hook")
-
 (defvar company-coq-modules-reload-needed nil
   "Indicates whether a reload of all modules might be needed. This variable is
   set from places where immediate reloading is impossible, for example in proof-shell-insert-hook")
@@ -560,9 +556,6 @@ dependent]).")
       (narrow-to-region limit (point))
       (goto-char limit)
       (re-search-forward (concat "\\(?:" regexp "\\)\\'") nil t))))
-
-(defun company-coq-join-lines (lines sep &optional trans)
-  (if lines (mapconcat (or trans 'identity) lines sep)))
 
 (defun company-coq-text-width (from to)
   (interactive "r")
@@ -1025,14 +1018,14 @@ pairs of paths in the form (LOGICAL . PHYSICAL)"
              if (string-match prefix-re completion)
              collect (company-coq-propertize-match completion (match-beginning 0) (match-end 0)))))
 
-(defun company-coq-complete-prefix (prefix completions &optional ignore-case)
-  "List elements of COMPLETIONS starting with PREFIX"
-  (company-coq-dbg "company-coq-complete-prefix: Completing for prefix %s (%s symbols)" prefix (length completions))
-  (let ((completion-ignore-case ignore-case)
-        (prefix-len             (length prefix)))
-    (mapcar
-     (lambda (completion) (company-coq-propertize-match completion 0 prefix-len))
-     (all-completions prefix completions))))
+;; (defun company-coq-complete-prefix (prefix completions &optional ignore-case)
+;;   "List elements of COMPLETIONS starting with PREFIX"
+;;   (company-coq-dbg "company-coq-complete-prefix: Completing for prefix %s (%s symbols)" prefix (length completions))
+;;   (let ((completion-ignore-case ignore-case)
+;;         (prefix-len             (length prefix)))
+;;     (mapcar
+;;      (lambda (completion) (company-coq-propertize-match completion 0 prefix-len))
+;;      (all-completions prefix completions))))
 
 (defun company-coq-complete-sub-re (prefix candidates)
   (let* ((chars (string-to-list prefix)) ;; The regexp says: skip stuff before beginning a new word, or skip nothing
