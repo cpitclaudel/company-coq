@@ -508,6 +508,12 @@ dependent]).")
   `(when company-coq-debug
      (message (concat "company-coq: " ,format) ,@args)))
 
+(defmacro company-coq-suppress-warnings (&rest body)
+  (declare (indent 0))
+  (if (and (= emacs-major-version 24) (< emacs-minor-version 4))
+      `(with-no-warnings ,@body)
+    `(progn ,@body)))
+
 ;; FIXME: This should happen at the PG level. Introduced to fix #8.
 (defmacro company-coq-with-window-start (window &rest body)
   (declare (indent defun))
@@ -593,7 +599,8 @@ dependent]).")
     (let* ((from  (point))
            (to    (progn (insert "\n") (point)))
            (color (or (face-attribute 'highlight :background) "black")))
-      (add-face-text-property from to `(:height 1 :background ,color)))))
+      (when (fboundp 'add-face-text-property)
+        (company-coq-suppress-warnings (add-face-text-property from to `(:height 1 :background ,color)))))))
 
 (defun company-coq-get-header (str)
   (save-match-data
@@ -1402,9 +1409,9 @@ inside a comment, at the beginning of the comment."
                (company-coq-make-title-line 'company-coq-doc-header-face-source t)
                (forward-line -2)
                (or (and (functionp 'coq-looking-at-comment)
-                        (coq-looking-at-comment)
+                        (company-coq-suppress-warnings (coq-looking-at-comment))
                         (functionp 'coq-get-comment-region)
-                        (car (coq-get-comment-region (point))))
+                        (car (company-coq-suppress-warnings (coq-get-comment-region (point)))))
                    (point))))
         0)))
 
@@ -2332,11 +2339,13 @@ to locate lines starting with \"^!!!\"."
              (real-offset (max 0 (min offset (- line-width block-width)))))
         (company-coq-prefix-all-lines (propertize " " 'display `(space . (:width ,real-offset)))))
       (coq-mode)
-      (if (company-coq-is-old-emacs)
-          (with-no-warnings (font-lock-fontify-buffer))
-        (font-lock-ensure))
+      (with-no-warnings
+        (if (company-coq-is-old-emacs)
+            (font-lock-fontify-buffer)
+          (font-lock-ensure)))
       ;; Prevent text from inheriting properties of neighbouring characters
-      (add-face-text-property (point-min) (point-max) 'default t)
+      (when (fboundp 'add-face-text-property)
+        (company-coq-suppress-warnings (add-face-text-property (point-min) (point-max) 'default t)))
       (company-coq-insert-spacer (point-min))
       (company-coq-insert-spacer (point-max))
       (buffer-string))))
@@ -2500,9 +2509,10 @@ if it is already open."
   (when (and (display-graphic-p)
              (fboundp #'prettify-symbols-mode)
              company-coq-prettify-symbols)
-    (set (make-local-variable 'prettify-symbols-alist)
-         (append prettify-symbols-alist company-coq-prettify-symbols-alist company-coq-local-symbols))
-    (prettify-symbols-mode)))
+    (company-coq-suppress-warnings
+     (set (make-local-variable 'prettify-symbols-alist)
+          (append prettify-symbols-alist company-coq-prettify-symbols-alist company-coq-local-symbols))
+     (prettify-symbols-mode))))
 
 (defun company-coq-update-local-symbols ()
   (when (assoc 'company-coq-local-symbols file-local-variables-alist)
@@ -2618,7 +2628,8 @@ if it is already open."
                   (company-mode -1)
                   (yas-minor-mode -1)
                   (outline-minor-mode -1)
-                  (prettify-symbols-mode -1)
+                  (when (fboundp 'prettify-symbols-mode)
+                    (company-coq-suppress-warnings (prettify-symbols-mode -1)))
                   (company-coq--keybindings-minor-mode -1))))
 
   nil)
