@@ -2519,13 +2519,14 @@ if it is already open."
   (cond
    (in-string font-lock-string-face)
    ((or comment-depth (numberp comment-depth))
-    (let ((comment-opener (company-coq-get-comment-opener comment-string-start)))
-      (pcase comment-opener
-        (`"(* "   font-lock-comment-face)
-        (`"(*! "  '(:inherit font-lock-doc-face :height 1.2))
-        (`"(*+ "  '(:inherit font-lock-doc-face :height 1.8))
-        (`"(*** " '(:inherit font-lock-doc-face :height 2.5))
-        (_        font-lock-doc-face))))))
+    (let* ((comment-opener (company-coq-get-comment-opener comment-string-start))
+           (matches        (lambda (pattern) (string-match-p (concat "\\`" (regexp-quote pattern)) comment-opener))))
+      (cond
+        ((funcall matches "(*!")   '(:inherit font-lock-doc-face :height 1.2))
+        ((funcall matches "(*+")   '(:inherit font-lock-doc-face :height 1.8))
+        ((funcall matches "(*** ") '(:inherit font-lock-doc-face :height 2.5))
+        ((funcall matches "(**")   font-lock-doc-face)
+        (t        font-lock-comment-face))))))
 
 (defun company-coq-syntactic-face-function (args)
   (apply #'company-coq-syntactic-face-function-aux args))
