@@ -1335,7 +1335,8 @@ if output mentions new symbol, then calls
 
 (defun company-coq-truncate-to-minibuf (str)
   (when str
-    (let* ((minibuf-w  (window-body-width (minibuffer-window))))
+    ;; Add some padding to compensate for wide characters
+    (let* ((minibuf-w  (max 10 (- (window-body-width (minibuffer-window)) 5))))
       (if (> (length str) minibuf-w)
           (concat (substring str 0 (- minibuf-w 3)) "...")
         str))))
