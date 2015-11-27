@@ -82,11 +82,11 @@
   :group 'company-coq)
 
 (defcustom company-coq-custom-snippets '("Section ${1:SectionName}.\n$0\nEnd $1."
-                                         "Chapter ${1:ChapterName}.\n$0\nEnd $1." ;; Commented out in RefMan-ext.v
-                                         "Module ${1:ModuleName}.\n$0\nEnd $1."
-                                         "Module Type ${1:ModuleTypeName}.\n$0\nEnd $1."
-                                         "match ${ident} with"
-                                         "match goal with\n$0\nend")
+                              "Chapter ${1:ChapterName}.\n$0\nEnd $1." ;; Commented out in RefMan-ext.v
+                              "Module ${1:ModuleName}.\n$0\nEnd $1."
+                              "Module Type ${1:ModuleTypeName}.\n$0\nEnd $1."
+                              "match ${ident} with"
+                              "match goal with\n$0\nend")
   "Custom YAS snippets") ;; FIXME add to tutorial
 
 (defcustom company-coq-dynamic-autocompletion nil
@@ -136,15 +136,15 @@
   "Regexp version of `company-coq-disabled-patterns'")
 
 (defcustom company-coq-sorted-backends '(company-math-symbols-unicode
-                                         company-coq-reserved-keywords
-                                         company-coq-block-end
-                                         company-coq-modules
-                                         company-coq-context
-                                         company-coq-keywords
-                                         company-coq-defuns
-                                         company-coq-search-results
-                                         company-coq-tactics
-                                         company-coq-symbols)
+                              company-coq-reserved-keywords
+                              company-coq-block-end
+                              company-coq-modules
+                              company-coq-context
+                              company-coq-keywords
+                              company-coq-defuns
+                              company-coq-search-results
+                              company-coq-tactics
+                              company-coq-symbols)
   "List of all backends, listed in the order in which you want
 the results displayed. Note that the first backend that returns a
 prefix superseeds all the others; they all must work with the
@@ -229,13 +229,13 @@ Name Only].")
           (when body (concat "\\s-*\\(" body "\\)"))))
 
 (defconst company-coq-defuns-kwds `("Class" "CoFixpoint" "CoInductive" "Corollary"
-                                    "Definition" "Example" "Fact" "Fixpoint"
-                                    "Function" "Inductive" "Instance" "Lemma"
-                                    "Let" "Ltac" "Program" "Program Fixpoint"
-                                    "Record" "Theorem" "with"))
+                         "Definition" "Example" "Fact" "Fixpoint"
+                         "Function" "Inductive" "Instance" "Lemma"
+                         "Let" "Ltac" "Program" "Program Fixpoint"
+                         "Record" "Theorem" "with"))
 
 (defconst company-coq-defuns-regexp (company-coq-make-headers-regexp company-coq-defuns-kwds
-                                                                     company-coq-id-regexp)
+                                               company-coq-id-regexp)
   "Regexp used to locate symbol definitions in the current buffer.
 This is mostly useful of company-coq-dynamic-autocompletion is nil.")
 
@@ -246,16 +246,16 @@ This is mostly useful of company-coq-dynamic-autocompletion is nil.")
   "List of strings to add to Coq's search blacklist when loading completion candidates")
 
 (defconst company-coq-search-blacklist-str (mapconcat (lambda (str) (concat "\"" str "\""))
-                                                      company-coq-search-blacklist " "))
+                                           company-coq-search-blacklist " "))
 
 (defconst company-coq-search-blacklist-add-cmd (concat "Add Search Blacklist "
-                                                       company-coq-search-blacklist-str))
+                                            company-coq-search-blacklist-str))
 
 (defconst company-coq-search-blacklist-rem-cmd (concat "Remove Search Blacklist "
-                                                       company-coq-search-blacklist-str))
+                                            company-coq-search-blacklist-str))
 
 (defconst company-coq-all-symbols-prelude (cons company-coq-search-blacklist-add-cmd
-                                                '("Set Search Output Name Only"))
+                                     '("Set Search Output Name Only"))
   "Command to run before listing all symbols, using a patched version of Coq")
 
 (defconst company-coq-redirection-template "Redirect \"%s\" %s")
@@ -273,7 +273,7 @@ This is mostly useful of company-coq-dynamic-autocompletion is nil.")
   "Command used to list more symbols ([SearchPattern _] doesn't search inside modules in 8.4).")
 
 (defconst company-coq-all-symbols-coda (cons company-coq-search-blacklist-rem-cmd
-                                             '("Unset Search Output Name Only"))
+                                  '("Unset Search Output Name Only"))
   "Command to run after listing all symbols, using a patched version of Coq")
 
 (defconst company-coq-doc-cmd "About %s"
@@ -302,7 +302,7 @@ This is mostly useful of company-coq-dynamic-autocompletion is nil.")
 in 8.4, not in 8.5.")
 
 (defconst company-coq-locate-output-format (concat "\\`" (regexp-opt (cons "Constant" company-coq-defuns-kwds)) "\\_> +"
-                                                   "\\(" company-coq-symbol-regexp "\\)")
+                                        "\\(" company-coq-symbol-regexp "\\)")
   "Output of `company-coq-locate-tactic-cmd' and `company-coq-locate-symbol-cmd'; it can contain details
 about shorter names, and other matches")
 
@@ -322,10 +322,10 @@ about shorter names, and other matches")
   "Regexp used to detect errors (useful in particular to prevent reloading the modules list after a failed import.")
 
 (defconst company-coq-error-regexps `(,company-coq-error-regexp
-                                      " not a defined object.\\s-\\'"
-                                      "\\`No object of basename"
-                                      "\\`Toplevel input, characters"
-                                      "\\`No Ltac definition is referred to by")
+                           " not a defined object.\\s-\\'"
+                           "\\`No object of basename"
+                           "\\`Toplevel input, characters"
+                           "\\`No Ltac definition is referred to by")
   "Regexp used to detect invalid output")
 
 (defconst company-coq-import-regexp (regexp-opt '("From" "Require" "Import" "Export"))
@@ -350,20 +350,20 @@ about shorter names, and other matches")
   "Used to find choice patterns in dabbrevs")
 
 (defconst company-coq-placeholder-regexp (concat company-coq-dabbrev-to-yas-regexp
-                                                 "\\|\\${\\([^}]+\\)}\\|\\$[[:digit:]]")
+                                      "\\|\\${\\([^}]+\\)}\\|\\$[[:digit:]]")
   "Used to count placeholders in abbrevs")
 
 (defconst company-coq-section-kwds '("Chapter" "Module" "Module Type" "Section")
   "Keywords used in outline mode and in company-coq-occur")
 
 (defconst company-coq-named-outline-kwds `("Equations" "Notation" "Remark" "Tactic Notation"
-                                           ,@company-coq-section-kwds ,@company-coq-defuns-kwds)
+                                ,@company-coq-section-kwds ,@company-coq-defuns-kwds)
   "Keywords used in outline mode and in company-coq-occur")
 
 (defconst company-coq-anonymous-outline-kwds '("Goal"))
 
 (defconst company-coq-section-regexp (company-coq-make-headers-regexp company-coq-section-kwds
-                                                                      company-coq-id-regexp)
+                                                company-coq-id-regexp)
   "Regexp used to locate the closest section opening")
 
 ;; TODO: Would be nice to fold [Require Import]s together instead of hiding them entirely
@@ -380,16 +380,16 @@ about shorter names, and other matches")
   "Regexp used to locate the end of a heading")
 
 (defcustom company-coq-prettify-symbols-alist '(("|-" . ?⊢) ("True" . ?⊤) ("False" . ?⊥)
-                                                ("->" . ?→) ("-->" . ?⟶) ("<-" . ?←)
-                                                ("<--" . ?⟵) ("<->" . ?↔) ("<-->" . ?⟷)
-                                                ("=>" . ?⇒) ("==>" . ?⟹) ("<==" . ?⟸)
-                                                ("++>" . ?⟿) ("<++" . ?⬳) ("fun" . ?λ)
-                                                ("forall" . ?∀) ("exists" . ?∃) ("/\\" . ?∧)
-                                                ("\\/" . ?∨) ("~" . ?¬) ("+-" . ?±)
-                                                ("<=" . ?≤) (">=" . ?≥) ("<>" . ?≠)
-                                                ("*" . ?×) ("++" . ?⧺) ("nat" . ?𝓝)
-                                                ("Z" . ?ℤ) ("N" . ?ℕ) ("Q" . ?ℚ)
-                                                ("Real" . ?ℝ) ("bool" . ?𝔹) ("Prop" . ?𝓟))
+                                     ("->" . ?→) ("-->" . ?⟶) ("<-" . ?←)
+                                     ("<--" . ?⟵) ("<->" . ?↔) ("<-->" . ?⟷)
+                                     ("=>" . ?⇒) ("==>" . ?⟹) ("<==" . ?⟸)
+                                     ("++>" . ?⟿) ("<++" . ?⬳) ("fun" . ?λ)
+                                     ("forall" . ?∀) ("exists" . ?∃) ("/\\" . ?∧)
+                                     ("\\/" . ?∨) ("~" . ?¬) ("+-" . ?±)
+                                     ("<=" . ?≤) (">=" . ?≥) ("<>" . ?≠)
+                                     ("*" . ?×) ("++" . ?⧺) ("nat" . ?𝓝)
+                                     ("Z" . ?ℤ) ("N" . ?ℕ) ("Q" . ?ℚ)
+                                     ("Real" . ?ℝ) ("bool" . ?𝔹) ("Prop" . ?𝓟))
   "An alist of symbols to prettify.
 Assigned to `prettify-symbols-alist' in emacs >= 24.4"
   :group 'company-coq
@@ -433,16 +433,16 @@ dependent]).")
             "\\)\\s-*"))))
 
 (defconst company-coq-deprecated-options '("Equality Scheme" "Record Elimination Schemes"
-                                           "Tactic Evars Pattern Unification" "Undo")
+                                "Tactic Evars Pattern Unification" "Undo")
   "Deprecated options, as reported by [Print Tables].")
 
 (defconst company-coq-deprecated-options-re (concat "\\(?1:" (regexp-opt '("Set" "Unset" "Test")) " "
-                                                    (regexp-opt company-coq-deprecated-options) "\\)")
+                                         (regexp-opt company-coq-deprecated-options) "\\)")
   "Regexp to spot uses of deprecated options.")
 
 (defconst company-coq-deprecated-vernacs-re (concat "\\(?1:" (regexp-opt '("Include Type"
-                                                                           "Arguments Scope"
-                                                                           "Implicit Arguments")) "\\)")
+                                                               "Arguments Scope"
+                                                               "Implicit Arguments")) "\\)")
   "Regexp to spot uses of deprecated vernacs.")
 
 (defconst company-coq-deprecated-man-re
@@ -455,10 +455,10 @@ dependent]).")
              "\\|"))
 
 (defconst company-coq-deprecated-re (concat "^[[:blank:]]*\\(?:"
-                                            "\\(?:" company-coq-deprecated-options-re "\\)\\|"
-                                            "\\(?:" company-coq-deprecated-vernacs-re "\\)\\|"
-                                            "\\(?:" company-coq-deprecated-man-re "\\)"
-                                            "\\)")
+                                 "\\(?:" company-coq-deprecated-options-re "\\)\\|"
+                                 "\\(?:" company-coq-deprecated-vernacs-re "\\)\\|"
+                                 "\\(?:" company-coq-deprecated-man-re "\\)"
+                                 "\\)")
   "Deprecated forms.")
 
 (defconst company-coq-script-full-path load-file-name
@@ -500,7 +500,7 @@ dependent]).")
 
 (defconst company-coq-deprecated-spec
   `((,company-coq-deprecated-re 1
-     '(face (:underline (:color "#FF0000" :style wave)) help-echo "This form is deprecated (8.5)") append))
+                     '(face (:underline (:color "#FF0000" :style wave)) help-echo "This form is deprecated (8.5)") append))
   "Create a face specification for deprecated forms, suitable for use with `font-lock-add-keywords'.")
 
 (defmacro company-coq-dbg (format &rest args)
@@ -673,7 +673,7 @@ line if empty). Calls `indent-region' on the inserted lines."
 
 (defun company-coq-force-reload-with-prover (track-symbol store-symbol load-function)
   (company-coq-dbg "company-coq-force-reload-from-prover: %s %s %s"
-                   (symbol-name track-symbol) (symbol-name store-symbol) (symbol-name load-function))
+        (symbol-name track-symbol) (symbol-name store-symbol) (symbol-name load-function))
   (if (not (company-coq-prover-available))
       (company-coq-dbg "company-coq-force-reload-from-prover: Reloading aborted; proof process busy")
     (set track-symbol nil)
@@ -726,7 +726,7 @@ line if empty). Calls `indent-region' on the inserted lines."
          (lines          (company-coq-split-wrapped-lines output t))
          (tactics        (mapcar #'company-coq-parse-dynamic-ltacs-db-entry lines)))
     (company-coq-dbg "Loaded %d tactics in %.03f seconds"
-                     (length tactics) (float-time (time-since start-time)))
+          (length tactics) (float-time (time-since start-time)))
     tactics))
 
 (defun company-coq-get-all-notations ()
@@ -827,8 +827,8 @@ pairs of paths in the form (LOGICAL . PHYSICAL)"
 (defun company-coq-force-reload-modules ()
   (interactive)
   (company-coq-force-reload-with-prover 'company-coq-modules-reload-needed
-                                        'company-coq-known-path-specs
-                                        #'company-coq-get-path-specs))
+                             'company-coq-known-path-specs
+                             #'company-coq-get-path-specs))
 
 (defun company-coq-init-modules ()
   (interactive)
@@ -1183,9 +1183,9 @@ search term and a qualifier."
 
 (defun company-coq-maybe-reload-each ()
   (company-coq-dbg "company-coq-maybe-reload-each: [%s] [%s] [%s]"
-                   company-coq-needs-capability-detection
-                   company-coq-symbols-reload-needed
-                   company-coq-modules-reload-needed)
+        company-coq-needs-capability-detection
+        company-coq-symbols-reload-needed
+        company-coq-modules-reload-needed)
   (when (company-coq-prover-available)
     (when company-coq-needs-capability-detection (company-coq-detect-capabilities))
     (when company-coq-tactics-reload-needed (company-coq-force-reload-tactics))
@@ -1240,7 +1240,7 @@ search term and a qualifier."
                          (setq output nil))
           (is-new-output (company-coq-dbg "company-coq-maybe-reload-context: Reloading context")
                          (setq company-coq-current-context (company-coq-extract-context
-                                                            (company-coq-split-lines output)))))
+                                                 (company-coq-split-lines output)))))
     (setq company-coq-last-goals-output output)))
 
 (defun company-coq-maybe-proof-output-reload-things ()
@@ -1510,8 +1510,8 @@ fully qualified name of NAME."
 (defun company-coq-location-defun (name &optional interactive)
   (interactive (company-coq-location-interact (list company-coq-dynamic-symbols company-coq-dynamic-tactics)))
   (company-coq-location-source name (list company-coq-locate-symbol-cmd
-                                          company-coq-locate-tactic-cmd)
-                               interactive))
+                               company-coq-locate-tactic-cmd)
+                    interactive))
 
 (defun company-coq-make-title-line (face &optional skip-space)
   (let* ((start   (save-excursion (goto-char (point-at-bol))
@@ -1568,12 +1568,12 @@ fully qualified name of NAME."
 
 (defun company-coq-doc-buffer-symbol (name)
   (company-coq-doc-buffer-generic name (list company-coq-doc-cmd
-                                             company-coq-def-cmd)))
+                                  company-coq-def-cmd)))
 
 (defun company-coq-doc-buffer-defun (name)
   (company-coq-doc-buffer-generic name (list company-coq-doc-cmd
-                                             company-coq-def-cmd
-                                             company-coq-tactic-def-cmd)))
+                                  company-coq-def-cmd
+                                  company-coq-tactic-def-cmd)))
 
 (defun company-coq-doc-buffer-tactic (name)
   (setq name (replace-regexp-in-string " .*" "" name))
@@ -1737,9 +1737,9 @@ output size is cached in `company-coq-last-search-scan-size'."
 ;; (company-coq-dabbrev-to-yas-with-choices "Typeclasses eauto := @{dfs|bfs} @{depth}.")
 
 (defconst company-coq-abbrevs-transforms-alist '((man  . company-coq-dabbrev-to-yas-with-choices)
-                                                 (ltac . company-coq-dabbrev-to-yas)
-                                                 (tacn . company-coq-dabbrev-to-yas)
-                                                 (pg   . company-coq-dabbrev-to-yas)))
+                                      (ltac . company-coq-dabbrev-to-yas)
+                                      (tacn . company-coq-dabbrev-to-yas)
+                                      (pg   . company-coq-dabbrev-to-yas)))
 
 (defun company-coq-abbrev-to-yas (abbrev source)
   (company-coq-dbg "company-coq-abbrev-to-yas: Transforming %s" abbrev)
@@ -2510,9 +2510,9 @@ if it is already open."
              (fboundp #'prettify-symbols-mode)
              company-coq-prettify-symbols)
     (company-coq-suppress-warnings
-     (set (make-local-variable 'prettify-symbols-alist)
-          (append prettify-symbols-alist company-coq-prettify-symbols-alist company-coq-local-symbols))
-     (prettify-symbols-mode))))
+      (set (make-local-variable 'prettify-symbols-alist)
+           (append prettify-symbols-alist company-coq-prettify-symbols-alist company-coq-local-symbols))
+      (prettify-symbols-mode))))
 
 (defun company-coq-update-local-symbols ()
   (when (assoc 'company-coq-local-symbols file-local-variables-alist)
@@ -2526,19 +2526,19 @@ if it is already open."
         (buffer-substring (point) (progn (skip-chars-forward "(*!+" (+ 5 (point))) (1+ (point))))))))
 
 (defun company-coq-syntactic-face-function-aux (_depth _innermost-start _last-complete-start
-                                                in-string comment-depth _after-quote _min-paren-depth
-                                                _comment-style comment-string-start _continuation)
+                                            in-string comment-depth _after-quote _min-paren-depth
+                                            _comment-style comment-string-start _continuation)
   (cond
    (in-string font-lock-string-face)
    ((or comment-depth (numberp comment-depth))
     (let* ((comment-opener (company-coq-get-comment-opener comment-string-start))
            (matches        (lambda (pattern) (string-match-p (concat "\\`" (regexp-quote pattern)) comment-opener))))
       (cond
-        ((funcall matches "(*!")   '(:inherit font-lock-doc-face :height 1.2))
-        ((funcall matches "(*+")   '(:inherit font-lock-doc-face :height 1.8))
-        ((funcall matches "(*** ") '(:inherit font-lock-doc-face :height 2.5))
-        ((funcall matches "(**")   font-lock-doc-face)
-        (t        font-lock-comment-face))))))
+       ((funcall matches "(*!")   '(:inherit font-lock-doc-face :height 1.2))
+       ((funcall matches "(*+")   '(:inherit font-lock-doc-face :height 1.8))
+       ((funcall matches "(*** ") '(:inherit font-lock-doc-face :height 2.5))
+       ((funcall matches "(**")   font-lock-doc-face)
+       (t        font-lock-comment-face))))))
 
 (defun company-coq-syntactic-face-function (args)
   (apply #'company-coq-syntactic-face-function-aux args))
