@@ -36,7 +36,7 @@ IDE extensions for Proof-General's Coq mode. See features below or jump to [Setu
 
 * Basic project search (search for instances of the word at point in neighboring files).
 
-* Extended [font beautification](img/prettify.png): keywords are transparently replaced with the corresponding symbols (`⊢⊤⊥→⇒λ∀∃∧∨¬≠⧺𝓝ℤℕℚℝ𝔹𝓟`), and the goals line (`========`) actually looks like a line (`════════`).
+* Extended [font beautification](img/prettify.png): keywords are transparently replaced with the corresponding symbols (`⊢⊤⊥→⇒λ∀∃∧∨¬≠ℕ𝔹𝓟`), and the goals line (`========`) actually looks like a line (`════════`).
 
 * Minimal [quick help](img/inline-docs.gif) (inline documentation).
 
@@ -233,10 +233,18 @@ Technical note: Proof-General [also offers](http://proofgeneral.inf.ed.ac.uk/htm
 
 ### Installing a math-enabled font
 
-For font beautification to work properly, you'll need a font with proper symbol support. DejaVu Sans Mono, Symbola, FreeMono, STIX, Unifont, Segoe UI Symbol, Arial Unicode and Cambria Math do. If Emacs doesn't fallback properly, you can use the following snippet:
+For font beautification to work properly, you'll need a font with proper symbol support. [Symbola](http://users.teilar.gr/~g1951d/Symbola.zip), FreeMono, STIX Math, Segoe UI Symbol, Latin Modern, and Cambria Math will all work. If Emacs doesn't fallback properly, you can use the following snippet:
 
 ```elisp
 (set-fontset-font t 'unicode (font-spec :name "Symbola") nil 'append)
+```
+
+#### Fixing math indentation
+
+Using a variable-width font for symbols will break indentation. See [this other project of mine](https://github.com/cpitclaudel/monospacifier#pre-monospacified-fonts-monospace-fonts-with-good-unicode-coverage) to download a monospace-friendly symbols font. You'll want to add (or replace) the following snippet (adjusting `Symbola` and `DejaVu sans Mono` as appropriate):
+
+```elisp
+(set-fontset-font t 'unicode (font-spec :name "Symbola monospacified for DejaVu Sans Mono") nil 'append)
 ```
 
 ### Registering your own symbols and math operators
