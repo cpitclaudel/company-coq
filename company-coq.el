@@ -98,8 +98,8 @@ Reload with `company-coq-force-reload-keywords'") ;; FIXME add to tutorial
   "Autocomplete theorem and tactic names by periodically querying coq about defined identifiers. This is an experimental feature. It requires a patched version of Coq to work properly; it will be very slow otherwise."
   :group 'company-coq)
 
-(defvar company-coq--has-dynamic-completion nil
-  "Equal to `company-coq-dynamic-autocompletion' if capability detection succeeds")
+(defvar company-coq--dynamic-completion nil
+  "Equal to `company-coq-dynamic-autocompletion' if capability detection succeeds.")
 
 (defcustom company-coq-autocomplete-context t
   "Autocomplete hypotheses by parsing the latest Goals output. This is an experimental feature."
@@ -761,12 +761,12 @@ proof process is busy."
   (setq company-coq-tg--useless (company-coq--list-to-table (company-coq-get-all-notations))))
 
 (defun company-coq-force-reload-symbols ()
-  (when company-coq--has-dynamic-completion
+  (when company-coq--dynamic-completion
     (company-coq-force-reload-with-prover
      'company-coq-symbols-reload-needed 'company-coq-dynamic-symbols #'company-coq-get-symbols)))
 
 (defun company-coq-force-reload-tactics ()
-  (when company-coq--has-dynamic-completion
+  (when company-coq--dynamic-completion
     (company-coq-force-reload-with-prover
      'company-coq-tactics-reload-needed 'company-coq-dynamic-tactics #'company-coq-get-tactics)))
 
@@ -796,7 +796,7 @@ proof process is busy."
   (interactive) ;; FIXME should timeout after some time, and should accumulate search results
   (let* ((unproc-beg (proof-unprocessed-begin)))
     (setq company-coq-buffer-defuns
-          (if (and company-coq--has-dynamic-completion company-coq-dynamic-autocompletion)
+          (if (and company-coq--dynamic-completion company-coq-dynamic-autocompletion)
               (company-coq-find-all company-coq-defuns-regexp unproc-beg (point-at-bol))
             (company-coq-find-all company-coq-defuns-regexp (point-min) (point-at-bol))))))
 
@@ -1179,7 +1179,7 @@ search term and a qualifier."
          (capability (company-coq-unless-error output)))
     (when output
       (setq company-coq-needs-capability-detection nil)
-      (setq company-coq--has-dynamic-completion (and capability company-coq-dynamic-autocompletion))
+      (setq company-coq--dynamic-completion (and capability company-coq-dynamic-autocompletion))
       (when company-coq-dynamic-autocompletion
         (message "Capability detection complete: dynamic completion is %savailable." (if capability "" "not "))
         (when (not capability)
@@ -1499,7 +1499,7 @@ fully qualified name of NAME."
 (defun company-coq-location-interact (dynamic-pool)
   (let ((completions (apply #'append
                             (and company-coq-autocomplete-symbols (company-coq-init-defuns))
-                            (and company-coq--has-dynamic-completion dynamic-pool))))
+                            (and company-coq--dynamic-completion dynamic-pool))))
     (list (completing-read "Name to find sources for? " completions
                            (lambda (choice) (not (eq (get-text-property 0 'source choice) 'tacn)))
                            nil nil 'company-coq-location-history (company-coq-symbol-at-point) t)
@@ -1647,12 +1647,12 @@ fully qualified name of NAME."
 
 (defun company-coq-candidates-symbols (prefix)
   "List elements of company-coq-dynamic-symbols or company-coq-buffer-defuns containing PREFIX"
-  (when (and company-coq--has-dynamic-completion (company-coq-init-symbols))
+  (when (and company-coq--dynamic-completion (company-coq-init-symbols))
     (company-coq-complete-prefix-substring prefix company-coq-dynamic-symbols)))
 
 (defun company-coq-candidates-tactics (prefix)
   "List elements of company-coq-dynamic-symbols or company-coq-buffer-defuns containing PREFIX"
-  (when (and company-coq--has-dynamic-completion (company-coq-init-tactics))
+  (when (and company-coq--dynamic-completion (company-coq-init-tactics))
     (company-coq-complete-sub-re prefix company-coq-dynamic-tactics)))
 
 (defun company-coq-candidates-defuns (prefix)
