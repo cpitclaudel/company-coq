@@ -391,9 +391,10 @@ about shorter names, and other matches")
                                      ("~~>" . ?⟿) ("<~~" . ?⬳) ("fun" . ?λ)
                                      ("forall" . ?∀) ("exists" . ?∃) ("/\\" . ?∧)
                                      ("\\/" . ?∨) ("~" . ?¬) ("+-" . ?±)
-                                     ("<=" . ?≤) (">=" . ?≥) ("<>" . ?≠)
-                                     ("*" . ?×) ("++" . ?⧺)
-                                     ;; ("nat" . ?𝓝) ("Prop" . ?𝓟) ("N" . ?ℕ) ("Z" . ?ℤ) ("Q" . ?ℚ)
+                                     ("<=" . ?≤) (">=" . ?≥) ("<>" . ?≠) ("*" . ?×)
+                                     ;; ("++" . ?⧺) ;; Not present in TeX fonts
+                                     ;; ("nat" . ?𝓝) ("Prop" . ?𝓟) ;; Rather uncommon
+                                     ;; ("N" . ?ℕ) ("Z" . ?ℤ) ("Q" . ?ℚ) ;; Too invasive
                                      ("nat" . ?ℕ) ("Prop" . ?ℙ) ("Real" . ?ℝ) ("bool" . ?𝔹))
   "An alist of symbols to prettify.
 Assigned to `prettify-symbols-alist' in emacs >= 24.4"
