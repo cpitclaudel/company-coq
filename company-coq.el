@@ -2456,7 +2456,8 @@ if it is already open."
     (unless tutorial-buffer
       (with-current-buffer (setq tutorial-buffer (get-buffer-create tutorial-name))
         (insert-file-contents tutorial-path nil nil nil t)
-        (company-coq-setup-temp-coq-buffer)))
+        (company-coq-setup-temp-coq-buffer)
+        (setq-local proof-script-fly-past-comments nil)))
     (pop-to-buffer-same-window tutorial-buffer)))
 
 (defun company-coq-setup-keybindings ()
