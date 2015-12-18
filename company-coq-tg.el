@@ -1,5 +1,4 @@
-;;; -*- lexical-binding: t -*-
-;;; company-coq-tg.el --- Parser for the output of [Print Grammar tactic]
+;;; company-coq-tg.el --- Parser for the output of [Print Grammar tactic] -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2015  Clément Pit--Claudel
 ;; Author: Clément Pit--Claudel <clement.pitclaudel@live.com>
@@ -20,12 +19,19 @@
 
 ;;; Commentary:
 
+;; A collection of facilities to parse the output of Print Grammar Tactic and
+;; learn abbrevs from it.  Parsing is implemented by tweaking the syntax to make
+;; it understandable by the Lisp reader, and manually going through the
+;; resulting S-exps.
+
 ;;; Code:
 
 (defconst company-coq-tg--preprocessor-substitutions '(("\n"  . " ") ("[ "  . "( OR-GROUP ") (" ]"  . " )")
-                                                       (" | " . " OR ") ("; "  . " AND ")))
+                                                       (" | " . " OR ") ("; "  . " AND "))
+  "List of replacements to facilitate parsing.")
 
 (defun company-coq--split-seq (seq sep)
+  "Partition SEQ, splitting on SEP."
   (cl-loop for elem in seq with acc with splits
            if      (eq elem sep)
            do      (push (reverse acc) splits)
@@ -34,15 +40,17 @@
            finally return (reverse (cons (reverse acc) splits))))
 
 (defun company-coq--list-to-table (seq)
+  "Convert SEQ to a hashtable."
   (let ((tbl (make-hash-table :test #'equal)))
     (cl-loop for k in seq
              do (puthash k t tbl))
     tbl))
 
 (defvar company-coq-tg--useless nil
-  "A hashtable of tactic notations that should be ignored when parsing the output of `company-coq-all-notations-cmd'")
+  "Tactic notations to ignore while parsing the output of `company-coq-all-notations-cmd'.")
 
 (defun company-coq--filter-using-table (seq table)
+  "Filter out elements of SEQ present in TABLE."
   (cl-delete-if (lambda (x) (gethash x table)) seq))
 
 (defun company-coq-tg--parse-list (sexp)
@@ -52,6 +60,7 @@
     (_                   (company-coq-tg--parse-tactic-part sexp))))
 
 (defun company-coq-tg--parse-tactic-part (sexp)
+  "Parse a single tactic component SEXP."
   (pcase sexp
     (`(IDENT ,str)        str)
     (`(OPT ,sub)          (list 'OPT (company-coq-tg--parse-list sub)))
@@ -69,17 +78,21 @@
     (_                    sexp)))
 
 (defun company-coq-tg--parse-tactic-subs (sexp)
+  "Parse a single tactic SEXP."
   (mapcar #'company-coq-tg--parse-tactic-part (company-coq--split-seq sexp 'AND)))
 
 (defun company-coq-tg--parse-tactic (sexp)
+  "Parse a single tactic SEXP."
   (cons 'TACTIC (company-coq-tg--parse-tactic-subs sexp)))
 
 (defun company-coq-tg--parse-group (sexp cont)
+  "Turn a group SEXP into tactic abbrevs using CONT."
   (pcase sexp
     (`(OR-GROUP . ,rest) (mapcar cont (company-coq--split-seq rest 'OR)))
     (_ (error "Group parsing failure [%s]" sexp))))
 
 (defun company-coq-tg--parse-entry (sexp)
+  "Turn a single entry SEXP into tactic abbrevs."
   (pcase sexp
     (`(LEFTA ,rest)      (cons 'TACLIST (company-coq-tg--parse-group rest #'company-coq-tg--parse-tactic)))
     (`(RIGHTA ,rest)     (cons 'TACLIST (company-coq-tg--parse-group rest #'company-coq-tg--parse-tactic)))
@@ -88,10 +101,13 @@
     (_ (error "Subentry parsing failure [%s]" sexp))))
 
 (defun company-coq-tg--parse-toplevel-helper (name entries rest)
+  "Turn top-level ENTRIES filed under NAME into tactic abbrevs.
+Then, process REST."
   (cons (cons 'ENTRY (cons name (company-coq-tg--parse-group entries #'company-coq-tg--parse-entry)))
         (company-coq-tg--parse-toplevel rest)))
 
 (defun company-coq-tg--parse-toplevel (sexp)
+  "Turn a top-level SEXP into tactic abbrevs."
   (pcase sexp
     (`nil nil)
     (`(Entry ,name is ,(and entries (pred listp))     . ,rest) (company-coq-tg--parse-toplevel-helper name entries rest))
@@ -99,9 +115,12 @@
     (_ (error "Toplevel parsing failure [%s]" sexp))))
 
 (defun company-coq-tg--mk-placeholder (symbol sep)
+  "Create a placeholder for SYMBOL, using SEP as the repetition marker."
   (concat "@{" (car (last (split-string (symbol-name symbol) ":"))) sep (if sep "+" "") "}"))
 
 (defun company-coq-tg--format-tactic-rec (tac sep)
+  "Format individual components of TAC as tactic abbrev components.
+SEP is used to separate repeating patterns."
   (pcase tac
     (`(OPT . ,rest) (cons nil (company-coq-tg--format-tactic-rec rest sep)))
     (`(LIST1 ,sepb . ,rest) (company-coq-tg--format-tactic-rec rest (concat (or sep "") sepb)))
@@ -116,10 +135,12 @@
              (t (warn "Unexpected value [%s]" tac))))))
 
 (defun company-coq-tg--format-tactic (sexp)
+  "Format individual components of SEXP as tactic abbrev components."
   (when (and (consp sexp) (not (symbolp (car sexp))))
     (company-coq-tg--format-tactic-rec sexp nil)))
 
 (defun company-coq-tg--find-tactics (parse-tree)
+  "Extract tactic abbrevs from PARSE-TREE."
   (pcase parse-tree
     (`(TACTIC . ,tac) (list tac))
     (`(TACLIST . ,tactics) (apply #'append (mapcar #'company-coq-tg--find-tactics tactics)))
@@ -128,6 +149,7 @@
     (_ (warn "Ignoring [%s]" parse-tree))))
 
 (defun company-coq-tg--preprocess-tactics-grammar (grammar-str)
+  "Convert GRAMMAR-STR into a parse tree."
   (with-temp-buffer
     (insert grammar-str)
     (cl-loop for  (from . to) in company-coq-tg--preprocessor-substitutions
@@ -139,6 +161,8 @@
              while sexp collect sexp)))
 
 (defun company-coq-tg--extract-notations (grammar-str)
+  "Turn GRAMMAR-STR into a list of abbrevs.
+GRAMMAR-STR should be the output of a Print Grammar Tactic call."
   (let* ((sexp (company-coq-tg--preprocess-tactics-grammar grammar-str)))
     (cl-loop for s-tac in (company-coq-tg--find-tactics (company-coq-tg--parse-toplevel sexp))
              append (cl-loop for tac in (company-coq-tg--format-tactic s-tac)
