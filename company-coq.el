@@ -1515,7 +1515,7 @@ Nothing is reloaded immediately; instead the relevant flags are set."
              (remove-overlays)
              (buffer-disable-undo)
              (visual-line-mode 1)
-             (set (make-local-variable 'show-trailing-whitespace) nil)
+             (setq-local show-trailing-whitespace nil)
              ,@body))))))
 
 (defun company-coq-setup-temp-coq-buffer ()
@@ -1523,7 +1523,7 @@ Nothing is reloaded immediately; instead the relevant flags are set."
   (coq-mode)
   (company-coq-initialize)
   (set-buffer-modified-p nil)
-  (set (make-local-variable 'buffer-offer-save) nil))
+  (setq-local buffer-offer-save nil))
 
 (defun company-coq-search-then-scroll-up (target)
   "Find the definition of TARGET, then return a good point to scroll to.
@@ -2779,7 +2779,7 @@ subsequent invocations)."
   (not (memq (get-text-property (point) 'face) '(font-lock-doc-face font-lock-comment-face))))
 
 (defun company-coq-setup-fontlock ()
-  (set (make-local-variable 'font-lock-syntactic-face-function) #'company-coq-syntactic-face-function)
+  (setq-local font-lock-syntactic-face-function #'company-coq-syntactic-face-function)
   (font-lock-add-keywords nil '(("\\_<pose proof\\_>" 0 'proof-tactics-name-face prepend)) 'add)
   (font-lock-add-keywords nil '(("\\(?:\\W\\|\\`\\)\\(@\\)\\_<" 1 'font-lock-constant-face append)) 'add)
   (font-lock-add-keywords nil '(("\\(?:\\W\\|\\`\\)\\(\\?\\(?:\\s_\\|\\sw\\)+\\)\\_>" 1 'font-lock-variable-name-face append)) 'add)
@@ -2787,8 +2787,8 @@ subsequent invocations)."
   (font-lock-add-keywords nil company-coq-deprecated-spec t))
 
 (defun company-coq-setup-misc-pc-improvements ()
-  (set (make-local-variable 'fill-nobreak-predicate) #'company-coq-fill-nobreak-predicate)
-  (set (make-local-variable 'help-at-pt-display-when-idle) t)
+  (setq-local fill-nobreak-predicate #'company-coq-fill-nobreak-predicate)
+  (setq-local help-at-pt-display-when-idle t)
   (help-at-pt-set-timer))
 
 (defun company-coq-setup-minor-modes ()
