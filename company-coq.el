@@ -3244,12 +3244,16 @@ folding at the level of Proofs."
        (outline-minor-mode -1)))))
 
 (defconst company-coq-features/code-folding--bullet-regexp
-  "^\\s-*\\([*+-]\\)\\s-"
+  "^\\s-*\\([*+-]+\\)\\s-"
   "Regexp matching bullets.")
 
 (defconst company-coq-features/code-folding--brace-regexp
   "{"
   "Regexp matching braces.")
+
+(defconst company-coq-features/code-folding--line-beginning-regexp
+  "^[[:space:]*+-]*[*+{-]\\s-*"
+  "Regexp matching braces and bullets from the beginning of the line.")
 
 (defconst company-coq-features/code-folding--hs-regexp
   (concat "\\("
@@ -3316,19 +3320,41 @@ will be used as a local-map.")
          help-echo "Click (or press RET on) this bullet to hide or show its body.")
   "Display spec for bullets.")
 
-(defun company-coq-re-search-forward-no-strings-or-comments (regexp bound)
+(defun company-coq-features/code-folding--really-on-bullet-p ()
+  "Check if previous regexp search really matched a bullet."
+  (save-match-data
+    (let ((sx (syntax-ppss)))
+      (and
+       ;; Not in a string
+       (not (nth 3 sx))
+       ;; Not in a comment
+       (not (nth 4 sx))
+       ;; Not in the middle of a line
+       (-when-let* ((furthest-bullet (save-excursion
+                                       (beginning-of-line)
+                                       (when (looking-at company-coq-features/code-folding--line-beginning-regexp)
+                                         (match-end 0)))))
+         (<= (point) furthest-bullet))
+       ;; Really at the topelevel of a proof
+       ;; FIXME this check would work very well, but it is too slow
+       (or t (save-excursion
+               (backward-up-list)
+               (looking-back "Proof" (point-at-bol))))))))
+
+(defun company-coq-features/code-folding--search-forward (regexp bound)
   "Find an instance of REGEXP, outside strings or comments.
 BOUND is as in `re-search-forward'."
   (let ((found nil))
-    (while (and (setq found (re-search-forward regexp bound t))
-                (let ((sx (syntax-ppss)))
-                  (or (nth 3 sx) (nth 4 sx)))))
-    found))
+    (save-excursion
+      (while (and (setq found (re-search-forward regexp bound t))
+                  (not (company-coq-features/code-folding--really-on-bullet-p)))))
+    (when found
+      (goto-char found))))
 
 (defconst company-coq-features/code-folding--bullet-fl-spec
-  `((,(apply-partially #'company-coq-re-search-forward-no-strings-or-comments company-coq-features/code-folding--brace-regexp)
+  `((,(apply-partially #'company-coq-features/code-folding--search-forward company-coq-features/code-folding--brace-regexp)
      0 ',company-coq-features/code-folding--bullet-fl-face nil)
-    (,(apply-partially #'company-coq-re-search-forward-no-strings-or-comments company-coq-features/code-folding--bullet-regexp)
+    (,(apply-partially #'company-coq-features/code-folding--search-forward company-coq-features/code-folding--bullet-regexp)
      1 ',company-coq-features/code-folding--bullet-fl-face nil))
   "Font-lock spec for bullets.
 The spec uses local-map instead of keymap, because it needs to
