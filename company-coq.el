@@ -705,11 +705,10 @@ Ensures that the inserted text starts on a blank line."
 (defmacro company-coq-with-current-buffer-maybe (bufname &rest body)
   "If BUFNAME is a live buffer, run BODY in it."
   (declare (indent defun))
-  `(when ,bufname
-     (let ((buf (get-buffer ,bufname)))
-       (when buf
-         (with-current-buffer buf
-           ,@body)))))
+  `(-when-let* ((bufname ,bufname)
+                (buf (get-buffer bufname)))
+     (with-current-buffer buf
+       ,@body)))
 
 (defun company-coq-insert-match-in-buffer (bufname subgroup &optional prefix postprocess)
   "Insert PREFIX and the SUBGROUP -th regexp match into BUFNAME, optionally calling POSTPROCESS."
