@@ -7,18 +7,18 @@ all: elc package
 clean: clean-elc clean-package clean-sandbox
 
 test: elc
-	emacs -mm -L . -l company-coq.el tests.v
+	emacs -mm -L . --debug-init -l company-coq.el tests.v
 
 test24: elc24
-	emacs24 -mm -L . -l company-coq.el tests.v
+	emacs24 -mm -L . --debug-init -l company-coq.el tests.v
 
 elc:
-	emacs -L . --batch --eval '(setq byte-compile-error-on-warn t)' \
-		 --script ~/.emacs.d/init.el -f batch-byte-compile *.el
+	emacs -q -L . --batch --eval '(setq byte-compile-error-on-warn t)' \
+		 --eval "(package-initialize)" -f batch-byte-compile *.el
 
 elc24:
-	emacs24 -L . --batch --eval '(setq byte-compile-error-on-warn t)' \
-		 --script ~/.emacs.d/init.el -f batch-byte-compile *.el
+	emacs24 -q -L . --batch --eval '(setq byte-compile-error-on-warn t)' \
+		 --eval "(package-initialize)" -f batch-byte-compile *.el
 
 clean-elc:
 	rm -rf *.elc

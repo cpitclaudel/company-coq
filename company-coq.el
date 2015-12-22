@@ -71,15 +71,40 @@
 (require 'company-coq-abbrev) ;; Tactics from the manual
 (require 'company-coq-tg)     ;; Parsing code for tactic notations
 
-(unless (require 'proof-site nil t)
+(if (require 'proof-site nil t)
+    (progn
+      (with-no-warnings (proof-ready-for-assistant 'coq)) ;; Required by proof-shell
+      (require 'pg-vars)      ;; `proof-shell-proof-completed'
+      (require 'pg-user)      ;; `proof-goto-point'
+      (require 'proof-shell)  ;; `proof-shell-available-p'
+      (require 'proof-config) ;; `proof-fly-past-comments'
+      (require 'proof-script) ;; `proof-unprocessed-begin'
+      (require 'coq-syntax)   ;; `coq-tactics-db'
+      (require 'coq))          ;; `coq-insert-match'
   (error "Company-coq: Unable to load proof-site.  Is Proof General installed properly?"))
 
-(with-no-warnings (proof-ready-for-assistant 'coq)) ;; Required by proof-shell
-(require 'pg-vars)      ;; `proof-shell-proof-completed'
-(require 'proof-config) ;; `proof-fly-past-comments'
-(require 'proof-shell)  ;; `proof-shell-available-p'
-(require 'coq-syntax)   ;; `coq-tactics-db'
-(require 'coq)          ;; `coq-insert-match'
+(eval-when-compile
+  ;; Compatibility shims for PG
+  ;; Explicitly loading PG is a huge mess, so instead of trying that just expect
+  ;; hope that the user will have loaded it independently of this package.
+  (defvar proof-goals-buffer)
+  (defvar proof-response-buffer)
+  (defvar proof-script-fly-past-comments)
+  (defvar proof-shell-last-goals-output)
+  (defvar proof-shell-proof-completed)
+  (defvar coq-mode-map)
+  (defvar coq-reserved)
+  (defvar coq-commands-db)
+  (defvar coq-tacticals-db)
+  (defvar coq-tactics-db)
+  (defvar coq-hyp-name-in-goal-or-response-regexp)
+  (declare-function proof-shell-invisible-cmd-get-result "ext:proof-shell.el" cmd)
+  (declare-function proof-shell-available-p "ext:proof-shell.el")
+  (declare-function proof-shell-ready-prover "ext:proof-shell.el")
+  (declare-function proof-unprocessed-begin "ext:proof-script.el")
+  (declare-function proof-goto-point "ext:pg-user.el")
+  (declare-function coq-mode "ext:coq.el")
+  (declare-function coq-insert-match "ext:coq.el"))
 
 (defgroup company-coq nil
   "Extensions for Proof General's Coq mode."
@@ -2842,7 +2867,7 @@ subsequent invocations)."
   "Check if paragraph surrounding point may be filled."
   (not (memq (get-text-property (point) 'face) '(font-lock-doc-face font-lock-comment-face))))
 
-(eval-when-compile
+(eval-and-compile
   (defun company-coq-feature-toggle-function (feature-symbol)
     "Return symbol of toggle function for feature FEATURE-SYMBOL."
     (intern (format "company-coq-features/%s" (symbol-name feature-symbol)))))
@@ -2873,7 +2898,7 @@ subsequent invocations)."
 Use the command `company-coq-mode' to change this variable.")
 (make-variable-buffer-local 'company-coq-mode)
 
-(eval-when-compile
+(eval-and-compile
   (defvar company-coq-available-features nil
     "Alist of available company-coq features, with documentation.
 
@@ -2950,7 +2975,7 @@ That is, deactivate them and add them to the disabled list."
   "Check if company-coq feature FEATURE is active."
   (get (company-coq-feature-toggle-function feature) 'company-coq-feature-active))
 
-(eval-when-compile
+(eval-and-compile
   (defconst company-coq-define-feature-doc-format
     "Toggle the %s feature.
 
