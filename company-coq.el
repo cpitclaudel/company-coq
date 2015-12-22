@@ -560,28 +560,30 @@ infinite loop (they are not cleared by [generalize dependent]).")
     `(progn ,@body)))
 
 ;; FIXME: This should happen at the PG level. Introduced to fix #8.
-(defmacro company-coq-with-window-start (window &rest body)
-  "Save offset of WINDOW, run BODY, and restore offset.
-If WINDOW is nil, just run BODY."
-  (declare (indent defun))
-  `(if ,window
-       (let ((wstart (window-start ,window))
-             (output (progn ,@body)))
-         (when (not (equal wstart (window-start ,window)))
-           (set-window-start ,window wstart))
-         output)
-     (progn ,@body)))
+(defmacro company-coq-with-window-starts (windows &rest body)
+  "Save offsets of non-nil WINDOWS, run BODY, and restore offsets.
+If WINDOWS is nil, just run BODY."
+  (declare (indent defun)
+           (debug t))
+  `(progn
+     (let* ((windows (cl-remove-if #'null ,windows))
+            (wstarts (mapcar #'window-start windows)))
+       (prog1
+           (progn ,@body)
+         (pcase-dolist (`(,window . ,wstart) (-zip windows wstarts))
+           (when (not (equal wstart (window-start window)))
+             (set-window-start window wstart)))))))
 
-(defun company-coq-ask-prover (question &optional preserve-window-start)
+(defun company-coq-ask-prover (question)
   "Synchronously send QUESTION to the prover.
-If PRESERVE-WINDOW-START is non-nil, preserve the offset off the
-goals window."
+This function attemps to preserve the offsets of the
+goals and response windows."
   (when question
     (if (company-coq-prover-available)
         (progn
           (setq company-coq-talking-to-prover t)
           (unwind-protect
-              (company-coq-with-window-start (and preserve-window-start (company-coq-get-goals-window))
+              (company-coq-with-window-starts (list (company-coq-get-goals-window) (company-coq-get-response-window))
                 (proof-shell-invisible-cmd-get-result question))
             (setq company-coq-talking-to-prover nil)))
       (company-coq-dbg "Prover not available; [%s] discarded" question)
@@ -594,9 +596,9 @@ goals window."
                 never (string-match-p regexp str))
        str))
 
-(defun company-coq-ask-prover-swallow-errors (question &optional preserve-window-start)
-  "Call `company-coq-ask-prover' with QUESTION and PRESERVE-WINDOW-START, swallowing errors."
-  (company-coq-unless-error (company-coq-ask-prover question preserve-window-start)))
+(defun company-coq-ask-prover-swallow-errors (question)
+  "Call `company-coq-ask-prover' with QUESTION, swallowing errors."
+  (company-coq-unless-error (company-coq-ask-prover question)))
 
 (defun company-coq-split-lines (str &optional omit-nulls)
   "Split lines of STR.
@@ -1431,18 +1433,18 @@ Nothing is reloaded immediately; instead the relevant flags are set."
       (setq company-coq-modules-reload-needed (or company-coq-modules-reload-needed is-import is-load))
       (when is-retracting (company-coq-maybe-reload-context t)))))
 
-(defun company-coq-get-goals-buffer ()
-  "Return the Goals buffer."
-  (get-buffer "*goals*"))
-
 (defvar company-coq-goals-window nil
   "Window originally dedicated to Coq goals.")
 
 (defun company-coq-get-goals-window ()
   "Return a window to redisplay the goals in."
-  (let ((pg-buffer (company-coq-get-goals-buffer)))
+  (let ((pg-buffer proof-goals-buffer))
     (or (and pg-buffer (get-buffer-window pg-buffer))
         (and (window-live-p company-coq-goals-window) company-coq-goals-window))))
+
+(defun company-coq-get-response-window ()
+  "Return the goals window."
+  (and proof-response-buffer (get-buffer-window proof-response-buffer)))
 
 (defun company-coq-state-change (&rest _args)
   "Handle modiications of prover state."
@@ -1452,7 +1454,7 @@ Nothing is reloaded immediately; instead the relevant flags are set."
   ;; Hide the docs and redisplay the goals buffer
   (-when-let* ((doc-buf   (get-buffer "*company-documentation*")))
     (bury-buffer doc-buf))
-  (-when-let* ((goals-buf (company-coq-get-goals-buffer))
+  (-when-let* ((goals-buf proof-goals-buffer)
                (goals-win (company-coq-get-goals-window)))
     (set-window-buffer goals-win goals-buf)))
 
@@ -1904,18 +1906,21 @@ returning it if it matches PREFIX."
 Only works after running a search command.  Results are stored in
 `company-coq-last-search-results'.  Prover output size is cached
 in `company-coq-last-search-scan-size'."
-  (let* ((response-buffer (get-buffer "*response*"))
-         (response-size   (buffer-size response-buffer))
+  (let* ((response-buffer proof-response-buffer)
+         (response-size   (and response-buffer
+                               (buffer-size response-buffer)))
          (needs-update    (and response-buffer
                                (not (equal response-size
                                            company-coq-last-search-scan-size)))))
     (unless (and response-buffer (not needs-update))
-      (setq company-coq-last-search-results nil))
+      (setq company-coq-last-search-results nil
+            company-coq-last-search-scan-size nil))
     (when needs-update
       (setq company-coq-last-search-scan-size response-size)
       (with-current-buffer response-buffer
         (save-match-data
           (save-excursion
+            (goto-char (point-min))
             (while (re-search-forward company-coq-all-symbols-slow-regexp nil t)
               (push (match-string-no-properties 1) company-coq-last-search-results))))))))
 
