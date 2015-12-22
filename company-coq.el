@@ -3229,7 +3229,7 @@ folding at the level of Proofs."
        (outline-minor-mode -1)))))
 
 (defconst company-coq-features/code-folding--bullet-regexp
-  "^\\s-*\\([*+-]\\)"
+  "^\\s-*\\([*+-]\\) "
   "Regexp matching bullets.")
 
 ;; TODO The documentation of hs-special-modes-alist specifically warns against
@@ -3272,23 +3272,28 @@ EVENT is the corresponding mouse event."
         (hs-show-block)
       (hs-hide-block-at-point))
     ;; Reposition before bullet
-    (backward-char)))
+    (backward-char 2)))
 
 (defconst company-coq-features/code-folding--keymap
-  (let ((map (make-sparse-keymap)))
+  (let ((map (copy-keymap coq-mode-map)))
     (define-key map (kbd "<mouse-1>") #'company-coq-features/code-folding--click-bullet)
     (define-key map (kbd "RET") #'company-coq-features/code-folding-toggle-bullet)
     map)
-  "Keymap active over bullets.")
+  "Keymap active over bullets.
+Explicitly copies `coq-mode-map' to mitigate the fact that it
+will be used as a local-map.")
 
 (defconst company-coq-features/code-folding--bullet-spec
   `((,company-coq-features/code-folding--bullet-regexp
      1 '(face company-coq-features/code-folding-bullet-face
               mouse-face highlight
-              keymap ,company-coq-features/code-folding--keymap
+              local-map ,company-coq-features/code-folding--keymap
               help-echo "Click this bullet to hide or show its body.")
      append))
-  "Font-lock spec for bullets.")
+  "Font-lock spec for bullets.
+The spec uses local-map instead of keymap, because it needs to
+take precedence over PG's own keymaps, introduced by the overlays
+that it adds after processing a buffer section.")
 
 (company-coq-define-feature code-folding (arg)
   "Code folding.
