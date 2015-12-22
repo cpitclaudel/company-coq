@@ -62,6 +62,7 @@
 (require 'dash)         ;; -when-let and -if-let ;; FIXME: Require only on compilation
 (require 'diff-mode)    ;; Browsing through large error messages
 (require 'outline)      ;; Outlines
+(require 'hideshow)     ;; Code folding
 (require 'paren)        ;; Find matching block start
 (require 'shr)          ;; HTML rendering
 (require 'smie)         ;; Move around the source code
