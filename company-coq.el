@@ -2702,7 +2702,6 @@ to show at most MAX-LINES."
     (with-temp-buffer
       ;; Fix issue mentionned in `company-coq-fontify-buffer'
       (setq-local font-lock-support-mode nil)
-      (company-coq-setup-temp-coq-buffer)
       (cl-loop for str in strs ;;  for len in lengths   for ins-point = (point)
                do (insert str "\n"))
       (company-coq-truncate-buffer (point-min) max-lines "...")
@@ -2711,7 +2710,7 @@ to show at most MAX-LINES."
         (company-coq-prefix-all-lines (propertize " " 'display `(space . (:width ,real-offset)))))
       ;; Needed when not using jit-lock
       (setq-local font-lock-fontified nil)
-      (company-coq-fontify-buffer)
+      (company-coq-setup-temp-coq-buffer)
       ;; Prevent text from inheriting properties of neighbouring characters
       (when (fboundp 'add-face-text-property)
         (company-coq-suppress-warnings (add-face-text-property (point-min) (point-max) 'default t)))
@@ -3003,13 +3002,24 @@ Defining a feature adds it to `company-coq-available-features'."
          (put ',toggle-function 'company-coq-feature-active nil)))
        ,@body)))
 
+(defvar company-coq--refontification-requested nil
+  "Whether a refontification is needed, due to feature changes.")
+
+(defun company-coq-request-refontification ()
+  "Request a refontification of the buffer."
+  (setq company-coq--refontification-requested t))
+
 (defun company-coq-toggle-features (enabled-or-disabled-features status)
   "Enable or disable ENABLED-OR-DISABLED-FEATURES.
 If STATUS is non-nil, enable each feature in
 ENABLED-OR-DISABLED-FEATURES.  Otherwise, disable them."
   (dolist (feature enabled-or-disabled-features)
     (let ((toggle-func (company-coq-feature-toggle-function feature)))
-      (funcall toggle-func (if status 1 -1)))))
+      (funcall toggle-func (if status 1 -1))))
+  ;; Only do one pass of refontification
+  (when company-coq--refontification-requested
+    (setq company-coq--refontification-requested nil)
+    (company-coq-fontify-buffer)))
 
 (defun company-coq-read-feature ()
   "Read a feature name from the user."
@@ -3131,13 +3141,13 @@ added to `company-coq-custom-snippets'."
   (add-to-list (make-local-variable 'font-lock-extra-managed-props) 'display)
   (font-lock-add-keywords nil company-coq-goal-separator-spec t)
   (font-lock-add-keywords nil company-coq-subscript-spec t)
-  (company-coq-fontify-buffer))
+  (company-coq-request-refontification))
 
 (defun company-coq-features/pg-improvements--goals-buffer-disable ()
   "Remove company-coq improvements from current buffer."
   (font-lock-remove-keywords nil company-coq-goal-separator-spec)
   (font-lock-remove-keywords nil company-coq-subscript-spec)
-  (company-coq-fontify-buffer))
+  (company-coq-request-refontification))
 
 (defun company-coq-features/pg-improvements--response-buffer-enable ()
   "Apply company-coq improvements to current buffer."
@@ -3161,7 +3171,7 @@ added to `company-coq-custom-snippets'."
   (setq-local fill-nobreak-predicate #'company-coq-fill-nobreak-predicate)
   (setq-local help-at-pt-display-when-idle t)
   (help-at-pt-set-timer)
-  (company-coq-fontify-buffer))
+  (company-coq-request-refontification))
 
 (defun company-coq-features/pg-improvements--main-buffer-disable ()
   "Remove company-coq improvements from (current) main buffer."
@@ -3170,7 +3180,7 @@ added to `company-coq-custom-snippets'."
   (kill-local-variable 'fill-nobreak-predicate)
   (kill-local-variable 'help-at-pt-display-when-idle)
   (help-at-pt-cancel-timer)
-  (company-coq-fontify-buffer))
+  (company-coq-request-refontification))
 
 (company-coq-define-feature pg-improvements (arg)
   "Discrete improvements to Proof General.
@@ -3197,10 +3207,10 @@ markers of decreasing importance."
   (pcase arg
     (`on (company-coq-do-in-coq-buffers
            (setq-local font-lock-syntactic-face-function #'company-coq-syntactic-face-function)
-           (company-coq-fontify-buffer)))
+           (company-coq-request-refontification)))
     (`off (company-coq-do-in-coq-buffers
             (kill-local-variable 'font-lock-syntactic-face-function)
-            (company-coq-fontify-buffer)))))
+            (company-coq-request-refontification)))))
 
 (company-coq-define-feature obsolete-warnings (arg)
   "Code style warnings [experimental].
@@ -3209,11 +3219,11 @@ Highlights uses of obsolete Coq constructs."
     (`on
      (company-coq-do-in-coq-buffers
        (font-lock-add-keywords nil company-coq-deprecated-spec 'add)
-       (company-coq-fontify-buffer)))
+       (company-coq-request-refontification)))
     (`off
      (company-coq-do-in-coq-buffers
        (font-lock-remove-keywords nil company-coq-deprecated-spec)
-       (company-coq-fontify-buffer)))))
+       (company-coq-request-refontification)))))
 
 (company-coq-define-feature outline (arg)
   "Proof outlines.
@@ -3341,13 +3351,13 @@ the level of bullets."
        (add-to-list 'font-lock-extra-managed-props 'mouse-face)
        (add-to-list 'font-lock-extra-managed-props 'local-map)
        (font-lock-add-keywords nil company-coq-features/code-folding--bullet-fl-spec 'add)
-       (company-coq-fontify-buffer)))
+       (company-coq-request-refontification)))
     (`off
      (setq hs-special-modes-alist (delete company-coq-features/code-folding--hs-spec hs-special-modes-alist))
      (company-coq-do-in-coq-buffers
        (hs-minor-mode -1)
        (font-lock-remove-keywords company-coq-features/code-folding--bullet-fl-spec company-coq-deprecated-spec)
-       (company-coq-fontify-buffer)))))
+       (company-coq-request-refontification)))))
 
 (company-coq-define-feature company (arg)
   "Context-sensitive completion.

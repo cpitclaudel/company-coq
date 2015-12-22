@@ -46,7 +46,8 @@ Proof.
       apply I.
 Qed.
 
-Definition InactiveBraces := "{{}}". (* These braces shouldn't be active *)
+Require Import String.
+Definition InactiveBraces := "{{}}"%string. (* These braces shouldn't be active *)
 (* Neither should these {{}}
    +
    - *)
@@ -75,9 +76,9 @@ Qed.
 
 (* Start prover *)
 Require Import Omega Coq.Arith.Arith. (* This should autocomplete (first result should be correct) *)
-SearchAbout plus.
+SearchAbout plus.                 (* Scroll down in response window *)
 
-(* plu should autocomplete after running this search *)
+(* plu should autocomplete after running this search. Does the response window keep its offset? *)
 (* Pressing <menu> or control-clicking on plus should show a definition inline, prettified. Same for SimpleLtac *)
 
 Lemma clear_search : True. Proof I.
