@@ -3211,8 +3211,9 @@ Highlights uses of obsolete Coq constructs."
        (company-coq-fontify-buffer)))))
 
 (company-coq-define-feature outline (arg)
-  "Text folding and outlines.
-Configures `outline-minor-mode' for use with Coq."
+  "Proof outlines.
+Configures `outline-minor-mode' for use with Coq.  Supports
+folding at the level of Proofs."
   (pcase arg
     (`on
      (company-coq-do-in-coq-buffers
@@ -3226,6 +3227,30 @@ Configures `outline-minor-mode' for use with Coq."
        (kill-local-variable 'outline-level)
        (kill-local-variable 'outline-regexp)
        (kill-local-variable 'outline-heading-end-regexp)))))
+
+;; TODO The documentation of hs-special-modes-alist specifically warns against
+;; leading spaces in regexps, but we need them to tell bullets apart from
+;; operators.
+(defconst company-coq-features/code-folding--hs-spec
+  '(coq-mode "\\(^\\s-*[*+-]\\|{\\)" "}" "(\\*" nil nil)
+  "Hide-show specification for Coq buffers.
+The closing '}' is not made optional, because `looking-back'
+wouldn't ever match it if it was.  `hs-minor-mode' doesn't mind a
+missing end marker (it uses `forward-sexp' to find the end of
+each block).")
+
+(company-coq-define-feature code-folding (arg)
+  "Code folding.
+Configures `hs-minor-mode' for use with Coq.  Support folding at
+the level of bullets."
+  (pcase arg
+    (`on
+     (add-to-list 'hs-special-modes-alist company-coq-features/code-folding--hs-spec)
+     (company-coq-do-in-coq-buffers (hs-minor-mode)))
+    (`off
+     (setq hs-special-modes-alist
+           (delete company-coq-features/code-folding--hs-spec hs-special-modes-alist))
+     (company-coq-do-in-coq-buffers (hs-minor-mode -1)))))
 
 (company-coq-define-feature company (arg)
   "Context-sensitive completion.

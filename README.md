@@ -30,9 +30,11 @@ IDE extensions for Proof-General's Coq mode. See features below or jump to [Setu
 
 * Convenient snippets: easily insert [new `match` cases](img/match-function.gif) and [`match goal` rules](img/match-goal.gif).
 
-* Visual [word diff](img/unification.png) of large unification error messages (<code>The term "<i>blah</i>" has type "<i>huge blob</i>" while it is expected to have type "<i>slightly different blob</i>"</code>).
+* Interactive [proof script outlines](img/outline.png)
 
-* Interactive [proof script outline](img/outline.png) and [in-buffer folding](img/folding.png).
+* [Coarse-grained](img/folding.png) (proof-level) and fine-grained (bullet-level) code folding.
+
+* Visual [word diff](img/unification.png) of large unification error messages (<code>The term "<i>blah</i>" has type "<i>huge blob</i>" while it is expected to have type "<i>slightly different blob</i>"</code>).
 
 * Basic project search (search for instances of the word at point in neighboring files).
 
