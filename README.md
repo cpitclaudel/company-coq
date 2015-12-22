@@ -1,6 +1,8 @@
-# company-coq
+# Company-coq
 
-IDE extensions for Proof-General's Coq mode. See features below or jump to [Setup](#setup). After setting-up, try the tutorial with `M-x company-coq-tutorial`.
+A collection of extensions for Proof General's Coq mode.
+
+See features and screenshots below, or jump right to [setup instructions](#setup) and try the tutorial with `M-x company-coq-tutorial` after setting up!
 
 ## Features
 
@@ -50,7 +52,7 @@ IDE extensions for Proof-General's Coq mode. See features below or jump to [Setu
 
 ### Advanced features
 
-(These require a [patched](https://github.com/coq/coq/pull/56) [version](https://github.com/coq/coq/pull/64) of `coqtop`)
+(These require Coq 8.5, or a [patched version](https://github.com/coq/coq/pull/64) of `coqtop`)
 
 * Auto-completion of all known [types and theorems](img/symbol-completion.png) with [annotations](img/symbol-completion-doc.png), and of all [user-defined tactics](ltac-completion.png) and [tactic notations](img/tactic-notation-completion.png).
 
