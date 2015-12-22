@@ -3229,14 +3229,24 @@ folding at the level of Proofs."
        (outline-minor-mode -1)))))
 
 (defconst company-coq-features/code-folding--bullet-regexp
-  "^\\s-*\\([*+-]\\) "
+  "^\\s-*\\([*+-]\\)\\s-"
   "Regexp matching bullets.")
+
+(defconst company-coq-features/code-folding--brace-regexp
+  "{"
+  "Regexp matching braces.")
+
+(defconst company-coq-features/code-folding--hs-regexp
+  (concat "\\("
+          company-coq-features/code-folding--bullet-regexp "\\|"
+          company-coq-features/code-folding--brace-regexp "\\)")
+  "Regexp matching hide-show openers.")
 
 ;; TODO The documentation of hs-special-modes-alist specifically warns against
 ;; leading spaces in regexps, but we need them to tell bullets apart from
 ;; operators.
 (defconst company-coq-features/code-folding--hs-spec
-  `(coq-mode ,(concat "\\(" company-coq-features/code-folding--bullet-regexp "\\|{\\)") "}" "(\\*" nil nil)
+  `(coq-mode ,company-coq-features/code-folding--hs-regexp "}" "(\\*" nil nil)
   "Hide-show specification for Coq buffers.
 The closing '}' is not made optional, because `looking-back'
 wouldn't ever match it if it was.  `hs-minor-mode' doesn't mind a
@@ -3261,18 +3271,24 @@ EVENT is the corresponding mouse event."
         (company-coq-features/code-folding-toggle-bullet)))))
 
 (defun company-coq-features/code-folding-toggle-bullet ()
-  "Fold or unfold bullet at beginning of line of POS."
+  "Fold or unfold bullet at point."
   (interactive)
-  (-when-let* ((end (save-excursion
-                      (forward-line 0)
-                      (looking-at-p company-coq-features/code-folding--bullet-regexp)
-                      (point-at-eol))))
-    (forward-line 0)
-    (if (hs-overlay-at end)
-        (hs-show-block)
-      (hs-hide-block-at-point))
-    ;; Reposition before bullet
-    (backward-char 2)))
+  (-when-let* ((beg (cond
+                     ((member (char-after) '(?* ?+ ?-))
+                      (point-at-bol))
+                     ((member (char-before) '(?* ?+ ?-))
+                      (backward-char)
+                      (point-at-bol))
+                     ((member (char-after) '(?{))
+                      (point))
+                     ((member (char-before) '(?{))
+                      (backward-char)
+                      (point)))))
+    (save-excursion
+      (goto-char beg)
+      (if (hs-overlay-at (point-at-eol))
+          (hs-show-block)
+        (hs-hide-block-at-point)))))
 
 (defconst company-coq-features/code-folding--keymap
   (let ((map (copy-keymap coq-mode-map)))
@@ -3283,13 +3299,16 @@ EVENT is the corresponding mouse event."
 Explicitly copies `coq-mode-map' to mitigate the fact that it
 will be used as a local-map.")
 
-(defconst company-coq-features/code-folding--bullet-spec
-  `((,company-coq-features/code-folding--bullet-regexp
-     1 '(face company-coq-features/code-folding-bullet-face
-              mouse-face highlight
-              local-map ,company-coq-features/code-folding--keymap
-              help-echo "Click this bullet to hide or show its body.")
-     append))
+(defconst company-coq-features/code-folding--bullet-fl-face
+  `(face company-coq-features/code-folding-bullet-face
+         mouse-face highlight
+         local-map ,company-coq-features/code-folding--keymap
+         help-echo "Click this bullet to hide or show its body.")
+  "Display spec for bullets.")
+
+(defconst company-coq-features/code-folding--bullet-fl-spec
+  `((,company-coq-features/code-folding--brace-regexp 0 ',company-coq-features/code-folding--bullet-fl-face append)
+    (,company-coq-features/code-folding--bullet-regexp 1 ',company-coq-features/code-folding--bullet-fl-face append))
   "Font-lock spec for bullets.
 The spec uses local-map instead of keymap, because it needs to
 take precedence over PG's own keymaps, introduced by the overlays
@@ -3304,13 +3323,13 @@ the level of bullets."
      (add-to-list 'hs-special-modes-alist company-coq-features/code-folding--hs-spec)
      (company-coq-do-in-coq-buffers
        (hs-minor-mode)
-       (font-lock-add-keywords nil company-coq-features/code-folding--bullet-spec 'add)
+       (font-lock-add-keywords nil company-coq-features/code-folding--bullet-fl-spec 'add)
        (company-coq-fontify-buffer)))
     (`off
      (setq hs-special-modes-alist (delete company-coq-features/code-folding--hs-spec hs-special-modes-alist))
      (company-coq-do-in-coq-buffers
        (hs-minor-mode -1)
-       (font-lock-remove-keywords company-coq-features/code-folding--bullet-spec company-coq-deprecated-spec)
+       (font-lock-remove-keywords company-coq-features/code-folding--bullet-fl-spec company-coq-deprecated-spec)
        (company-coq-fontify-buffer)))))
 
 (company-coq-define-feature company (arg)

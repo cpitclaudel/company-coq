@@ -50,7 +50,7 @@ Definition braces: True \/ (True \/ True) -> True.
 Proof.
   { intros.
     destruct H.
-    {
+    { (* Does this fold? *)
       apply I.
     }
     { apply I. }
