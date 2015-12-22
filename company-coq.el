@@ -2460,7 +2460,7 @@ keybinding that called this not been intercepted."
   (let* ((after-exit-char (company-coq-after-exit-char))
          (snippet         (and after-exit-char (company-coq-snippet-at-point)))
          (company-coq--keybindings-minor-mode nil)
-         (original-func   (key-binding (this-command-keys-vector))))
+         (original-func   (key-binding (this-command-keys-vector) t)))
     (when snippet
       (yas-exit-snippet snippet))
     (if original-func (call-interactively original-func)
@@ -3273,17 +3273,10 @@ EVENT is the corresponding mouse event."
 (defun company-coq-features/code-folding-toggle-bullet ()
   "Fold or unfold bullet at point."
   (interactive)
-  (-when-let* ((beg (cond
-                     ((member (char-after) '(?* ?+ ?-))
-                      (point-at-bol))
-                     ((member (char-before) '(?* ?+ ?-))
-                      (backward-char)
-                      (point-at-bol))
-                     ((member (char-after) '(?{))
-                      (point))
-                     ((member (char-before) '(?{))
-                      (backward-char)
-                      (point)))))
+  (-when-let* ((beg (cond ((member (char-after) '(?* ?+ ?-))
+                           (point-at-bol))
+                          ((member (char-after) '(?{))
+                           (point)))))
     (save-excursion
       (goto-char beg)
       (if (hs-overlay-at (point-at-eol))
@@ -3301,14 +3294,27 @@ will be used as a local-map.")
 
 (defconst company-coq-features/code-folding--bullet-fl-face
   `(face company-coq-features/code-folding-bullet-face
+         front-sticky nil
+         rear-nonsticky t
          mouse-face highlight
          local-map ,company-coq-features/code-folding--keymap
-         help-echo "Click this bullet to hide or show its body.")
+         help-echo "Click (or press RET on) this bullet to hide or show its body.")
   "Display spec for bullets.")
 
+(defun company-coq-re-search-forward-no-strings-or-comments (regexp bound)
+  "Find an instance of REGEXP, outside strings or comments.
+BOUND is as in `re-search-forward'."
+  (let ((found nil))
+    (while (and (setq found (re-search-forward regexp bound t))
+                (let ((sx (syntax-ppss)))
+                  (or (nth 3 sx) (nth 4 sx)))))
+    found))
+
 (defconst company-coq-features/code-folding--bullet-fl-spec
-  `((,company-coq-features/code-folding--brace-regexp 0 ',company-coq-features/code-folding--bullet-fl-face append)
-    (,company-coq-features/code-folding--bullet-regexp 1 ',company-coq-features/code-folding--bullet-fl-face append))
+  `((,(apply-partially #'company-coq-re-search-forward-no-strings-or-comments company-coq-features/code-folding--brace-regexp)
+     0 ',company-coq-features/code-folding--bullet-fl-face nil)
+    (,(apply-partially #'company-coq-re-search-forward-no-strings-or-comments company-coq-features/code-folding--bullet-regexp)
+     1 ',company-coq-features/code-folding--bullet-fl-face nil))
   "Font-lock spec for bullets.
 The spec uses local-map instead of keymap, because it needs to
 take precedence over PG's own keymaps, introduced by the overlays
@@ -3323,6 +3329,12 @@ the level of bullets."
      (add-to-list 'hs-special-modes-alist company-coq-features/code-folding--hs-spec)
      (company-coq-do-in-coq-buffers
        (hs-minor-mode)
+       (make-local-variable 'font-lock-extra-managed-props)
+       (add-to-list 'font-lock-extra-managed-props 'display)
+       (add-to-list 'font-lock-extra-managed-props 'front-sticky)
+       (add-to-list 'font-lock-extra-managed-props 'rear-nonsticky)
+       (add-to-list 'font-lock-extra-managed-props 'mouse-face)
+       (add-to-list 'font-lock-extra-managed-props 'local-map)
        (font-lock-add-keywords nil company-coq-features/code-folding--bullet-fl-spec 'add)
        (company-coq-fontify-buffer)))
     (`off

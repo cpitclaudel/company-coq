@@ -46,6 +46,11 @@ Proof.
       apply I.
 Qed.
 
+Definition InactiveBraces := "{{}}". (* These braces shouldn't be active *)
+(* Neither should these {{}}
+   +
+   - *)
+
 Definition braces: True \/ (True \/ True) -> True.
 Proof.
   { intros.
