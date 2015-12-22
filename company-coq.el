@@ -1,4 +1,4 @@
-;;; company-coq.el --- Company-mode backend for Proof General's coq-mode -*- lexical-binding: t -*-
+;;; company-coq.el --- A collection of extensions for Proof General's Coq mode -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2015  Clément Pit--Claudel
 ;; Author: Clément Pit--Claudel <clement.pitclaudel@live.com>
@@ -22,7 +22,7 @@
 ;; This package includes a company backend for Proof-General's Coq mode, and
 ;; many useful extensions to Proof-General.
 ;;
-;; See https://github.com/cpitclaudel/company-coq/ for a full description,
+;; See https://github.com/cpitclaudel/company-coq/ for a detailed description,
 ;; including screenshots and documentation.  After installing, you may want to
 ;; use M-x company-coq-tutorial to open the tutorial.
 ;;
@@ -56,22 +56,29 @@
 ;; code, we only execute their body if  we are not currently already waiting for
 ;; an answer from the prover (company-coq-talking-to-prover).
 
-(require 'shr)          ;; HTML rendering
+(require 'cl-lib)       ;; Compatibility
 (require 'company)      ;; Autocompletion
 (require 'company-math) ;; Math symbols
-(require 'cl-lib)       ;; Compatibility
-(require 'outline)      ;; Outlines
-(require 'yasnippet)    ;; Templates
-(require 'paren)        ;; Find matching block start
-(require 'smie)         ;; Move around the source code
-(require 'diff-mode)    ;; Browsing through large error messages
 (require 'dash)         ;; -when-let and -if-let ;; FIXME: Require only on compilation
+(require 'diff-mode)    ;; Browsing through large error messages
+(require 'outline)      ;; Outlines
+(require 'paren)        ;; Find matching block start
+(require 'shr)          ;; HTML rendering
+(require 'smie)         ;; Move around the source code
+(require 'yasnippet)    ;; Templates
 
 (require 'company-coq-abbrev) ;; Tactics from the manual
 (require 'company-coq-tg)     ;; Parsing code for tactic notations
 
 (unless (require 'proof-site nil t)
-  (message "company-coq: Unable to load proof-site. Is ProofGeneral installed, and did you add it to your load-path?"))
+  (error "Company-coq: Unable to load proof-site.  Is Proof General installed properly?"))
+
+(with-no-warnings (proof-ready-for-assistant 'coq)) ;; Required by proof-shell
+(require 'pg-vars)      ;; `proof-shell-proof-completed'
+(require 'proof-config) ;; `proof-fly-past-comments'
+(require 'proof-shell)  ;; `proof-shell-available-p'
+(require 'coq-syntax)   ;; `coq-tactics-db'
+(require 'coq)          ;; `coq-insert-match'
 
 (defgroup company-coq nil
   "Completion back-end for Coq"
@@ -91,8 +98,7 @@
                               "lazymatch constr:($1) with\n$0\nend"
                               "match goal with\n$0\nend"
                               "lazymatch goal with\n$0\nend")
-  "Custom YAS snippets.
-Reload with `company-coq-force-reload-keywords'") ;; FIXME add to tutorial
+  "Custom YAS snippets.")
 
 (defcustom company-coq-dynamic-autocompletion nil
   "Get suggestions by querying coq about defined identifiers.
@@ -100,44 +106,60 @@ Reload with `company-coq-force-reload-keywords'") ;; FIXME add to tutorial
 This is an experimental feature.  It requires Coq 8.5 beta 3 or a
 patched version of Coq 8.4 to work properly."
   :group 'company-coq)
+(make-obsolete-variable 'company-coq-dynamic-autocompletion 'company-coq-disabled-features "company-coq 1.0")
 
-(defvar company-coq--dynamic-completion nil
-  "Equal to `company-coq-dynamic-autocompletion' if capability detection succeeds.")
+(defconst company-coq--capability-detection-cmd "Test Search Output Name Only"
+  "Command used to test for dynamic completion capabilities.
+Two patches are required for proper completion of theorems:
+=Redirect=ion to a file, and =Search Output Name Only=.  For
+tactics, and extra patch is required.")
+
+(defvar company-coq--coqtop-patched-p 'unknown
+  "Whether coqtop supports advanced completion features.
+One of 'unknown, 'yes, 'no.")
 
 (defcustom company-coq-autocomplete-context t
   "Autocomplete hypotheses by parsing the latest Goals output.
 This is an experimental feature."
   :group 'company-coq)
+(make-obsolete-variable 'company-coq-autocomplete-context 'company-coq-disabled-features "company-coq 1.0")
 
 (defcustom company-coq-autocomplete-modules t
   "Autocomplete module names from Coq's load path."
   :group 'company-coq)
+(make-obsolete-variable 'company-coq-autocomplete-modules 'company-coq-disabled-features "company-coq 1.0")
 
 (defcustom company-coq-autocomplete-block-end t
   "Autocomplete the name of the last opened block."
   :group 'company-coq)
+(make-obsolete-variable 'company-coq-autocomplete-block-end 'company-coq-disabled-features "company-coq 1.0")
 
 (defcustom company-coq-autocomplete-search-results t
   "Autocomplete symbol names pulled from the results of the last search."
   :group 'company-coq)
+(make-obsolete-variable 'company-coq-autocomplete-search-results 'company-coq-disabled-features "company-coq 1.0")
 
 (defcustom company-coq-autocomplete-symbols t
   "Autocomplete symbols by searching in the buffer for lemmas and theorems.
-If `company-coq-dynamic-autocompletion' is non-nil, query the proof assistant in addition to searching."
+If the dynamic completion feature is on, query the proof
+assistant in addition to searching."
   :group 'company-coq)
+(make-obsolete-variable 'company-coq-autocomplete-symbols 'company-coq-disabled-features "company-coq 1.0")
 
 (defcustom company-coq-prettify-symbols t
-  "Transparently replace keywords by the corresponding symbols (e.g. ∀ for forall).
+  "Transparently replace keywords by the corresponding symbols.
 The contents of the buffer are not changed."
   :group 'company-coq)
+(make-obsolete-variable 'company-coq-prettify-symbols 'company-coq-disabled-features "company-coq 1.0")
 
 (defcustom company-coq-explicit-placeholders t
   "Show holes in snippets using explicit placeholders."
   :group 'company-coq)
 
-(defcustom company-coq-backends '(company-math-symbols-unicode company-coq-reserved-keywords company-coq-keywords)
-  "List of backends to use for completion."
-  :group 'company-coq)
+(defvar company-coq-enabled-backends nil
+  "List of currently enabled company-coq completion backends.
+Do not enable or disable backends by editing this list; instead,
+customize `company-coq-disabled-features'.")
 
 (defcustom company-coq-disabled-patterns '("without loss")
   "List of patterns that are not imported from Proof General's list."
@@ -146,17 +168,19 @@ The contents of the buffer are not changed."
 (defvar company-coq-disabled-patterns-regexp (regexp-opt company-coq-disabled-patterns)
   "Regexp version of `company-coq-disabled-patterns'.")
 
-(defcustom company-coq-sorted-backends '(company-math-symbols-unicode
-                              company-coq-reserved-keywords
-                              company-coq-block-end
-                              company-coq-modules
-                              company-coq-context
-                              company-coq-keywords
-                              company-coq-defuns
-                              company-coq-search-results
-                              company-coq-tactics
-                              company-coq-symbols)
-  "All completion backends, ordered by display priority."
+(defcustom company-coq-sorted-backends '(company-coq-reserved-keywords-backend
+                              company-coq-user-snippets-backend
+                              company-coq-block-end-backend
+                              company-coq-modules-backend
+                              company-coq-context-backend
+                              company-coq-refman-backend
+                              company-coq-local-definitions-backend
+                              company-coq-search-results-backend
+                              company-coq-dynamic-tactics-backend
+                              company-coq-dynamic-symbols-backend)
+  "All completion backends, ordered by display priority.
+Do not remove entries from this list (but feel free to reorder
+them).  To disable backends, customize `company-coq-disabled-features'."
   :group 'company-coq)
 
 (defvar company-coq-talking-to-prover nil
@@ -183,16 +207,13 @@ impossible, for example in `proof-shell-insert-hook'")
 (defvar company-coq-dynamic-tactics nil
   "Keeps track of defined tactics.")
 
-(defvar company-coq-buffer-defuns nil
-  "Cache tracking buffer symbols, based on regexp searches.")
-
 (defvar company-coq-current-context nil
   "Cache tracking the context while proofs are ongoing.")
 
 (defvar company-coq-known-path-specs nil
   "Cache tracking paths specs in Coq's load path.")
 
-(defvar company-coq-known-keywords nil
+(defvar company-coq-known-static-abbrevs nil
   "List of predefined Coq syntax forms.")
 
 (defvar company-coq-last-goals-output nil
@@ -207,14 +228,6 @@ impossible, for example in `proof-shell-insert-hook'")
 (defvar company-coq-definition-overlay nil
   "Overlay used to show inline definitions.")
 
-(defvar company-coq-needs-capability-detection t
-  "Tracks whether capability detection has already happened.")
-
-(defconst company-coq-capability-test-cmd "Test Search Output Name Only"
-  "Command use to test for dynamic completion capabilities.
-Two patches are required for proper completion: [Redirect]ion to
-a file, and [Search Output Name Only].")
-
 (defconst company-coq-id-regexp            "\\(?:[a-zA-Z0-9_][a-zA-Z0-9_']*\\)")
 (defconst company-coq-prefix-regexp        "\\(?:[a-zA-Z0-9_][a-zA-Z0-9_.'!]*\\)?") ;; '!' included for patterns like [intros!]
 (defconst company-coq-symbol-regexp        "\\(?:[a-zA-Z0-9_]\\(?:[a-zA-Z0-9_.']*[a-zA-Z0-9_.']\\)?\\)")
@@ -227,11 +240,16 @@ a file, and [Search Output Name Only].")
 
 (defconst company-coq-goal-separator-regexp "  \\(=============================*\\)")
 
-(defconst company-coq-goal-separator-line-regexp (concat "\\`" company-coq-goal-separator-regexp " *\\'")
-  "Regexp used to find hypotheses in goals output.")
+(defconst company-coq-goal-separator-line-regexp (concat "^" company-coq-goal-separator-regexp " *$")
+  "Regexp used to find the goal in goals output.")
 
 (defconst company-coq-goal-lines-regexp "\\`   "
   "Regexp used to find goal lines in goals output.")
+
+(defconst company-coq-hyp-name-regexp "\\s-*\\(.*?\\)\\s-*:\\s-*"
+  "Regexp used to find hypotheses names in contexts.
+Hypotheses may appear grouped in the context (a, b: nat), and
+PG's regexp matches 'a, b:' in that case.")
 
 (defconst company-coq-path-regexp  (concat "\\`\\(\\S-*\\) +\\(\\S-*\\)\\'"))
 
@@ -242,15 +260,15 @@ The result matches any symbol in HEADERS, followed by BODY."
           (when body (concat "\\s-*\\(" body "\\)"))))
 
 ;; TODO Merge with coq-keywords-defn
-(defconst company-coq-defuns-kwds `("Class" "CoFixpoint" "CoInductive" "Corollary"
-                         "Declare Module" "Definition" "Example" "Fact" "Fixpoint"
-                         "Function" "Functional Scheme" "Inductive" "Instance" "Lemma"
-                         "Let" "Ltac" "Program" "Program Definition" "Program Fixpoint"
-                         "Record" "Scheme" "Theorem" "with")
+(defconst company-coq-definitions-kwds `("Class" "CoFixpoint" "CoInductive" "Corollary"
+                              "Declare Module" "Definition" "Example" "Fact" "Fixpoint"
+                              "Function" "Functional Scheme" "Inductive" "Instance" "Lemma"
+                              "Let" "Ltac" "Program" "Program Definition" "Program Fixpoint"
+                              "Record" "Scheme" "Theorem" "with")
   "Keywords that introduce a definition.")
 
-(defconst company-coq-defuns-regexp (company-coq-make-headers-regexp company-coq-defuns-kwds
-                                               company-coq-id-regexp)
+(defconst company-coq-definitions-regexp (company-coq-make-headers-regexp company-coq-definitions-kwds
+                                                    company-coq-id-regexp)
   "Regexp used to locate symbol definitions in the current buffer.")
 
 (defconst company-coq-block-end-regexp (company-coq-make-headers-regexp '("End") company-coq-id-regexp)
@@ -315,7 +333,7 @@ The result matches any symbol in HEADERS, followed by BODY."
   "Command used to retrieve the qualified name of an Ltac.
 Needed in 8.4, not in 8.5.")
 
-(defconst company-coq-locate-output-format (concat "\\`" (regexp-opt (cons "Constant" company-coq-defuns-kwds)) "\\_> +"
+(defconst company-coq-locate-output-format (concat "\\`" (regexp-opt (cons "Constant" company-coq-definitions-kwds)) "\\_> +"
                                         "\\(" company-coq-symbol-regexp "\\)")
   "Regexp matching the output of `company-coq-locate-tactic-cmd' and `company-coq-locate-symbol-cmd'.")
 
@@ -370,11 +388,11 @@ Needed in 8.4, not in 8.5.")
   "Keywords opening a new section.")
 
 (defconst company-coq-named-outline-kwds `("Equations" "Remark"
-                                ,@company-coq-section-kwds ,@company-coq-defuns-kwds)
-  "Headers used in outline mode and in company-coq-occur.")
+                                ,@company-coq-section-kwds ,@company-coq-definitions-kwds)
+  "Headers used in outline mode and in `company-coq-occur'.")
 
 (defconst company-coq-anonymous-outline-kwds '("Goal" "Notation" "Tactic Notation")
-  "Extra headers to show in outline mode and in company-coq-occur.")
+  "Extra headers to show in outline mode and in `company-coq-occur'.")
 
 (defconst company-coq-section-regexp (company-coq-make-headers-regexp company-coq-section-kwds
                                                 company-coq-id-regexp)
@@ -384,7 +402,7 @@ Needed in 8.4, not in 8.5.")
 (defconst company-coq-outline-regexp
   (concat "\\(?:" (company-coq-make-headers-regexp company-coq-named-outline-kwds company-coq-id-regexp)
           "\\)\\|\\(?:" (company-coq-make-headers-regexp company-coq-anonymous-outline-kwds nil) "\\)")
-  "Regexp matching terms to show in outline mode and in company-coq-occur.")
+  "Regexp matching terms to show in outline mode and in `company-coq-occur'.")
 
 (defun company-coq-outline-level ()
   "Function used to determine the current outline level."
@@ -524,7 +542,7 @@ infinite loop (they are not cleared by [generalize dependent]).")
   "Face spec for deprecated forms.")
 
 (defmacro company-coq-dbg (format &rest args)
-  "Call `message' with FORMAT and ARGS if company-coq-debug is non-nil."
+  "Call `message' with FORMAT and ARGS if `company-coq-debug' is non-nil."
   `(when company-coq-debug
      (message (concat "company-coq: " ,format) ,@args)))
 
@@ -553,7 +571,7 @@ If WINDOW is nil, just run BODY."
 If PRESERVE-WINDOW-START is non-nil, preserve the offset off the
 goals window."
   (when question
-    (if (and (company-coq-prover-available) (fboundp 'proof-shell-invisible-cmd-get-result))
+    (if (company-coq-prover-available)
         (progn
           (setq company-coq-talking-to-prover t)
           (unwind-protect
@@ -649,7 +667,7 @@ Optionally adds an ELLIPSIS at the end."
 
 (defun company-coq-boundp-string-match (regexp symbol)
   "Match REGEXP against SYMBOL.
-If SYMBOL is undefined, return nil."
+If SYMBOL is undefined or nil, return nil."
   (and (boundp symbol)
        (symbol-value symbol)
        (string-match regexp (symbol-value symbol))))
@@ -678,10 +696,11 @@ Ensures that the inserted text starts on a blank line."
 (defmacro company-coq-with-current-buffer-maybe (bufname &rest body)
   "If BUFNAME is a live buffer, run BODY in it."
   (declare (indent defun))
-  `(let ((buf (get-buffer ,bufname)))
-     (when buf
-       (with-current-buffer buf
-         ,@body))))
+  `(when ,bufname
+     (let ((buf (get-buffer ,bufname)))
+       (when buf
+         (with-current-buffer buf
+           ,@body)))))
 
 (defun company-coq-insert-match-in-buffer (bufname subgroup &optional prefix postprocess)
   "Insert PREFIX and the SUBGROUP -th regexp match into BUFNAME, optionally calling POSTPROCESS."
@@ -730,10 +749,10 @@ Returns a cons of what remains"
     (set store-symbol (funcall load-function))))
 
 (defun company-coq-init-db (db initfun)
-  "Calli INITFUN unless DB is non-nil."
+  "Call INITFUN unless DB is non-nil."
   (company-coq-dbg "company-coq-init-db: Loading %s (if nil; currently has %s elems)" db (length (symbol-value db)))
-  (unless (symbol-value db)
-    (funcall initfun)))
+  (or (symbol-value db)
+      (funcall initfun)))
 
 (defun company-coq-prepare-redirection-command (cmd fname)
   "Prepare a command redirection output of CMD to FNAME."
@@ -797,7 +816,7 @@ Do not call if the prover process is busy."
   "Load tactic notations by querying the prover, ignoring some.
 Tactics listed in `company-coq-tg--useless' are filtered out.
 Do not call if the prover process is busy.
-See also `company-coq-initialize-notations-filter'."
+See also `company-coq-tactic-initialize-notations-filter'."
   (let ((tactics (company-coq-get-all-notations)))
     (unless company-coq-tg--useless ;; Fallback if initialization failed
       (setq company-coq-tg--useless (company-coq--list-to-table tactics)))
@@ -809,22 +828,24 @@ See also `company-coq-initialize-notations-filter'."
 Do not call if the prover process is busy."
   (append (company-coq-get-ltacs) (company-coq-get-notations)))
 
-(defun company-coq-initialize-notations-filter ()
+(defun company-coq-tactic-initialize-notations-filter ()
   "Initialize the tactic notation exclusion list.
 Tactics notations loaded when Coq starts are documented in the
 manual, and should thus be ignored by the tactic grammar parser,
 lest duplicates pop up."
   (setq company-coq-tg--useless (company-coq--list-to-table (company-coq-get-all-notations))))
 
+;; FIXME cleanup this init/force-reload mess
+
 (defun company-coq-force-reload-symbols ()
   "Reload symbols by querying the prover."
-  (when company-coq--dynamic-completion
+  (when (company-coq-feature-active-p 'dynamic-symbols-backend)
     (company-coq-force-reload-with-prover
      'company-coq-symbols-reload-needed 'company-coq-dynamic-symbols #'company-coq-get-symbols)))
 
 (defun company-coq-force-reload-tactics ()
   "Reload tactics by querying the prover."
-  (when company-coq--dynamic-completion
+  (when (company-coq-feature-active-p 'dynamic-tactics-backend)
     (company-coq-force-reload-with-prover
      'company-coq-tactics-reload-needed 'company-coq-dynamic-tactics #'company-coq-get-tactics)))
 
@@ -838,11 +859,6 @@ lest duplicates pop up."
   (company-coq-dbg "company-coq-init-tactics: Loading tactics (if never loaded)")
   (company-coq-init-db 'company-coq-dynamic-tactics 'company-coq-force-reload-tactics))
 
-(defun company-coq-init-defuns ()
-  "Load definitions found in the buffer."
-  (company-coq-dbg "company-coq-init-defuns: Loading symbols from buffer")
-  (company-coq-reload-buffer-defuns))
-
 (defun company-coq-find-all (re beg end)
   "Find all occurences of RE between BEG and END."
   (when (< beg end) ;; point-at-bol may be before unproc-beg
@@ -854,16 +870,16 @@ lest duplicates pop up."
           (push (match-string-no-properties 2) matches)))
       matches)))
 
-(defun company-coq-reload-buffer-defuns ()
+(defun company-coq-collect-local-definitions ()
   "Find definitions of Coq symbols in the current buffer.
 When completions are available directly from Coq, only look for
 definitions in the unprocessed part of the buffer."
   (interactive) ;; FIXME should timeout after some time, and should cache search results
-  (let* ((unproc-beg (proof-unprocessed-begin)))
-    (setq company-coq-buffer-defuns
-          (if (and company-coq--dynamic-completion company-coq-dynamic-autocompletion)
-              (company-coq-find-all company-coq-defuns-regexp unproc-beg (point-at-bol))
-            (company-coq-find-all company-coq-defuns-regexp (point-min) (point-at-bol))))))
+  (when (company-coq-feature-active-p 'local-definitions-backend)
+    (let* ((unproc-beg (proof-unprocessed-begin)))
+      (if (company-coq-feature-active-p 'dynamic-symbols-backend)
+          (company-coq-find-all company-coq-definitions-regexp unproc-beg (point-at-bol))
+        (company-coq-find-all company-coq-definitions-regexp (point-min) (point-at-bol))))))
 
 (defun company-coq-line-is-import-p ()
   "Return non-nil if current line is part of an Import statement."
@@ -909,14 +925,15 @@ Do not call if the prover process is busy."
   (company-coq-dbg "company-coq-init-modules: Loading modules (if never loaded)")
   (company-coq-init-db 'company-coq-known-path-specs 'company-coq-force-reload-modules))
 
-(defun company-coq-get-pg-keywords-db ()
-  "Collect keywords and abbrevs known by ProofGeneral."
-  (apply #'append
-         (mapcar #'company-coq-value-or-nil ;; Don't fail when PG is missing
-                 '(coq-tactics-db coq-solve-tactics-db coq-solve-cheat-tactics-db coq-tacticals-db coq-commands-db))))
+(defun company-coq-get-pg-abbrevs-db ()
+  "Collect abbrevs known by Proof General.
+`coq-solve-tactics-db' is not included because it contains
+redundant elements (such as omega)."
+  (append coq-tactics-db ;; coq-solve-cheat-tactics-db unrecognized?
+          coq-tacticals-db coq-commands-db))
 
-(defun company-coq-get-man-keywords-db ()
-  "Collect keywords and abbrevs imported from the manual."
+(defun company-coq-get-man-abbrevs-db ()
+  "Collect abbrevs imported from the manual."
   company-coq-abbrevs)
 
 (defun company-coq-normalize-abbrev (kwd)
@@ -928,7 +945,7 @@ Do not call if the prover process is busy."
      (concat " *\\(" company-coq-placeholder-regexp "\\) *") "#"
      kwd))))
 
-(defun company-coq-parse-keywords-pg-entry (menuname _abbrev insert &optional _statech _kwreg insert-fun _hide)
+(defun company-coq-parse-abbrevs-pg-entry (menuname _abbrev insert &optional _statech _kwreg insert-fun _hide)
   "Convert PG abbrev to internal company-coq format.
 MENUNAME, INSERT, and INSERT-FUN are as in PG interal databases."
   (when (or (and insert (not (string-match-p company-coq-disabled-patterns-regexp insert)))
@@ -971,11 +988,14 @@ MENUNAME, INSERT, and INSERT-FUN are as in PG interal databases."
               'stripped (company-coq-normalize-abbrev abbrev)))
 
 (defun company-coq-abbrev-equal (a1 a2)
-  "Return t if A1 and A2  are equal modulo placeholders and spacing."
+  "Return t if A1 and A2 are equal modulo placeholders and spacing.
+Always returns nil when A1 and A2 come from the same source, as
+single sources are assumed to be without duplicates."
   (and (equal (company-coq-read-stripped-abbrev a1)
               (company-coq-read-stripped-abbrev a2))
-       (not (equal (company-coq-read-abbrev-source a1)
-                   (company-coq-read-abbrev-source a2)))))
+       (or (eq a1 a2)
+           (not (equal (company-coq-read-abbrev-source a1)
+                       (company-coq-read-abbrev-source a2))))))
 
 (defun company-coq-read-stripped-abbrev (kwd)
   "Read the stripped version of abbrev KWD from its properties."
@@ -985,31 +1005,34 @@ MENUNAME, INSERT, and INSERT-FUN are as in PG interal databases."
   "Read the source of abbrev KWD from its properties."
   (get-text-property 0 'source kwd))
 
+(defun company-coq-append-copy (&rest sequences)
+  "Append SEQUENCES, copying the last argument too."
+  (apply #'append (append sequences '(nil))))
+
 (defun company-coq-union-nosort (test comp key &rest lists)
   "Concatenate LISTS, removing duplicates according to TEST.
 Use COMP as the comparison function for sorting by KEY."
-  (let ((merged  (cl-stable-sort (apply #'append lists) comp :key key))
+  (let ((merged  (cl-stable-sort (apply #'company-coq-append-copy lists) comp :key key))
         (prev    nil))
-    (while merged
-      (let ((top (pop merged)))
-        (when (and prev (funcall test top prev))
-          (put-text-property 0 (length top) 'dup t top))
-        (setq prev top)))
+    (dolist (top merged)
+      (when (and prev (funcall test top prev))
+        (put-text-property 0 (length top) 'dup t top))
+      (setq prev top))
     (cl-loop for abbrev in (apply #'append lists)
              if (not (get-text-property 0 'dup abbrev))
              collect abbrev)))
 
 (defun company-coq-union-sort (test comp &rest lists)
-  "Concatenate LISTS, removing duplicates according to TEST and sorting the result.
-Use COMP as the comparison function."
-  (let ((merged  (cl-stable-sort (apply #'append lists) comp))
+  "Sort the concatenation of LISTS and remove duplicates.
+Duplicates are detected using TEST, and sorting uses COMP as the
+comparison function."
+  (let ((merged  (cl-stable-sort (apply #'company-coq-append-copy lists) comp))
         (deduped nil)
         (prev    nil))
-    (while merged
-      (let ((top (pop merged)))
-        (unless (and prev (funcall test top prev))
-          (push top deduped))
-        (setq prev top)))
+    (dolist (top merged)
+      (unless (and prev (funcall test top prev))
+        (push top deduped))
+      (setq prev top))
     deduped))
 
 (defun company-coq-sorted-intersection (l1 l2)
@@ -1032,30 +1055,31 @@ Use COMP as the comparison function."
             (setq num (+ 1 num)))
           ls)))
 
-(defun company-coq-get-annotated-keywords ()
-  "Construct a list of all keywords (tactics, vernacs, ...)."
-  (company-coq-dbg "company-coq-get-annotated-keywords: Called")
-  (let ((pg-keywords     (remove nil (mapcar (lambda (db-entry)
-                                               (apply 'company-coq-parse-keywords-pg-entry db-entry))
-                                             (company-coq-get-pg-keywords-db))))
-        (man-keywords    (company-coq-number
-                          (mapcar #'company-coq-parse-man-db-entry (company-coq-get-man-keywords-db))))
-        (custom-keywords (mapcar #'company-coq-parse-custom-db-entry company-coq-custom-snippets)))
-    (company-coq-union-nosort
-     #'company-coq-abbrev-equal #'string-lessp #'company-coq-read-stripped-abbrev
-     custom-keywords man-keywords pg-keywords)))
+(defun company-coq-get-annotated-abbrevs ()
+  "Construct a list of all abbrevs (tactics, vernacs, ...)."
+  (let ((pg-abbrevs (remove nil (mapcar (apply-partially #'apply #'company-coq-parse-abbrevs-pg-entry)
+                                        (company-coq-get-pg-abbrevs-db))))
+        (man-abbrevs (company-coq-number (mapcar #'company-coq-parse-man-db-entry
+                                      (company-coq-get-man-abbrevs-db)))))
+    (company-coq-union-nosort #'company-coq-abbrev-equal #'string-lessp #'company-coq-read-stripped-abbrev
+                   man-abbrevs pg-abbrevs)))
 
-(defun company-coq-force-reload-keywords ()
-  "Reload keywords, reparsing custom user abbrevs and other sources."
-  (company-coq-dbg "company-coq-force-reload-keywords: Called")
-  (setq company-coq-known-keywords (company-coq-get-annotated-keywords))
-  (company-coq-dbg "company-coq-force-reload-keywords: Loaded %s symbols" (length company-coq-known-keywords)))
+(defun company-coq-force-reload-static-abbrevs ()
+  "Reload abbrevs (tactics, vernacs, ...)."
+  (company-coq-dbg "company-coq-force-reload-static-abbrevs: Called")
+  (prog1
+      (setq company-coq-known-static-abbrevs (company-coq-get-annotated-abbrevs))
+    (company-coq-dbg "company-coq-force-reload-static-abbrevs: Loaded %s symbols" (length company-coq-known-static-abbrevs))))
 
-(defun company-coq-init-keywords ()
-  "Load keywords, if needed."
+(defun company-coq-init-static-abbrevs ()
+  "Load abbrevs, if needed."
   (interactive)
-  (company-coq-dbg "company-coq-init-keywords: Loading keywords (if never loaded)")
-  (company-coq-init-db 'company-coq-known-keywords 'company-coq-force-reload-keywords))
+  (company-coq-dbg "company-coq-init-static-abbrevs: Loading abbrevs (if never loaded)")
+  (company-coq-init-db 'company-coq-known-static-abbrevs 'company-coq-force-reload-static-abbrevs))
+
+(defun company-coq-collect-user-snippets ()
+  "Collect and propertize user snippets."
+  (mapcar #'company-coq-parse-custom-db-entry company-coq-custom-snippets))
 
 (defun company-coq-is-lower (str)
   "Check if STR is lowercase."
@@ -1078,8 +1102,10 @@ FALLBACK-NIL if present, or FALLBACK-T."
          (and (not a1) (not a2) ,(or fallback-nil fallback-t)))))
 
 (defmacro company-coq-attr-lessp (symbol str1 str2 comparison-fn reference fallback-t &optional fallback-nil)
-  "Boolean-compare results of calling COMPARISON-FN on REFERENCE and text property SYMBOL of STR1 and STR2.
-If both yield t, return FALLBACK-T.  If both yield nil, return
+  "Compare attributes in a convoluted way.
+In more details, boolean-compare results of calling COMPARISON-FN
+on REFERENCE and text property SYMBOL of STR1 and STR2.  If both
+yield t, return FALLBACK-T.  If both yield nil, return
 FALLBACK-NIL if present, or FALLBACK-T.  Binds a1 and a2 in the
 body of this macro, allowing fallbacks to depend on these values.
 Typically EXTRACTION is a function that compares CMP to the value
@@ -1088,32 +1114,30 @@ of SYMBOL on each string."
   `(let ((a1 (,comparison-fn ,reference (get-text-property 0 ,symbol ,str1)))
          (a2 (,comparison-fn ,reference (get-text-property 0 ,symbol ,str2))))
      (company-coq-bool-lessp-fallback a1 a2
-                           ,fallback-t ,fallback-nil)))
+       ,fallback-t ,fallback-nil)))
 
 (defun company-coq-string-lessp-match-beginning (str1 str2)
   "Order STR1 and STR2 by match-begining being 0, followed by `string-lessp`."
   (company-coq-attr-lessp 'match-beginning str1 str2 eq 0
-               (company-coq-string-lessp-foldcase str1 str2)))
+    (company-coq-string-lessp-foldcase str1 str2)))
 
-(defun company-coq-string-lessp-keywords (str1 str2)
+(defun company-coq-string-lessp-static-abbrevs (str1 str2)
   "Order completion candidates STR1 and STR2."
-  ;; Rank 'custom first (before 'man)
-  (company-coq-attr-lessp 'source str1 str2 eq 'custom
-    ;; Rank lowercase (tactics) before uppercase (vernacs)
-    (company-coq-bool-lessp-fallback (company-coq-is-lower str1) (company-coq-is-lower str2)
-      ;; If both are lowercase (tactics)
-      (company-coq-attr-lessp 'num str1 str2 or nil
-        ;; If both have a number, preserve the original manual order
-        (< a1 a2)
-        ;; Otherwise rank alphabetically (eg two PG tactics)
-        (company-coq-string-lessp-foldcase str1 str2))
-      ;; If both are uppercase (vernacs)
-      (if (and (company-coq-get-anchor str1)
-               (equal (company-coq-get-anchor str1) (company-coq-get-anchor str2)))
-          ;; If both have the same non-nil anchor, sort in original order
-          (< (get-text-property 0 'num str1) (get-text-property 0 'num str2))
-        ;; Otherwise sort alphabetically
-        (company-coq-string-lessp-foldcase str1 str2)))))
+  ;; Rank lowercase (tactics) before uppercase (vernacs)
+  (company-coq-bool-lessp-fallback (company-coq-is-lower str1) (company-coq-is-lower str2)
+    ;; If both are lowercase (tactics)
+    (company-coq-attr-lessp 'num str1 str2 or nil
+      ;; If both have a number, preserve the original manual order
+      (< a1 a2)
+      ;; Otherwise rank alphabetically (eg two PG tactics)
+      (company-coq-string-lessp-foldcase str1 str2))
+    ;; If both are uppercase (vernacs)
+    (if (and (company-coq-get-anchor str1)
+             (equal (company-coq-get-anchor str1) (company-coq-get-anchor str2)))
+        ;; If both have the same non-nil anchor, sort in original order
+        (< (get-text-property 0 'num str1) (get-text-property 0 'num str2))
+      ;; Otherwise sort alphabetically
+      (company-coq-string-lessp-foldcase str1 str2))))
 
 (defun company-coq-propertize-match (match beginning end)
   "Annotate completion candidate MATCH with BEGINNING and END."
@@ -1142,7 +1166,7 @@ With IGNORE-CASE, sort case-insensitive."
 ;;      (all-completions prefix completions))))
 
 (defun company-coq-complete-sub-re (prefix candidates)
-  "Find fuzzy matches for PREFIX in CANDIDATES."
+  "Find fuzzy candidates for PREFIX in CANDIDATES."
   (let* ((chars (string-to-list prefix)) ;; The regexp says: skip stuff before beginning a new word, or skip nothing
          (re    (concat "\\`\\W*" (mapconcat (lambda (c) (regexp-quote (char-to-string c))) chars "\\(\\|.+?\\_<\\)")))
          (case-fold-search nil))
@@ -1153,8 +1177,8 @@ With IGNORE-CASE, sort case-insensitive."
                collect (company-coq-propertize-match candidate 0 (match-end 0))))))
 
 (defun company-coq-match-logical-paths (module-atoms path-atoms)
-  "Produces a cons (QUALID-ATOMS SEARCH-ATOMS LEFT-PTH) from a
-module path MODULE-ATOMS and a logical path PATH-ATOMS.  This
+  "Match module path MODULE-ATOMS against logical path PATH-ATOMS.
+Result is a cons (QUALID-ATOMS SEARCH-ATOMS LEFT-PTH).  This
 function distinguishes three cases:
 
 1. The logical path is longer; in this case, the qualifier is the
@@ -1194,7 +1218,10 @@ extension." ;; TODO format directories properly
            sum (length (car-safe l))))
 
 (defun company-coq-qualify-module-names (mod-names qualid-atoms fully-matched-count part-matched-len physical-path)
-  "Qualify each name in MOD-NAMES using QUALID-ATOMS."
+  "Qualify each name in MOD-NAMES using QUALID-ATOMS.
+PHYSICAL-PATH is the path corresponding to QUALID-ATOMS.
+See `company-coq-complete-module-from-atoms' for documentation of
+FULLY-MATCHED-COUNT and PART-MATCHED-LEN."
   (when mod-names
     (let* ((qualid     (mapconcat 'identity qualid-atoms "."))
            (prefix     (if qualid-atoms (concat qualid ".") ""))
@@ -1211,7 +1238,10 @@ extension." ;; TODO format directories properly
 
 (defun company-coq-complete-module-qualified
     (qualid-atoms search-atoms physical-path fully-matched-count part-matched-len)
-  "Find qualified module names in PHYSICAL-PATH that match SEARCH-ATOMS."
+  "Find qualified module names in PHYSICAL-PATH that match SEARCH-ATOMS.
+QUALID-ATOMS are the atoms corresponding to PHYSICAL-PATH.
+See `company-coq-complete-module-from-atoms' for documentation of
+FULLY-MATCHED-COUNT and PART-MATCHED-LEN."
   ;; (message "> [%s] [%s] [%s]" (prin1-to-string qualid-atoms) (prin1-to-string search-atoms) physical-path)
   (let* ((kwd           (car-safe (last search-atoms)))
          (nil-kwd       (or (not kwd) (equal kwd "")))
@@ -1273,90 +1303,89 @@ search term and a qualifier."
 
 (defun company-coq-shell-output-is-end-of-proof ()
   "Check whether proof-general signaled a finished proof."
-  (company-coq-value-or-nil 'proof-shell-proof-completed))
+  proof-shell-proof-completed)
 
 (defun company-coq-shell-output-is-error ()
   "Check whether proof-general signaled an error."
   (company-coq-boundp-string-match company-coq-error-regexp 'proof-shell-last-output))
 
+(defun company-coq-warn (message &rest args)
+  "Show a warning MESSAGE, formatted with ARGS."
+  (display-warning 'company-coq (apply #'format message args) :warning))
+
 (defun company-coq-detect-capabilities ()
-  "Perform capability detection and set `company-coq--dynamic-completion'."
-  (let* ((output     (car (company-coq-ask-prover-redirect company-coq-capability-test-cmd)))
-         (capability (company-coq-unless-error output)))
-    (when output
-      (setq company-coq-needs-capability-detection nil)
-      (setq company-coq--dynamic-completion (and capability company-coq-dynamic-autocompletion))
-      (when company-coq-dynamic-autocompletion
-        (message "Capability detection complete: dynamic completion is %savailable." (if capability "" "not "))
-        (when (not capability)
-          (warn (concat "`company-coq-dynamic-autocompletion' is non-nil, but "
-                        "your version of coqtop does not seem to support symbols completion. "
-                        "Falling back to same-buffer completion.")))))))
+  "Update `company-coq--coqtop-patched-p' if needed."
+  (when (eq company-coq--coqtop-patched-p 'unknown)
+    (let* ((output (car (company-coq-ask-prover-redirect company-coq--capability-detection-cmd)))
+           (risky-features '(dynamic-symbols-backend)))
+      (when output
+        (setq company-coq--coqtop-patched-p (company-coq-unless-error output))
+        (message "Capability detection complete: dynamic completion is %savailable."
+                 (if company-coq--coqtop-patched-p "" "not "))
+        (when (and (cl-some #'company-coq-feature-active-p risky-features)
+                   (not company-coq--coqtop-patched-p))
+          (company-coq--disable-features risky-features)
+          (company-coq-warn (concat "Dynamic completion is enabled, but "
+                         "your version of coqtop does not seem to support it.")))))))
 
 (defun company-coq-maybe-reload-each ()
   "Reload dynamic completion databases if needed."
-  (company-coq-dbg "company-coq-maybe-reload-each: [%s] [%s] [%s]"
-        company-coq-needs-capability-detection
+  (company-coq-dbg "company-coq-maybe-reload-each: [%s] [%s]"
         company-coq-symbols-reload-needed
         company-coq-modules-reload-needed)
   (when (company-coq-prover-available)
-    (when company-coq-needs-capability-detection (company-coq-detect-capabilities))
+    (company-coq-detect-capabilities)
     (when company-coq-tactics-reload-needed (company-coq-force-reload-tactics))
     (when company-coq-symbols-reload-needed (company-coq-force-reload-symbols))
     (when company-coq-modules-reload-needed (company-coq-force-reload-modules))))
 
-;; FIXME rewrite this code to use the basic hypothesis parsing regexp and split on commas.
-(defmacro company-coq-remember-hyp (hyp-cons context)
-  `(cl-destructuring-bind (name . type-lines) ,hyp-cons
-     (when (and name type-lines)
-       ;; (message "New hyp: [%s . [%s]]" name type-lines)
-       (let ((type (mapconcat #'company-coq-trim (nreverse type-lines) " ")))
-         (push (propertize name 'meta type) ,context)))))
-
-(defun company-coq-extract-context (goal-lines)
-  ;; FIXME: This does not properly deal with "a, b: nat", which was introduced in 8.5
-  ;; It doesn't matter too much though, because 8.5 lists hypotheses in search results.
+(defun company-coq-parse-raw-goal (raw-goal)
+  "Extract the first goal from RAW-GOAL.
+RAW-GOAL could mention secondary goals, for example."
   (cl-loop for     line
-           in      goal-lines
-           with    context  = nil
-           with    current-hyp = `(nil . nil)
-           while   (not (string-match-p company-coq-goal-separator-line-regexp line))
-           if      (string-match company-coq-goals-hyp-regexp line)
-           do      (company-coq-remember-hyp current-hyp context)
-           and do  (setq current-hyp `(,(match-string 1 line) . ,(list (match-string 2 line))))
-           else do (push line (cdr current-hyp))
-           finally (company-coq-remember-hyp current-hyp context)
-           finally return context))
-
-(defun company-coq-extract-goal (goal-lines)
-  (while (and goal-lines (not (string-match-p company-coq-goal-separator-line-regexp (car goal-lines))))
-    (pop goal-lines))
-  (cl-loop for     line
-           in      (cdr-safe goal-lines)
+           in      (company-coq-split-lines (replace-regexp-in-string "\\`\n*" "" raw-goal))
            while   (string-match-p company-coq-goal-lines-regexp line)
            collect line))
 
-(defun company-coq-run-and-parse-context (command)
+(defun company-coq-parse-raw-hyp-names (raw-hyp-names)
+  "Extract names of hypotheses in RAW-HYP-NAMES."
+  (save-match-data
+    (when (string-match company-coq-hyp-name-regexp raw-hyp-names)
+      (split-string (match-string-no-properties 1 raw-hyp-names) ",\\s-*"))))
+
+(defun company-coq-parse-raw-context (raw-context)
+  "Extract hypothesis names from RAW-CONTEXT."
+  (save-match-data
+    (let ((offset 0))
+      (cl-loop while (string-match coq-hyp-name-in-goal-or-response-regexp raw-context offset)
+               append (company-coq-parse-raw-hyp-names (match-string-no-properties 2 raw-context))
+               do (setq offset (match-end 0))))))
+
+(defun company-coq-parse-context-and-goal (response)
+  "Extract a context and a goal from RESPONSE."
+  (save-match-data
+    (pcase (split-string response company-coq-goal-separator-line-regexp)
+      (`(,raw-context ,raw-goal . ,_)
+       (cons (company-coq-parse-raw-context raw-context)
+             (company-coq-parse-raw-goal raw-goal))))))
+
+(defun company-coq-run-then-parse-context-and-goal (command)
   "Send COMMAND to the prover, and return the new context and goal."
   (-if-let* ((output (company-coq-ask-prover-swallow-errors command)))
-      (let* ((lines   (company-coq-split-lines output))
-             (context (company-coq-extract-context lines))
-             (goal    (company-coq-extract-goal lines)))
-        (cons context goal))
+      (company-coq-parse-context-and-goal output)
     (error (format "company-coq-parse-context: failed with message %s" output))))
 
 (defun company-coq-maybe-reload-context (&optional end-of-proof)
-  "Update company-coq-current-context.
+  "Update `company-coq-current-context'.
 With END-OF-PROOF, clear the current context."
   (company-coq-dbg "company-coq-maybe-reload-context: Called")
-  (let* ((output        (company-coq-value-or-nil 'proof-shell-last-goals-output))
+  (let* ((output        proof-shell-last-goals-output)
          (is-new-output (not (string-equal output company-coq-last-goals-output))))
     (cond (end-of-proof  (company-coq-dbg "company-coq-maybe-reload-context: Clearing context")
                          (setq company-coq-current-context nil)
                          (setq output nil))
           (is-new-output (company-coq-dbg "company-coq-maybe-reload-context: Reloading context")
-                         (setq company-coq-current-context (company-coq-extract-context
-                                                 (company-coq-split-lines output)))))
+                         (setq company-coq-current-context (car (company-coq-parse-context-and-goal output)))))
     (setq company-coq-last-goals-output output)))
 
 (defun company-coq-maybe-proof-output-reload-things ()
@@ -1460,7 +1489,7 @@ Nothing is reloaded immediately; instead the relevant flags are set."
   (when str
     ;; Add some padding to compensate for wide characters
     (let* ((minibuf-w  (max 10 (- (window-body-width (minibuffer-window)) 5))))
-      (if (> (length str) minibuf-w)
+      (if (> (length str) minibuf-w)    ;; TODO use truncate-string-to-width from mule-utils?
           (concat (substring str 0 (- minibuf-w 3)) "...")
         str))))
 
@@ -1472,9 +1501,10 @@ Nothing is reloaded immediately; instead the relevant flags are set."
     (company-coq-truncate-to-minibuf
      (replace-regexp-in-string "\\s-+" " " (company-coq-trim output)))))
 
-(defun company-coq-meta-keyword (name)
-  "Compute company's meta for keyword NAME."
-  (company-coq-dbg "company-coq-meta-keyword: Called for name %s" name)
+(defun company-coq-meta-refman (name)
+  "Compute company's meta for value NAME.
+If NAME has an 'anchor text property, returns a help message."
+  (company-coq-dbg "company-coq-meta-refman: Called for name %s" name)
   (and (company-coq-get-anchor name) ;; substitute-command-keys doesn't work here
        "C-h: Quick docs. C-w: Full docs (scrollable)."))
 
@@ -1521,7 +1551,7 @@ Nothing is reloaded immediately; instead the relevant flags are set."
 (defun company-coq-setup-temp-coq-buffer ()
   "Change current buffer to Coq mode, and prepare it."
   (coq-mode)
-  (company-coq-initialize)
+  (company-coq-mode)
   (set-buffer-modified-p nil)
   (setq-local buffer-offer-save nil))
 
@@ -1554,11 +1584,11 @@ INTERACTIVE, fail loudly if no location is found."
          (is-fname        (and fname-or-buffer (stringp fname-or-buffer) (file-exists-p fname-or-buffer))))
     (if (or is-buffer is-fname)
         (company-coq-with-clean-doc-buffer
-         (cond (is-buffer (insert-buffer-substring fname-or-buffer))
-               (is-fname  (insert-file-contents fname-or-buffer nil nil nil t)))
-         (company-coq-setup-temp-coq-buffer)
-         (cons (current-buffer)
-               (set-window-start nil (goto-char (company-coq-search-then-scroll-up target)))))
+          (cond (is-buffer (insert-buffer-substring fname-or-buffer))
+                (is-fname  (insert-file-contents fname-or-buffer nil nil nil t)))
+          (company-coq-setup-temp-coq-buffer)
+          (cons (current-buffer)
+                (set-window-start nil (goto-char (company-coq-search-then-scroll-up target)))))
       (when interactive
         (error "No location found for %s" name)))))
 
@@ -1626,8 +1656,8 @@ determined."
   "Prompt for, and read, a name to find sources for.
 Completion candidates are taken from DYNAMIC-POOL."
   (let ((completions (apply #'append
-                            (and company-coq-autocomplete-symbols (company-coq-init-defuns))
-                            (and company-coq--dynamic-completion dynamic-pool))))
+                            (company-coq-collect-local-definitions)
+                            dynamic-pool)))
     (list (completing-read "Name to find sources for? " completions
                            (lambda (choice) (not (eq (get-text-property 0 'source choice) 'tacn)))
                            nil nil 'company-coq-location-history (company-coq-symbol-at-point) t)
@@ -1648,7 +1678,7 @@ found."
   (setq name (replace-regexp-in-string " .*" "" name))
   (company-coq-location-source name (list company-coq-locate-tactic-cmd) interactive))
 
-(defun company-coq-location-defun (name &optional interactive)
+(defun company-coq-location-definition (name &optional interactive)
   "Prompt for a tactic or symbol NAME, and display its definition in context.
 With INTERACTIVE, complain loundly if the definition can't be
 found."
@@ -1678,8 +1708,8 @@ With SKIP-SPACE, do not format leading spaces."
          (_       (replace-regexp-in-string company-coq-placeholder-regexp counter snippet)))
     count))
 
-(defun company-coq-annotation-keywords (candidate)
-  "Compute company's annotation for keyword CANDIDATE."
+(defun company-coq-annotation-snippet (candidate)
+  "Compute company's annotation for snippet CANDIDATE."
   (let* ((snippet   (company-coq-get-snippet candidate))
          (num-holes (and snippet (company-coq-count-holes snippet)))
          (prefix    (if (company-coq-get-anchor candidate) "..." "")))
@@ -1713,19 +1743,19 @@ If no command succeed, do the same with FALLBACKS as TEMPLATES."
            (doc-body      (mapconcat #'identity chapters company-coq-doc-def-sep))
            (doc-full      (concat doc-tagline "\n\n" doc-body)))
       (company-coq-with-clean-doc-buffer
-       (insert doc-full)
-       (when (fboundp 'coq-response-mode)
-         (coq-response-mode))
-       (goto-char (point-min))
-       (company-coq-make-title-line 'company-coq-doc-header-face-docs)
-       (current-buffer)))))
+        (insert doc-full)
+        (when (fboundp 'coq-response-mode)
+          (coq-response-mode))
+        (goto-char (point-min))
+        (company-coq-make-title-line 'company-coq-doc-header-face-docs)
+        (current-buffer)))))
 
 (defun company-coq-doc-buffer-symbol (name)
   "Prepare a company doc buffer for symbol NAME."
   (company-coq-doc-buffer-generic name (list company-coq-doc-cmd
                                   company-coq-def-cmd)))
 
-(defun company-coq-doc-buffer-defun (name)
+(defun company-coq-doc-buffer-definition (name)
   "Prepare a company doc buffer for definition NAME."
   (company-coq-doc-buffer-generic name (list company-coq-doc-cmd
                                   company-coq-def-cmd
@@ -1752,7 +1782,7 @@ DOM and FONT are as in these functions."
   "Fromat an i tag CONT."
   (company-coq-shr-fontize cont 'company-coq-doc-i-face))
 
-(defun company-coq-doc-keywords-prettify-title (target-point truncate)
+(defun company-coq-doc-refman-prettify-title (target-point truncate)
   "Make a pretty title at TARGET-POINT, optionally TRUNCATE -ing everything before."
   ;; Company-mode returns to the beginning of the buffer, so centering
   ;; vertically doesn't work.  Instead, just truncate everything, leaving
@@ -1772,7 +1802,7 @@ DOM and FONT are as in these functions."
   "Check if current Emacs version is below 25."
   (< emacs-major-version 25))
 
-(defun company-coq-doc-keywords-put-html (html-full-path truncate)
+(defun company-coq-doc-refman-put-html (html-full-path truncate)
   "Print formatted html from HTML-FULL-PATH in current buffer.
 With TRUNCATE, remove text before formatted title line, if
 present."
@@ -1789,14 +1819,14 @@ present."
         (shr-external-rendering-functions '((tt . company-coq-shr-tag-tt)
                                             (i  . company-coq-shr-tag-i))))
     (shr-insert-document doc) ;; This sets the 'shr-target-id property upon finding the shr-target-id anchor
-    (company-coq-doc-keywords-prettify-title (next-single-property-change (point-min) 'shr-target-id) truncate)))
+    (company-coq-doc-refman-prettify-title (next-single-property-change (point-min) 'shr-target-id) truncate)))
 
-(defun company-coq-doc-buffer-keywords (name-or-anchor &optional truncate)
+(defun company-coq-doc-buffer-refman (name-or-anchor &optional truncate)
   "Prepare company's doc buffer for keyword NAME-OR-ANCHOR.
 With TRUNCATE, remove text before formatted title line, if
 present."
   (interactive)
-  (company-coq-dbg "company-coq-doc-buffer-keywords: Called for %s" name-or-anchor)
+  (company-coq-dbg "company-coq-doc-buffer-refman: Called for %s" name-or-anchor)
   (when (fboundp 'libxml-parse-html-region)
     (let* ((anchor         (if (stringp name-or-anchor) (company-coq-get-anchor name-or-anchor) name-or-anchor))
            (shr-target-id  (and anchor (concat "qh" (int-to-string (cdr anchor)))))
@@ -1805,29 +1835,28 @@ present."
                                 (concat (file-name-directory company-coq-script-full-path) "refman/" doc-short-path))))
       (when doc-full-path
         (company-coq-with-clean-doc-buffer
-         (company-coq-doc-keywords-put-html doc-full-path truncate)
-         (cons (current-buffer) (point)))))))
+          (company-coq-doc-refman-put-html doc-full-path truncate)
+          (cons (current-buffer) (point)))))))
 
 (defun company-coq-candidates-symbols (prefix)
   "Find symbols matching PREFIX."
-  (when (and company-coq--dynamic-completion (company-coq-init-symbols))
+  (when (and (company-coq-feature-active-p 'dynamic-symbols-backend) (company-coq-init-symbols))
     (company-coq-complete-prefix-substring prefix company-coq-dynamic-symbols)))
 
 (defun company-coq-candidates-tactics (prefix)
   "Find tactics matching PREFIX."
-  (when (and company-coq--dynamic-completion (company-coq-init-tactics))
+  (when (and (company-coq-feature-active-p 'dynamic-tactics-backend) (company-coq-init-tactics))
     (company-coq-complete-sub-re prefix company-coq-dynamic-tactics)))
 
-(defun company-coq-candidates-defuns (prefix)
-  "Find buffer defuns matching PREFIX."
-  (when (company-coq-init-defuns)
-    (company-coq-complete-prefix-substring prefix company-coq-buffer-defuns)))
+(defun company-coq-candidates-local-definitions (prefix)
+  "Find local definitions matching PREFIX."
+  (company-coq-complete-prefix-substring prefix (company-coq-collect-local-definitions)))
 
-(defun company-coq-candidates-keywords (prefix)
-  "Find keywords matching PREFIX."
-  (company-coq-dbg "company-coq-candidates-keywords: Called")
-  (when (company-coq-init-keywords)
-    (company-coq-complete-sub-re prefix company-coq-known-keywords)))
+(defun company-coq-candidates-snippets (init-function prefix)
+  "Find snippets matching PREFIX.
+Database is generated by calling INIT-FUNCTION."
+  (company-coq-dbg "company-coq-candidates-snippets: Called")
+  (company-coq-complete-sub-re prefix (funcall init-function)))
 
 (defun company-coq-candidates-context (prefix)
   "Find hypotheses matching PREFIX."
@@ -1842,6 +1871,7 @@ present."
   "Find an open section to close matching PREFIX.
 Works by finding the closest section/chapter/... opening, and
 returning it if it matches PREFIX."
+  ;;; FIXME Try backward-up-list instead
   (when (and prefix (company-coq-line-is-block-end-p) (boundp 'show-paren-data-function) (functionp show-paren-data-function))
     (save-excursion
       ;; Find matching delimiter
@@ -1860,11 +1890,11 @@ returning it if it matches PREFIX."
 (defun company-coq-candidates-reserved (prefix)
   "Find reserved keywords matching PREFIX."
   (interactive)
-  (when (and (boundp 'coq-reserved) (member prefix coq-reserved))
+  (when (member prefix coq-reserved)
     (list prefix)))
 
 (defun company-coq-parse-search-results ()
-  "Extract and stores symbols from the prover's output.
+  "Extract and store symbols from the prover's output.
 Only works after running a search command.  Results are stored in
 `company-coq-last-search-results'.  Prover output size is cached
 in `company-coq-last-search-scan-size'."
@@ -1936,13 +1966,13 @@ Which conversion function to use is determined from SOURCE."
          (snippet (and abbrev (company-coq-abbrev-to-yas abbrev source))))
     snippet))
 
-(defun company-coq-post-completion-keyword (kwd)
-  "Run post-action for KWD (most often, insert YAS snippet)."
-  (-when-let* ((found   (search-backward kwd))
+(defun company-coq-post-completion-snippet (candidate)
+  "Run post-action for CANDIDATE (most often, insert YAS snippet)."
+  (-when-let* ((found   (search-backward candidate))
                (start   (match-beginning 0))
                (end     (match-end 0))
-               (snippet (company-coq-get-snippet kwd)))
-    (let ((insert-fun (get-text-property 0 'insert-fun kwd)))
+               (snippet (company-coq-get-snippet candidate)))
+    (let ((insert-fun (get-text-property 0 'insert-fun candidate)))
       (if insert-fun
           (progn
             (delete-region start end)
@@ -1960,6 +1990,7 @@ Which conversion function to use is determined from SOURCE."
 (defun company-coq-occur ()
   "Dhow an outline of the current proof script."
   (interactive)
+  (company-coq-error-unless-feature-active 'outline)
   (let ((same-window-buffer-names '("*Occur*")))
     (occur company-coq-outline-regexp)
     (company-coq-with-current-buffer-maybe "*Occur*"
@@ -2038,6 +2069,7 @@ Acts as a compatibility layer for obsolete function in 24.3."
 When outside a proof, or when repeated, hide the body of all
 proofs and definitions."
   (interactive)
+  (company-coq-error-unless-feature-active 'outline)
   (when outline-minor-mode
     (if (or (eq last-command #'company-coq-fold) (company-coq-cant-fold-unfold))
         (company-coq-call-compat 'outline-hide-body 'hide-body)
@@ -2052,6 +2084,7 @@ proofs and definitions."
 When outside a proof, or when repeated, reveal the body of all
 proofs and definitions."
   (interactive)
+  (company-coq-error-unless-feature-active 'outline)
   (when outline-minor-mode
     (if (or (eq last-command #'company-coq-unfold) (company-coq-cant-fold-unfold))
         (company-coq-call-compat #'outline-show-all 'show-all)
@@ -2059,16 +2092,16 @@ proofs and definitions."
 
 ;; TODO completion at end of full symbol
 
-(defun company-coq-symbols (command &optional arg &rest ignored)
-  "A company-mode backend for dynamically known Coq symbols.
+(defun company-coq-dynamic-symbols-backend (command &optional arg &rest ignored)
+  "`company-mode' backend for dynamically known Coq symbols.
 COMMAND, ARG and IGNORED: see `company-backends'."
   (interactive (list 'interactive))
   (company-coq-dbg "dynamic symbols backend: called with command %s" command)
   (pcase command
-    (`interactive (company-begin-backend 'company-coq-symbols))
+    (`interactive (company-begin-backend 'company-coq-dynamic-symbols-backend))
     (`prefix (company-coq-prefix-at-point))
     (`candidates (company-coq-candidates-symbols arg))
-    (`sorted t)
+    (`sorted nil)
     (`duplicates nil)
     (`ignore-case nil)
     (`meta (company-coq-meta-symbol arg))
@@ -2080,80 +2113,102 @@ COMMAND, ARG and IGNORED: see `company-backends'."
     (`comparison-fun #'company-coq-string-lessp-match-beginning)
     (`require-match 'never)))
 
-(defun company-coq-tactics (command &optional arg &rest ignored)
-  "A company-mode backend for dynamically known Coq tactics.
+(defun company-coq-dynamic-tactics-backend (command &optional arg &rest ignored)
+  "`company-mode' backend for dynamically known Coq tactics.
 COMMAND, ARG and IGNORED: see `company-backends'."
   (interactive (list 'interactive))
   (pcase command
-    (`interactive (company-begin-backend 'company-coq-tactics))
+    (`interactive (company-begin-backend 'company-coq-dynamic-tactics-backend))
     (`prefix (company-coq-prefix-at-point))
     (`candidates (company-coq-candidates-tactics arg))
-    (`sorted t)
+    (`sorted nil)
     (`duplicates nil)
     (`ignore-case nil)
-    (`meta (company-coq-meta-keyword arg))
+    ;; TODO meta?
     (`no-cache t)
     (`match (company-coq-match arg))
     (`annotation (company-coq-annotation-tactic arg))
     (`location (company-coq-location-tactic arg))
-    (`post-completion (company-coq-post-completion-keyword arg))
+    (`post-completion (company-coq-post-completion-snippet arg))
     (`doc-buffer (company-coq-doc-buffer-tactic arg))
     (`comparison-fun #'company-coq-string-lessp-match-beginning)
     (`require-match 'never)))
 
-(defun company-coq-defuns (command &optional arg &rest ignored)
-  "A company-mode backend for statically known Coq symbols.
+(defun company-coq-local-definitions-backend (command &optional arg &rest ignored)
+  "`company-mode' backend for statically known Coq symbols.
 COMMAND, ARG and IGNORED: see `company-backends'."
   (interactive (list 'interactive))
   (company-coq-dbg "static symbols backend: called with command %s" command)
   (pcase command
-    (`interactive (company-begin-backend 'company-coq-defuns))
+    (`interactive (company-begin-backend 'company-coq-local-definitions-backend))
     (`prefix (company-coq-prefix-at-point))
-    (`candidates (company-coq-candidates-defuns arg))
-    (`sorted t)
+    (`candidates (company-coq-candidates-local-definitions arg))
+    (`sorted nil)
     (`duplicates nil)
     (`ignore-case nil)
     (`meta (company-coq-meta-symbol arg))
     (`no-cache t)
     (`match (company-coq-match arg))
     (`annotation "<lsymb>")
-    (`location (company-coq-location-defun arg))
-    (`doc-buffer (company-coq-doc-buffer-defun arg))
+    (`location (company-coq-location-definition arg))
+    (`doc-buffer (company-coq-doc-buffer-definition arg))
     (`comparison-fun #'company-coq-string-lessp-match-beginning)
     (`require-match 'never)))
 
-(defun company-coq-keywords (command &optional arg &rest ignored)
-  "A company-mode backend for Coq keywords.
-COMMAND, ARG and IGNORED: see `company-backends'."
-  (interactive (list 'interactive))
-  (company-coq-dbg "keywords backend: called with command %s" command)
+(defun company-coq-generic-snippets-backend (db-init-function backend command &optional arg &rest ignored)
+  "Generic `company-mode' backend for annotated snippets.
+DB-INIT-FUNCTION is a function initializing and returning a
+database of snippets.  BACKEND is the name of the calling
+backend.  COMMAND, ARG and IGNORED: see `company-backends'."
   (pcase command
-    (`interactive (company-begin-backend 'company-coq-keywords))
+    (`interactive (company-begin-backend backend))
     (`prefix (company-coq-prefix-at-point))
-    (`candidates (company-coq-candidates-keywords arg))
-    (`sorted t)
+    (`candidates (company-coq-candidates-snippets db-init-function arg))
+    (`sorted nil)
     (`duplicates nil)
     (`ignore-case nil)
-    (`meta (company-coq-meta-keyword arg))
     (`no-cache t)
     (`match (company-coq-match arg))
-    (`annotation (company-coq-annotation-keywords arg))
-    (`post-completion (company-coq-post-completion-keyword arg))
-    (`doc-buffer (car (company-coq-doc-buffer-keywords arg 'truncate)))
-    (`location (company-coq-doc-buffer-keywords arg nil)) ;; TODO
-    (`comparison-fun #'company-coq-string-lessp-keywords)
+    (`annotation (company-coq-annotation-snippet arg))
+    (`post-completion (company-coq-post-completion-snippet arg))
     (`require-match 'never)))
 
-(defun company-coq-context (command &optional arg &rest ignored)
-  "A company-mode backend for identifiers grabbed from the current proof context.
+(defun company-coq-refman-backend (command &optional arg &rest ignored)
+  "`company-mode' backend for documented Coq tactics and vernacs.
+COMMAND, ARG and IGNORED: see `company-backends'.
+
+In practice, this backend also includes hardcoded forms from
+Proof General itself."
+  (interactive (list 'interactive))
+  (company-coq-dbg "refman backend: called with command %s" command)
+  (pcase command
+    (`meta (company-coq-meta-refman arg))
+    (`doc-buffer (car (company-coq-doc-buffer-refman arg 'truncate)))
+    (`location (company-coq-doc-buffer-refman arg nil)) ;; TODO
+    (`comparison-fun #'company-coq-string-lessp-static-abbrevs)
+    (_ (apply #'company-coq-generic-snippets-backend #'company-coq-init-static-abbrevs
+              #'company-coq-refman-backend command arg ignored))))
+
+(defun company-coq-user-snippets-backend (command &optional arg &rest ignored)
+  "`company-mode' backend for user snippets.
+COMMAND, ARG and IGNORED: see `company-backends'."
+  (interactive (list 'interactive))
+  (company-coq-dbg "user snippets backend: called with command %s" command)
+  (pcase command
+    (`comparison-fun #'company-coq-string-lessp-foldcase)
+    (_ (apply #'company-coq-generic-snippets-backend #'company-coq-collect-user-snippets
+              #'company-coq-user-snippets-backend command arg ignored))))
+
+(defun company-coq-context-backend (command &optional arg &rest ignored)
+  "`company-mode' backend for hypotheses of the current proof.
 COMMAND, ARG and IGNORED: see `company-backends'."
   (interactive (list 'interactive))
   (company-coq-dbg "context backend: called with command %s" command)
   (pcase command
-    (`interactive (company-begin-backend 'company-coq-context))
+    (`interactive (company-begin-backend 'company-coq-context-backend))
     (`prefix (company-coq-prefix-at-point))
     (`candidates (company-coq-candidates-context arg))
-    (`sorted t)
+    (`sorted nil)
     (`duplicates nil)
     (`ignore-case nil)
     (`meta (company-coq-meta-simple arg))
@@ -2162,16 +2217,16 @@ COMMAND, ARG and IGNORED: see `company-backends'."
     (`comparison-fun #'company-coq-string-lessp-match-beginning)
     (`require-match 'never)))
 
-(defun company-coq-modules (command &optional arg &rest ignored)
-  "A company-mode backend for Coq modules.
+(defun company-coq-modules-backend (command &optional arg &rest ignored)
+  "`company-mode' backend for Coq modules.
 COMMAND, ARG and IGNORED: see `company-backends'."
   (interactive (list 'interactive))
   (company-coq-dbg "modules backend: called with command %s" command)
   (pcase command
-    (`interactive (company-begin-backend 'company-coq-modules))
+    (`interactive (company-begin-backend 'company-coq-modules-backend))
     (`prefix (company-coq-prefix-at-point)) ;; FIXME Completion at beginning of hole
     (`candidates (company-coq-candidates-modules arg))
-    (`sorted t)
+    (`sorted nil)
     (`duplicates nil)
     (`ignore-case nil)
     (`meta (company-coq-meta-simple arg))
@@ -2180,56 +2235,109 @@ COMMAND, ARG and IGNORED: see `company-backends'."
     (`match (company-coq-match arg))
     (`require-match 'never)))
 
-(defun company-coq-block-end (command &optional arg &rest ignored)
-  "A company-mode backend for the end of Sections and Chapters.
+(defun company-coq-block-end-backend (command &optional arg &rest ignored)
+  "`company-mode' backend for the end of Sections and Chapters.
 COMMAND, ARG and IGNORED: see `company-backends'."
   (interactive (list 'interactive))
   (company-coq-dbg "section end backend: called with command %s" command)
   (pcase command
-    (`interactive (company-begin-backend 'company-coq-block-end))
+    (`interactive (company-begin-backend 'company-coq-block-end-backend))
     (`prefix (company-coq-prefix-at-point))
     (`candidates (company-coq-candidates-block-end arg))
-    (`sorted t)
+    (`sorted nil)
     (`duplicates nil)
     (`ignore-case nil)
     (`require-match 'never)))
 
-(defun company-coq-reserved-keywords (command &optional arg &rest ignored)
-  "A company-mode backend for language keywords, to prevent completion from kicking in instead of newline.
-COMMAND, ARG and IGNORED: see `company-backends'."
+(defun company-coq-reserved-keywords-backend (command &optional arg &rest ignored)
+  "`company-mode' backend for reserved keywords.
+COMMAND, ARG and IGNORED: see `company-backends'.
+
+This is mostly useful to prevent completion from kicking in
+instead of inserting a newline, after e.g. typing [with]."
   (interactive (list 'interactive))
   (company-coq-dbg "reserved keywords backend: called with command %s" command)
   (pcase command
-    (`interactive (company-begin-backend 'company-coq-reserved-keywords))
+    (`interactive (company-begin-backend 'company-coq-reserved-keywords-backend))
     (`prefix (company-coq-prefix-at-point))
     (`candidates (company-coq-candidates-reserved arg))
     (`post-completion (call-interactively #'newline))
     (`annotation "<reserved>")
-    (`sorted t)
+    (`sorted nil)
     (`duplicates nil)
     (`ignore-case nil)
     (`require-match 'never)))
 
-(defun company-coq-search-results (command &optional arg &rest ignored)
-  "A company-mode backend for search results, offering candidates pulled from the response buffer.
+(defun company-coq-search-results-backend (command &optional arg &rest ignored)
+  "`company-mode' backend for search results.
+Results are computed by parsing the contents of the response buffer.
 COMMAND, ARG and IGNORED: see `company-backends'."
   (interactive (list 'interactive))
   (company-coq-dbg "search results backend: called with command %s" command)
   (pcase command
-    (`interactive (company-begin-backend 'company-coq-search-results))
+    (`interactive (company-begin-backend 'company-coq-search-results-backend))
     (`prefix (company-coq-prefix-at-point))
     (`candidates (company-coq-candidates-search-results arg))
     (`match (company-coq-match arg))
     (`annotation "<search>")
-    (`sorted t)
+    (`sorted nil)
     (`duplicates nil)
     (`ignore-case nil)
-    (`location (company-coq-location-defun arg))
-    (`doc-buffer (company-coq-doc-buffer-defun arg))
+    (`location (company-coq-location-definition arg))
+    (`doc-buffer (company-coq-doc-buffer-definition arg))
     (`meta (company-coq-meta-symbol arg))
     (`no-cache t)
     (`comparison-fun #'company-coq-string-lessp-match-beginning)
     (`require-match 'never)))
+
+(defun company-coq-tagged-candidates (backend prefix)
+  "Compute and tag candidates from BACKEND for PREFIX."
+  (cl-stable-sort (cl-loop for candidate in (funcall backend 'candidates prefix)
+                           collect (propertize candidate 'company-coq-original-backend backend))
+                  (or (funcall backend 'comparison-fun) #'company-coq-string-lessp-foldcase)))
+
+(defun company-coq-sort-according-to-reference (seq ref)
+  "Return a copy of SEQ, ordered by REF.
+Common items come first (in the order in which they appear in
+REF), followed by items exclusive to SEQ, in their original
+order."
+  (append
+   ;; Common items
+   (cl-remove-if-not (lambda (b) (member b seq)) ref)
+   ;; Items only in SEQ
+   (cl-remove-if (lambda (b) (member b ref)) seq)))
+
+(defun company-coq-set-backends (backends)
+  "Set `company-coq-enabled-backends' to BACKENDS, sorted according to `company-coq-sorted-backends'."
+  (setq-local company-coq-enabled-backends (company-coq-sort-according-to-reference
+                                 backends company-coq-sorted-backends)))
+
+(defun company-coq-candidates-master (prefix)
+  "Compute all company-coq candidates for PREFIX."
+  ;; FIXME sort to put exact matches at the top
+  (cl-loop for backend in company-coq-enabled-backends
+           nconc (company-coq-tagged-candidates backend prefix)))
+
+(defun company-coq-master-backend (command &optional arg &rest ignored)
+  "The master company-coq backend, merging results of other backends.
+COMMAND, ARG and IGNORED: see `company-backends'.
+
+This backend is used instead of company's native multi-backends,
+because it makes it easier to enable or disable backends."
+  (interactive (list 'interactive))
+  (company-coq-dbg "master backend: called with command %s" command)
+  (pcase command
+    (`interactive (company-begin-backend 'company-coq-master-backend))
+    (`prefix (company-coq-prefix-at-point))
+    (`candidates (company-coq-candidates-master arg))
+    (`duplicates nil)
+    (`ignore-case nil)
+    (`sorted t) ;; Prevent company from re-sorting results
+    (`no-cache t)
+    (`require-match 'never)
+    (_ (when (stringp arg)
+         (let ((backend (get-text-property 0 'company-coq-original-backend arg)))
+           (apply backend command (cons arg ignored)))))))
 
 (defvar company-coq-choices-list nil)
 (defvar company-coq-saved-idle-delay nil)
@@ -2237,12 +2345,12 @@ COMMAND, ARG and IGNORED: see `company-backends'."
 (defun company-coq-choose-value (values)
   "Set company up so that a completion list will popup with values VALUES.
 This is a bit tricky, because it's not sufficient to just call
-company-begin-backend; the reason is that company doesn't support
-recursive calls to itself, and this function may be called as the
-result of expanding a snippet, and thus as a descendant of a
-company function. Instead of calling it directly, we set the idle
-delay to 0, and we override this-command to allow completion to
-proceed."
+`company-begin-backend'; the reason is that company doesn't
+support-backend recursive calls to itself, and this function may be
+called as the result of expanding a snippet, and thus as a
+descendant of a company function.  Instead of calling it
+directly, we set the idle delay to 0, and we override
+`this-command' to allow completion to proceed."
   (unless company-coq-saved-idle-delay
     (setq company-coq-saved-idle-delay company-idle-delay))
   ;; (yas-verify-value values)
@@ -2280,40 +2388,23 @@ See also `company-coq-choose-value'."
   (company-coq-forget-choices)
   (yas-next-field))
 
-(defun company-coq-choices (command &optional arg &rest ignored)
-  "A company-mode backend for holes allowing a pre-determined set of values.
+(defun company-coq-choices-backend (command &optional arg &rest ignored)
+  "`company-mode' backend for holes allowing a pre-determined set of values.
 COMMAND, ARG and IGNORED: see `company-backends'."
   (interactive (list 'interactive))
   (company-coq-dbg "choices backend: called with command %s" command)
   (pcase command
-    (`interactive (company-begin-backend 'company-coq-choices))
+    (`interactive (company-begin-backend 'company-coq-choices-backend))
     (`prefix (company-coq-choices-prefix))
     (`candidates (company-coq-complete-prefix-substring arg company-coq-choices-list t))
     (`post-completion (company-coq-choices-post-completion))))
 
-(defun company-coq-make-backends-alist ()
-  "Prepare an alist of (backend . nil)."
-  (mapcar (lambda (backend) (cons backend ()))
-          (append '(nil) company-coq-sorted-backends)))
-
-(defun company-coq-push-to-backend-alist (candidate backends-alist)
-  "Add CANDIDATE to the right bucket of BACKENDS-ALIST."
-  (let* ((company-tag   (get-text-property 0 'company-backend candidate))
-         (tag-container (or (assq company-tag backends-alist)
-                            (assq nil         backends-alist))))
-    (push candidate (cdr tag-container))))
-
-(defun company-coq-sort-in-backends-order (candidates)
-  "Sort CANDIDATES by backends, as specified by `company-coq-sorted-backends'."
-  (let ((backends-alist (company-coq-make-backends-alist)))
-    (mapc (lambda (candidate) ;; Partition the candidates by backend
-            (company-coq-push-to-backend-alist candidate backends-alist))
-          candidates)
-    (apply #'append
-           (mapcar (lambda (pair) ;; Sort the results of each backends, and concat all
-                     (let ((comparison-fun (and (car pair) (funcall (car pair) 'comparison-fun))))
-                       (cl-stable-sort (cdr pair) (or comparison-fun #'company-coq-string-lessp-foldcase))))
-                   backends-alist))))
+(defconst company-coq--core-map
+  (let ((cc-map (make-sparse-keymap)))
+    (define-key cc-map [remap proof-goto-point] #'company-coq-proof-goto-point)
+    cc-map)
+  "Keymap for core company-coq keybindings.
+Do not edit this keymap: instead, edit `company-coq-map'.")
 
 (defvar company-coq-map
   (let ((cc-map (make-sparse-keymap)))
@@ -2324,22 +2415,20 @@ COMMAND, ARG and IGNORED: see `company-backends'."
     (define-key cc-map (kbd "C-<return>")       #'company-manual-begin)
     (define-key cc-map (kbd "C-c C-a C-e")      #'company-coq-document-error)
     (define-key cc-map (kbd "C-c C-a C-x")      #'company-coq-lemma-from-goal)
-    (define-key cc-map (kbd "C-c C-a RET")      #'company-coq-insert-match-construct)
     (define-key cc-map (kbd "<M-return>")       #'company-coq-insert-match-rule-simple)
     (define-key cc-map (kbd "<M-S-return>")     #'company-coq-insert-match-rule-complex)
-    (define-key cc-map (kbd "SPC")              #'company-coq-maybe-exit-snippet)
-    (define-key cc-map (kbd "RET")              #'company-coq-maybe-exit-snippet)
     (define-key cc-map (kbd "<C-down-mouse-1>") #'company-coq-show-definition-overlay-under-pointer)
     (define-key cc-map (kbd "<C-mouse-1>")      #'company-coq-clear-definition-overlay)
     (define-key cc-map (kbd "<menu>")           #'company-coq-show-definition-overlay)
-    (define-key cc-map [remap proof-goto-point] #'company-coq-proof-goto-point)
+    (define-key cc-map (kbd "SPC")              #'company-coq-maybe-exit-snippet)
+    (define-key cc-map (kbd "RET")              #'company-coq-maybe-exit-snippet)
+    (define-key cc-map [remap coq-insert-match] #'company-coq-insert-match-construct)
     (define-key cc-map [remap narrow-to-defun]  #'company-coq-narrow-to-defun) ;; FIXME handle sections properly
     cc-map)
-  "Keymap for company-coq keybindings.")
+  "Keymap of company-coq keybindings.")
 
-;; FIXME put everything into this minor mode.
 (define-minor-mode company-coq--keybindings-minor-mode
-  "Minor mode to provide company-coq keybindings."
+  "Minor mode providing convenient company-coq keybindings."
   :lighter nil
   :keymap company-coq-map)
 
@@ -2431,6 +2520,7 @@ Execution of both forms is wrapped in `save-excursion'."
   "Insert a simple match rule.
 With prefix ARG, insert an inductive constructor."
   (interactive "P")
+  (company-coq-error-unless-feature-active 'snippets)
   (if (consp arg)
       (company-coq-insert-match-rule "| ${constructor} : $0")
     (company-coq-insert-match-rule "| ${_} => $0")))
@@ -2439,6 +2529,7 @@ With prefix ARG, insert an inductive constructor."
   "Insert a complex match goal rule.
 With prefix ARG, insert an inductive constructor with arguments."
   (interactive "P")
+  (company-coq-error-unless-feature-active 'snippets)
   (if (consp arg)
       (company-coq-insert-match-rule "| ${constructor} : ${args} -> $0")
     (company-coq-insert-match-rule "| [ ${H: ${hyps}} |- ${_} ] => $0")))
@@ -2447,7 +2538,7 @@ With prefix ARG, insert an inductive constructor with arguments."
   "Interactively collect a lemma name and hypothesis names."
   (let ((hyps       nil)
         (lemma-name "")
-        (candidates (cons "" (car-safe (company-coq-run-and-parse-context "Show")))))
+        (candidates (cons "" (car-safe (company-coq-run-then-parse-context-and-goal "Show")))))
     (while (string-equal lemma-name "")
       (setq lemma-name (read-string "Lemma name? ")))
     (while candidates ;; TODO consider completing-read-multiple
@@ -2467,7 +2558,7 @@ of these hypotheses are also added to the lemma."
   (proof-shell-ready-prover)
   (let* ((gen-cmds  (mapcar (lambda (hyp) (concat "generalize dependent " hyp)) hyps))
          (full-cmd  (mapconcat 'identity (nconc gen-cmds company-coq-lemma-introduction-forms) ";"))
-         (ctx-goal  (company-coq-run-and-parse-context full-cmd))
+         (ctx-goal  (company-coq-run-then-parse-context-and-goal full-cmd))
          (_         (company-coq-ask-prover "Undo 1"))
          (lemma     (cdr ctx-goal)))
     (if lemma
@@ -2479,16 +2570,23 @@ of these hypotheses are also added to the lemma."
 
 (defun company-coq-insert-match-construct (type)
   "Insert a match expression for TYPE.
-Similar to `coq-insert-match', but using YAS."
-  (interactive (list (read-from-minibuffer "Type of the matched expression (e.g. nat, bool, list, ...): ")))
-  (proof-shell-ready-prover)
-  (let* ((question (concat "Show Match " type))
-         (response (company-coq-ask-prover question)))
-    (if (company-coq-unless-error response)
-        (let* ((cleaned (replace-regexp-in-string "\\s-+\\'" "" response))
-               (snippet (replace-regexp-in-string "=>$" "=> #" cleaned)))
-          (yas-expand-snippet (company-coq-dabbrev-to-yas snippet)))
-      (error response))))
+Similar to `coq-insert-match', but using YAS.  If the
+pg-improvements feature isn't active, fallback to the regular
+function."
+  (interactive (list
+                (if (company-coq-feature-active-p 'pg-improvements)
+                    (read-from-minibuffer "Type of the matched expression (e.g. nat, bool, list, ...): ")
+                  'fallback)))
+  (if (eq type 'fallback)
+      (call-interactively #'coq-insert-match)
+    (proof-shell-ready-prover)
+    (let* ((question (concat "Show Match " type))
+           (response (company-coq-ask-prover question)))
+      (if (company-coq-unless-error response)
+          (let* ((cleaned (replace-regexp-in-string "\\s-+\\'" "" response))
+                 (snippet (replace-regexp-in-string "=>$" "=> #" cleaned)))
+            (yas-expand-snippet (company-coq-dabbrev-to-yas snippet)))
+        (error response)))))
 
 (defun company-coq-normalize-error (msg)
   "Normalize error MSG to look it up in a list of errors."
@@ -2532,7 +2630,7 @@ Scores are computed by `company-coq-find-errors-overlap'.")
                        (lambda (x y) (company-coq-string-lessp-foldcase (car x) (car y)))))
          (msg    (completing-read "Error message: " db nil t))
          (anchor (cdr-safe (assoc msg company-coq-errors))))
-    (when anchor (company-coq-doc-buffer-keywords anchor))))
+    (when anchor (company-coq-doc-buffer-refman anchor))))
 
 (defun company-coq-guess-error-message-from-response ()
   "Show documentation for error message in Coq's response, if available."
@@ -2544,7 +2642,7 @@ Scores are computed by `company-coq-find-errors-overlap'.")
       (if (< (caar hit) company-coq-error-doc-min-score)
           (error "No documentation found for this error")
         (message "Found error reference [%s]" (cadr hit))
-        (company-coq-doc-buffer-keywords (cddr hit))))))
+        (company-coq-doc-buffer-refman (cddr hit))))))
 
 (defun company-coq-document-error (&optional arg)
   "Show documentation for error message in Coq's response, if available.
@@ -2557,15 +2655,30 @@ With prefix ARG, let user pick the error message."
 (defun company-coq-search-in-coq-buffer (regexp)
   "Search for REGEXP in *coq* buffer.
 Useful for debugging tactics in versions of Coq prior to 8.5: use
-[idtac \"!!!\" message] to print [message] to output, and
+[idtac \"-->\" message] to print [message] to output, and
 `company-coq-search-in-coq-buffer' to locate lines starting with
-\"^!!!\"."
+\"^-->\"."
   (interactive "MRegexp search in *coq* buffer: ")
   (-if-let* ((coq-buffer (get-buffer-create "*coq*"))
              (same-window-buffer-names '("*Occur*")))
       (with-current-buffer coq-buffer
         (occur regexp))
     (error "*coq* buffer not found")))
+
+(defun company-coq-fontify-buffer ()
+  "Refontify the current buffer."
+  (with-no-warnings
+    (if (company-coq-emacs-below-25-p)
+        ;; Emacs 25 complains about calls to font-lock-fontify-buffer and claims that
+        ;; -flush and -ensure should be called instead, but they don't behave
+        ;; the same; in particular, composition (via prettify-symbols-mode)
+        ;; isn't applied by either of these functions in the temporary buffer
+        ;; created to fontify the contents of definition overlays
+        (font-lock-fontify-buffer)
+      ;; Invalidate fontification (otherwise nothing happens)
+      (font-lock-flush)
+      ;; Explicitly ask for refontification (otherwise nothing happens in invisible buffers)
+      (font-lock-ensure))))
 
 (defun company-coq--prepare-for-definition-overlay (strs offset &optional max-lines)
   "Prepare STRS for display as an inline documentation string.
@@ -2576,17 +2689,18 @@ to show at most MAX-LINES."
          (max-lines  (or max-lines 8))
          (strs       (mapcar #'company-coq-get-header strs)))
     (with-temp-buffer
+      ;; Fix issue mentionned in `company-coq-fontify-buffer'
+      (setq-local font-lock-support-mode nil)
+      (company-coq-setup-temp-coq-buffer)
       (cl-loop for str in strs ;;  for len in lengths   for ins-point = (point)
                do (insert str "\n"))
       (company-coq-truncate-buffer (point-min) max-lines "...")
       (let* ((block-width (company-coq-max-line-length))
              (real-offset (max 0 (min offset (- line-width block-width)))))
         (company-coq-prefix-all-lines (propertize " " 'display `(space . (:width ,real-offset)))))
-      (coq-mode)
-      (with-no-warnings
-        (if (company-coq-emacs-below-25-p)
-            (font-lock-fontify-buffer)
-          (font-lock-ensure)))
+      ;; Needed when not using jit-lock
+      (setq-local font-lock-fontified nil)
+      (company-coq-fontify-buffer)
       ;; Prevent text from inheriting properties of neighbouring characters
       (when (fboundp 'add-face-text-property)
         (company-coq-suppress-warnings (add-face-text-property (point-min) (point-max) 'default t)))
@@ -2628,9 +2742,15 @@ Return MAX-LINES if there are more than that."
 
 ;; FIXME: The docs are broken
 
+(defun company-coq-error-unless-feature-active (cc-feature)
+  "Display an error, unless CC-FEATURE is enabled."
+  (unless (company-coq-feature-active-p cc-feature)
+    (error "The `%s' feature is disabled" cc-feature)))
+
 (defun company-coq-show-definition-overlay ()
   "Toggle inline docs for symbol at point."
   (interactive)
+  (company-coq-error-unless-feature-active 'inline-docs)
   (if company-coq-definition-overlay
       (company-coq-clear-definition-overlay)
     (company-coq--show-definition-overlay-at-point)))
@@ -2640,6 +2760,7 @@ Return MAX-LINES if there are more than that."
 EVENT is the mouse EVENT that triggered the call t this
 function."
   (interactive "e")
+  (company-coq-error-unless-feature-active 'inline-docs)
   (let* ((window  (posn-window (event-start event)))
          (buffer  (and window (window-buffer window))))
     (if buffer
@@ -2664,11 +2785,11 @@ This function runs every time a new instance of the prover
 starts.  It does basic capability detection and records known
 tactic notations (thus ensuring that they are ignored in
 subsequent invocations)."
-  (setq company-coq-needs-capability-detection t)
+  (setq company-coq--coqtop-patched-p 'unknown)
   (when (proof-shell-available-p)
     (company-coq-dbg "Doing early capability detection and filter initialization")
     (company-coq-detect-capabilities)
-    (company-coq-initialize-notations-filter)))
+    (company-coq-tactic-initialize-notations-filter)))
 
 ;;;###autoload
 (defun company-coq-tutorial ()
@@ -2684,186 +2805,607 @@ subsequent invocations)."
         (setq-local proof-script-fly-past-comments nil)))
     (pop-to-buffer-same-window tutorial-buffer)))
 
-(defun company-coq-setup-keybindings ()
-  (company-coq--keybindings-minor-mode))
-
-(defun company-coq-setup-hooks () ;; NOTE: This could be made callable at the beginning of every completion.
-  ;; PG hooks
-  (add-hook 'proof-shell-init-hook #'company-coq-prover-init)
-  (add-hook 'proof-state-change-hook #'company-coq-state-change)
-  (add-hook 'proof-shell-insert-hook #'company-coq-maybe-proof-input-reload-things)
-  (add-hook 'proof-shell-handle-delayed-output-hook #'company-coq-maybe-proof-output-reload-things)
-  (add-hook 'proof-shell-handle-error-or-interrupt-hook #'company-coq-maybe-reload-context)
-  (add-hook 'coq-goals-mode-hook #'company-coq-setup-goals-buffer)
-  (add-hook 'coq-response-mode-hook #'company-coq-setup-response-buffer)
-  ;; Yasnippet
-  (add-hook 'yas-after-exit-snippet-hook #'company-coq-forget-choices)
-  ;; Prettify
-  (add-hook 'hack-local-variables-hook #'company-coq-update-local-symbols))
-
-(defun company-coq-setup-optional-backends ()
-  (when company-coq-autocomplete-context
-    (add-to-list 'company-coq-backends #'company-coq-context t))
-
-  (when company-coq-autocomplete-modules
-    (add-to-list 'company-coq-backends #'company-coq-modules t))
-
-  (when company-coq-autocomplete-symbols
-    (add-to-list 'company-coq-backends #'company-coq-defuns t)
-    (when company-coq-dynamic-autocompletion
-      (add-to-list 'company-coq-backends #'company-coq-tactics t)
-      (add-to-list 'company-coq-backends #'company-coq-symbols t)))
-
-  (when company-coq-autocomplete-block-end
-    (add-to-list 'company-coq-backends #'company-coq-block-end t))
-
-  (when company-coq-autocomplete-search-results
-    (add-to-list 'company-coq-backends #'company-coq-search-results t)))
-
-(defun company-coq-setup-company ()
-  (company-mode 1)
-  (set (make-local-variable 'company-idle-delay) 0)
-  (set (make-local-variable 'company-tooltip-align-annotations) t)
-  (set (make-local-variable 'company-abort-manual-when-too-short) t)
-
-  ;; Let company know about our backends
-  (add-to-list (make-local-variable 'company-backends) company-coq-backends)
-  (add-to-list (make-local-variable 'company-backends) #'company-coq-choices)
-  (add-to-list (make-local-variable 'company-transformers) #'company-coq-sort-in-backends-order))
-
-(defun company-coq-setup-outline ()
-  (outline-minor-mode 1)
-  (set (make-local-variable 'outline-level) #'company-coq-outline-level)
-  (set (make-local-variable 'outline-regexp) company-coq-outline-regexp)
-  (set (make-local-variable 'outline-heading-end-regexp) company-coq-outline-heading-end-regexp))
-
-(defun company-coq-setup-prettify ()
-  (when (and (display-graphic-p)
-             (fboundp #'prettify-symbols-mode)
-             company-coq-prettify-symbols)
-    (company-coq-suppress-warnings
-      (set (make-local-variable 'prettify-symbols-alist)
-           (append prettify-symbols-alist company-coq-prettify-symbols-alist company-coq-local-symbols))
-      (prettify-symbols-mode))))
-
-(defun company-coq-update-local-symbols ()
-  (when (assoc 'company-coq-local-symbols file-local-variables-alist)
-    (company-coq-setup-prettify)))
-
-(defun company-coq-get-comment-opener (comment-string-start)
-  (ignore-errors
-    (when comment-string-start
+(defun company-coq-get-comment-opener (pos)
+  "Read comment opener at position POS."
+  (when pos
+    (ignore-errors
       (save-excursion
-        (goto-char comment-string-start)
+        (goto-char pos)
         (buffer-substring (point) (progn (skip-chars-forward "(*!+" (+ 5 (point))) (1+ (point))))))))
 
-(defun company-coq-syntactic-face-function-aux (_depth _innermost-start _last-complete-start
-                                            in-string comment-depth _after-quote _min-paren-depth
-                                            _comment-style comment-string-start _continuation)
-  (cond
-   (in-string font-lock-string-face)
-   ((or comment-depth (numberp comment-depth))
-    (let* ((comment-opener (company-coq-get-comment-opener comment-string-start))
-           (matches        (lambda (pattern) (string-match-p (concat "\\`" (regexp-quote pattern)) comment-opener))))
-      (cond
-       ((funcall matches "(*!")   '(:inherit font-lock-doc-face :height 1.2))
-       ((funcall matches "(*+")   '(:inherit font-lock-doc-face :height 1.8))
-       ((funcall matches "(*** ") '(:inherit font-lock-doc-face :height 2.5))
-       ((funcall matches "(**")   font-lock-doc-face)
-       (t        font-lock-comment-face))))))
-
-(defun company-coq-syntactic-face-function (args)
-  (apply #'company-coq-syntactic-face-function-aux args))
+(defun company-coq-syntactic-face-function (state)
+  "Determine which face to use based on parsing state STATE."
+  (pcase-let ((`(_ _ _ ,in-string ,comment-depth _ _ _ ,comment-opener-pos _) state))
+    (cond
+     (in-string font-lock-string-face)
+     ((or comment-depth (numberp comment-depth))
+      (let* ((comment-opener (company-coq-get-comment-opener comment-opener-pos))
+             (matches        (lambda (pattern) (string-match-p (concat "\\`" (regexp-quote pattern)) comment-opener))))
+        (cond
+         ((funcall matches "(*!")   '(:inherit font-lock-doc-face :height 1.2))
+         ((funcall matches "(*+")   '(:inherit font-lock-doc-face :height 1.8))
+         ((funcall matches "(*** ") '(:inherit font-lock-doc-face :height 2.5))
+         ((funcall matches "(**")   font-lock-doc-face)
+         (t        font-lock-comment-face)))))))
 
 (defun company-coq-fill-nobreak-predicate ()
+  "Check if paragraph surrounding point may be filled."
   (not (memq (get-text-property (point) 'face) '(font-lock-doc-face font-lock-comment-face))))
 
-(defun company-coq-setup-fontlock ()
-  (setq-local font-lock-syntactic-face-function #'company-coq-syntactic-face-function)
-  (font-lock-add-keywords nil '(("\\_<pose proof\\_>" 0 'proof-tactics-name-face prepend)) 'add)
-  (font-lock-add-keywords nil '(("\\(?:\\W\\|\\`\\)\\(@\\)\\_<" 1 'font-lock-constant-face append)) 'add)
-  (font-lock-add-keywords nil '(("\\(?:\\W\\|\\`\\)\\(\\?\\(?:\\s_\\|\\sw\\)+\\)\\_>" 1 'font-lock-variable-name-face append)) 'add)
-  (add-to-list (make-local-variable 'font-lock-extra-managed-props) 'help-echo)
-  (font-lock-add-keywords nil company-coq-deprecated-spec t))
+(eval-when-compile
+  (defun company-coq-feature-toggle-function (feature-symbol)
+    "Return symbol of toggle function for feature FEATURE-SYMBOL."
+    (intern (format "company-coq-features/%s" (symbol-name feature-symbol)))))
 
-(defun company-coq-setup-misc-pc-improvements ()
-  (setq-local fill-nobreak-predicate #'company-coq-fill-nobreak-predicate)
-  (setq-local help-at-pt-display-when-idle t)
-  (help-at-pt-set-timer))
+(defmacro company-coq-do-in-coq-buffers (&rest body)
+  "Run BODY in all `coq-mode' buffers."
+  (declare (indent defun)
+           (debug body))
+  `(dolist (company-coq-do-in-coq-buffers--buffer (buffer-list))
+     (with-current-buffer company-coq-do-in-coq-buffers--buffer
+       (when (company-coq-coq-mode-p)
+         ,@body))))
 
-(defun company-coq-setup-minor-modes ()
-  (yas-minor-mode 1)
-  (show-paren-mode 1)
-  (company-coq-setup-company)
-  (company-coq-setup-outline)
-  (company-coq-setup-prettify)
-  (company-coq-setup-fontlock))
+(defmacro company-coq-do-in-goals-buffer (&rest body)
+  "Run BODY in goals buffer, if available."
+  (declare (indent defun))
+  `(company-coq-with-current-buffer-maybe proof-goals-buffer
+     ,@body))
 
-(defun company-coq-setup-goals-buffer ()
-  (add-to-list (make-local-variable 'font-lock-extra-managed-props) 'display)
-  (font-lock-add-keywords nil company-coq-goal-separator-spec t)  ;; Prettify the goals line ("=====")
-  (font-lock-add-keywords nil company-coq-subscript-spec t)  ;; Transform H1 into H_1
-  (company-coq-setup-prettify))
+(defmacro company-coq-do-in-response-buffer (&rest body)
+  "Run BODY in response buffer, if available."
+  (declare (indent defun))
+  `(company-coq-with-current-buffer-maybe proof-response-buffer
+     ,@body))
 
-(defun company-coq-setup-response-buffer ()
-  (company-coq-setup-prettify)
-  (visual-line-mode 1))
+(defvar company-coq-mode nil
+  "Non-nil if company-coq-mode is enabled.
+Use the command `company-coq-mode' to change this variable.")
+(make-variable-buffer-local 'company-coq-mode)
+
+(eval-when-compile
+  (defvar company-coq-available-features nil
+    "Alist of available company-coq features, with documentation.
+
+Each entry of this list must be a cons (name . description).
+Each name, once fed to `company-coq-feature-toggle-function',
+must correspond to a function taking one argument and indicating
+whether to turn the feature on or off (see `define-minor-mode').
+
+This alist is populated as a side effect of
+`company-coq-define-feature'.")
+
+  (defun company-coq-disabled-features--custom-type-docstring (doc)
+    "Format DOC as the docstring of one of company-coq features.
+Proactively calls `substitute-command-keys', as the later call
+made by customize when constructing the documentation buffer
+would otherwise remove text properties on docstrings requiring
+changes."
+    (let* ((lines (split-string (substitute-command-keys doc) "\n" t))
+           (indent (make-string 5 32)))
+      (concat (propertize (car lines) 'face '(:weight bold)) "\n"
+              (mapconcat (lambda (line)
+                           (concat indent (propertize line 'face '(:height 0.9))))
+                         (cdr lines) "\n"))))
+
+  (defun company-coq-disabled-features--custom-type ()
+    "Compute a :type for company-coq-disabled-features."
+    `(set ,@(cl-loop for (feature . description) in company-coq-available-features
+                     collect `(const :tag ,(company-coq-disabled-features--custom-type-docstring description)
+                                     ,feature))))
+
+  (defun company-coq-disabled-features--update-type ()
+    "Update the custom :type of company-coq-disabled-features."
+    (put 'company-coq-disabled-features 'custom-type
+         (company-coq-disabled-features--custom-type))))
+
+(defun company-coq--set-disabled-features (symbol value)
+  "Set SYMBOL to VALUE, toggling company-coq features as needed."
+  (when (eq symbol 'company-coq-disabled-features)
+    (let* ((previously-disabled (company-coq-value-or-nil 'company-coq-disabled-features))
+           (newly-disabled (cl-set-difference value previously-disabled))
+           (newly-enabled (cl-set-difference previously-disabled value)))
+      (dolist (buf (buffer-list))
+        (with-current-buffer buf
+          (when company-coq-mode
+            (company-coq-toggle-features newly-disabled nil)
+            (company-coq-toggle-features newly-enabled t))))))
+  (set-default symbol value))
+
+(defcustom company-coq-disabled-features '(dynamic-symbols-backend)
+  "List of disabled company-coq features.
+
+The list of all available features is in
+`company-coq-available-features'.  Use
+`company-coq-describe-feature' to get help about one of these
+features.
+
+Editing this variable through the customize interface applies
+changes immediately.  From Lisp code, make sure to set this
+variable before enabling `company-coq-mode', or set it
+using `customize-set-variable'.
+
+Technical note: The `:type' of thiis defcustom is recomputed every
+time a new feature is added."
+  :group 'company-coq
+  :set #'company-coq--set-disabled-features
+  :type (company-coq-disabled-features--custom-type))
+
+(defun company-coq--disable-features (cc-features)
+  "Disable company-coq features CC-FEATURES.
+That is, deactivate them and add them to the disabled list."
+  (company-coq--set-disabled-features 'company-coq-disabled-features (append cc-features company-coq-disabled-features)))
+
+(defun company-coq-feature-active-p (feature)
+  "Check if company-coq feature FEATURE is active."
+  (get (company-coq-feature-toggle-function feature) 'company-coq-feature-active))
+
+(eval-when-compile
+  (defconst company-coq-define-feature-doc-format
+    "Toggle the %s feature.
+
+With a prefix argument ARG, enable the feature if ARG is positive, and
+disable it otherwise.  If called from Lisp, enable the feature if
+ARG is omitted or nil, and toggle it if ARG is `toggle'.
+
+To persistently disable a feature, use
+`company-coq-disabled-features'.
+
+Documentation for this feature:
+%s"))
+
+(defmacro company-coq-define-feature (symbol args doc &rest body)
+  "Define company-coq feature SYMBOL.
+
+In particular, define a toggle function taking one argument
+ARG (the first element of ARGS, which must be a singleton list).
+ARG may be 'on, or 'off; this is the new status of the mode.  The
+documentation of the function is constructed from DOC.  The body
+of the function is BODY.
+
+Defining a feature adds it to `company-coq-available-features'."
+  (declare (indent defun)
+           (debug t))
+  (let* ((toggle-function (company-coq-feature-toggle-function symbol))
+         (docs (format company-coq-define-feature-doc-format (symbol-name symbol) doc))
+         (arg (car args)))
+    (unless (equal 1 (length args))
+      (error "Features take a single argument"))
+    ;; Register this feature
+    (add-to-list 'company-coq-available-features (cons symbol doc) t)
+    (company-coq-disabled-features--update-type)
+    ;; Mark it disabled, for now
+    (put 'toggle-function 'company-coq-feature-active nil)
+    `(defun ,toggle-function (,arg)
+       ,docs
+       (interactive (or current-prefix-arg 'toggle))
+       (cond
+        ((eq ,arg 'toggle)
+         (,toggle-function (not (company-coq-feature-active-p ',symbol))))
+        ((or (eq ,arg 'on) (and (numberp arg) (> ,arg 0)))
+         (setq ,arg 'on)
+         (unless (company-coq-value-or-nil 'company-coq-mode)
+           (user-error "%s depends on company-coq-mode" ,(symbol-name symbol)))
+         (put ',toggle-function 'company-coq-feature-active t))
+        ((or (eq ,arg 'off) (and (numberp arg) (<= ,arg 0)))
+         (setq ,arg 'off)
+         (put ',toggle-function 'company-coq-feature-active nil)))
+       ,@body)))
+
+(defun company-coq-toggle-features (enabled-or-disabled-features status)
+  "Enable or disable ENABLED-OR-DISABLED-FEATURES.
+If STATUS is non-nil, enable each feature in
+ENABLED-OR-DISABLED-FEATURES.  Otherwise, disable them."
+  (dolist (feature enabled-or-disabled-features)
+    (let ((toggle-func (company-coq-feature-toggle-function feature)))
+      (funcall toggle-func (if status 1 -1)))))
+
+(defun company-coq-read-feature ()
+  "Read a feature name from the user."
+  (list (intern (completing-read "Feature to describe? " (mapcar #'car company-coq-available-features) nil t))))
 
 ;;;###autoload
-(defun company-coq-initialize () ;; TODO this could be a minor mode
+(defun company-coq-describe-feature (feature)
+  "Describe company-coq feature FEATURE."
+  (interactive (company-coq-read-feature))
+  (describe-function (company-coq-feature-toggle-function feature)))
+
+(defun company-coq-toggle-feature (feature)
+  "Toggle company-coq feature FEATURE.
+Interactively, prompt for FEATURE."
+  (interactive (company-coq-read-feature))
+  (funcall (company-coq-feature-toggle-function feature) 'toggle))
+
+(defun company-coq-add-backend (backend)
+  "Add BACKEND to `company-coq-enabled-backends'."
+  (company-coq-set-backends (cons backend company-coq-enabled-backends)))
+
+(defun company-coq-remove-backend (backend)
+  "Remove BACKEND from `company-coq-enabled-backends'."
+  (company-coq-set-backends (remove backend company-coq-enabled-backends)))
+
+(company-coq-define-feature core (arg)
+  "Core components.
+(do not disable this feature)"
+  (pcase arg
+    (`on
+     (yas-minor-mode)
+     ;; TODO these hooks could be made more fine-grained and be enabled or
+     ;; disabled by the various features that depend on them
+     (add-hook 'proof-shell-init-hook #'company-coq-prover-init)
+     (add-hook 'proof-state-change-hook #'company-coq-state-change)
+     (add-hook 'proof-shell-insert-hook #'company-coq-maybe-proof-input-reload-things)
+     (add-hook 'proof-shell-handle-delayed-output-hook #'company-coq-maybe-proof-output-reload-things)
+     (add-hook 'proof-shell-handle-error-or-interrupt-hook #'company-coq-maybe-reload-context)
+     (add-hook 'yas-after-exit-snippet-hook #'company-coq-forget-choices))
+    (`off
+     (yas-minor-mode -1)
+     (remove-hook 'proof-shell-init-hook #'company-coq-prover-init)
+     (remove-hook 'proof-state-change-hook #'company-coq-state-change)
+     (remove-hook 'proof-shell-insert-hook #'company-coq-maybe-proof-input-reload-things)
+     (remove-hook 'proof-shell-handle-delayed-output-hook #'company-coq-maybe-proof-output-reload-things)
+     (remove-hook 'proof-shell-handle-error-or-interrupt-hook #'company-coq-maybe-reload-context)
+     (remove-hook 'yas-after-exit-snippet-hook #'company-coq-forget-choices))))
+
+(company-coq-define-feature keybindings (arg)
+  "Company-coq keybindings.
+Activates `company-coq-map', a keymap containing many shortcuts
+to commonly used company-coq features."
+  (pcase arg
+    (`on (company-coq--keybindings-minor-mode))
+    (`off (company-coq--keybindings-minor-mode -1))))
+
+(company-coq-define-feature inline-docs (arg)
+  "Inline documentation popups.
+Lets you display documentation for most theorems, tactics and
+types using <C-click> or <menu>."
+  (pcase arg
+    (`off (company-coq-do-in-coq-buffers (company-coq-clear-definition-overlay)))))
+
+(defun company-coq-features/prettify-symbols--enable-1 ()
+  "Set up prettify-symbols in the current buffer."
+  (when (and (display-graphic-p)
+             (fboundp #'prettify-symbols-mode))
+    (company-coq-suppress-warnings  ;; FIXME deduplicate?
+      (setq-local prettify-symbols-alist (append prettify-symbols-alist
+                                                 company-coq-prettify-symbols-alist
+                                                 company-coq-local-symbols))
+      (prettify-symbols-mode))))
+
+(defun company-coq-features/prettify-symbols--enable ()
+  "Enable prettify-symbols in all Coq buffers."
+  (company-coq-do-in-coq-buffers (company-coq-features/prettify-symbols--enable-1))
+  (company-coq-do-in-goals-buffer (company-coq-features/prettify-symbols--enable-1))
+  (company-coq-do-in-response-buffer (company-coq-features/prettify-symbols--enable-1)))
+
+(defun company-coq-features/prettify-symbols--disable ()
+  "Disable prettify-symbols in all Coq buffers."
+  (company-coq-do-in-coq-buffers (prettify-symbols-mode -1))
+  (company-coq-do-in-goals-buffer (prettify-symbols-mode -1))
+  (company-coq-do-in-response-buffer (prettify-symbols-mode -1)))
+
+(defun company-coq-features/prettify-symbols--update-table ()
+  "Update table of prettification symbols from file-local vars."
+  (when (assoc 'company-coq-local-symbols file-local-variables-alist)
+    (company-coq-features/prettify-symbols--enable)))
+
+(company-coq-define-feature prettify-symbols (arg)
+  "Pretty math symbols (e.g. `forall' → `∀').
+Transparently prettifies math symbols, using unicode characters
+for display (the buffer contents are not modified, though).
+(requires emacs 24.4 or later)"
+  (pcase arg
+    (`on
+     (company-coq-features/prettify-symbols--enable)
+     (add-hook 'coq-goals-mode-hook #'company-coq-features/prettify-symbols--enable-1)
+     (add-hook 'coq-response-mode-hook #'company-coq-features/prettify-symbols--enable-1)
+     (add-hook 'hack-local-variables-hook #'company-coq-features/prettify-symbols--update-table))
+    (`off
+     (company-coq-features/prettify-symbols--disable)
+     (remove-hook 'coq-goals-mode-hook #'company-coq-features/prettify-symbols--enable-1)
+     (remove-hook 'coq-response-mode-hook #'company-coq-features/prettify-symbols--enable-1)
+     (remove-hook 'hack-local-variables-hook #'company-coq-features/prettify-symbols--update-table))))
+
+(company-coq-define-feature snippets (arg)
+  "Snippets for various common Coq forms.
+Enables keybindings and completion for common Coq patterns, such
+as branches of a [match goal] construct. Custom patterns can be
+added to `company-coq-custom-snippets'."
+  (pcase arg
+    (`on (company-coq-add-backend #'company-coq-user-snippets-backend))
+    (`off (company-coq-remove-backend #'company-coq-user-snippets-backend))))
+
+(defun company-coq-features/pg-improvements--goals-buffer-enable ()
+  "Apply company-coq improvements to current buffer."
+  (add-to-list (make-local-variable 'font-lock-extra-managed-props) 'display)
+  (font-lock-add-keywords nil company-coq-goal-separator-spec t)
+  (font-lock-add-keywords nil company-coq-subscript-spec t)
+  (company-coq-fontify-buffer))
+
+(defun company-coq-features/pg-improvements--goals-buffer-disable ()
+  "Remove company-coq improvements from current buffer."
+  (font-lock-remove-keywords nil company-coq-goal-separator-spec)
+  (font-lock-remove-keywords nil company-coq-subscript-spec)
+  (company-coq-fontify-buffer))
+
+(defun company-coq-features/pg-improvements--response-buffer-enable ()
+  "Apply company-coq improvements to current buffer."
+  (visual-line-mode))
+
+(defun company-coq-features/pg-improvements--response-buffer-disable ()
+  "Remove company-coq improvements from current buffer."
+  (visual-line-mode -1))
+
+(defconst company-coq-features/pg-improvements--font-lock-extras
+  '(("\\_<pose proof\\_>" 0 'proof-tactics-name-face prepend)
+    ("\\(?:\\W\\|\\`\\)\\(@\\)\\_<" 1 'font-lock-constant-face append)
+    ("\\(?:\\W\\|\\`\\)\\(\\?\\(?:\\s_\\|\\sw\\)+\\)\\_>" 1 'font-lock-variable-name-face append))
+  "Additional font-lock specs for the main buffer.")
+
+(defun company-coq-features/pg-improvements--main-buffer-enable ()
+  "Apply company-coq improvements to (current) main buffer."
+  (show-paren-mode)
+  (font-lock-add-keywords nil company-coq-features/pg-improvements--font-lock-extras 'add)
+  (add-to-list (make-local-variable 'font-lock-extra-managed-props) 'help-echo)
+  (setq-local fill-nobreak-predicate #'company-coq-fill-nobreak-predicate)
+  (setq-local help-at-pt-display-when-idle t)
+  (help-at-pt-set-timer)
+  (company-coq-fontify-buffer))
+
+(defun company-coq-features/pg-improvements--main-buffer-disable ()
+  "Remove company-coq improvements from (current) main buffer."
+  (show-paren-mode -1)
+  (font-lock-remove-keywords nil company-coq-features/pg-improvements--font-lock-extras)
+  (kill-local-variable 'fill-nobreak-predicate)
+  (kill-local-variable 'help-at-pt-display-when-idle)
+  (help-at-pt-cancel-timer)
+  (company-coq-fontify-buffer))
+
+(company-coq-define-feature pg-improvements (arg)
+  "Discrete improvements to Proof General.
+Prettifies the goals line, adds a few missing highlighting
+patterns, etc."
+  (pcase arg
+    (`on
+     (company-coq-do-in-coq-buffers (company-coq-features/pg-improvements--main-buffer-enable))
+     (company-coq-do-in-response-buffer (company-coq-features/pg-improvements--response-buffer-enable))
+     (company-coq-do-in-goals-buffer (company-coq-features/pg-improvements--goals-buffer-enable))
+     (add-hook 'coq-goals-mode-hook #'company-coq-features/pg-improvements--goals-buffer-enable)
+     (add-hook 'coq-response-mode-hook #'company-coq-features/pg-improvements--response-buffer-enable))
+    (`off
+     (company-coq-do-in-coq-buffers (company-coq-features/pg-improvements--main-buffer-disable))
+     (company-coq-do-in-response-buffer (company-coq-features/pg-improvements--response-buffer-disable))
+     (company-coq-do-in-goals-buffer (company-coq-features/pg-improvements--goals-buffer-disable))
+     (remove-hook 'coq-goals-mode-hook #'company-coq-features/pg-improvements--goals-buffer-enable)
+     (remove-hook 'coq-response-mode-hook #'company-coq-features/pg-improvements--response-buffer-enable))))
+
+(company-coq-define-feature title-comments (arg)
+  "Special comments [(***, (*+, and (*!].
+Handles comments beginning with (***, (*+, and (*! as title
+markers of decreasing importance."
+  (pcase arg
+    (`on (company-coq-do-in-coq-buffers
+           (setq-local font-lock-syntactic-face-function #'company-coq-syntactic-face-function)
+           (company-coq-fontify-buffer)))
+    (`off (company-coq-do-in-coq-buffers
+            (kill-local-variable 'font-lock-syntactic-face-function)
+            (company-coq-fontify-buffer)))))
+
+(company-coq-define-feature obsolete-warnings (arg)
+  "Code style warnings [experimental].
+Highlights uses of obsolete Coq constructs."
+  (pcase arg
+    (`on
+     (company-coq-do-in-coq-buffers
+       (font-lock-add-keywords nil company-coq-deprecated-spec 'add)
+       (company-coq-fontify-buffer)))
+    (`off
+     (company-coq-do-in-coq-buffers
+       (font-lock-remove-keywords nil company-coq-deprecated-spec)
+       (company-coq-fontify-buffer)))))
+
+(company-coq-define-feature outline (arg)
+  "Text folding and outlines.
+Configures `outline-minor-mode' for use with Coq."
+  (pcase arg
+    (`on
+     (company-coq-do-in-coq-buffers
+       (outline-minor-mode)
+       (setq-local outline-level #'company-coq-outline-level)
+       (setq-local outline-regexp company-coq-outline-regexp)
+       (setq-local outline-heading-end-regexp company-coq-outline-heading-end-regexp)))
+    (`off
+     (company-coq-do-in-coq-buffers
+       (outline-minor-mode -1)
+       (kill-local-variable 'outline-level)
+       (kill-local-variable 'outline-regexp)
+       (kill-local-variable 'outline-heading-end-regexp)))))
+
+(company-coq-define-feature company (arg)
+  "Context-sensitive completion.
+Configures `company-mode' for use with Coq."
+  (pcase arg
+    (`on
+     (company-coq-do-in-coq-buffers
+       (company-mode 1)
+       (make-local-variable 'company-backends)
+       (push #'company-coq-master-backend company-backends)
+       (push #'company-coq-choices-backend company-backends)))
+    (`off
+     (company-coq-do-in-coq-buffers
+       (company-mode -1)
+       (kill-local-variable 'company-backends)))))
+
+(company-coq-define-feature company-defaults (arg)
+  "Convenient defaults for `company-mode'.
+Tweaks company-mode settings for smoother use with Coq."
+  (pcase arg
+    (`on
+     (company-coq-do-in-coq-buffers
+       (setq-local company-idle-delay 0)
+       (setq-local company-tooltip-align-annotations t)
+       (setq-local company-abort-manual-when-too-short t)))
+    (`off
+     (company-coq-do-in-coq-buffers
+       (kill-local-variable 'company-idle-delay)
+       (kill-local-variable 'company-tooltip-align-annotations)
+       (kill-local-variable 'company-abort-manual-when-too-short)))))
+
+(company-coq-define-feature unicode-math-backend (arg)
+  "Completion of LaTeX macros.
+Inserts ⊕ when you type \oplus."
+  ;; Insert directly in company's backend list, as it doesn't share the same
+  ;; prefix as the other backends.
+  (setq-local company-backends
+              (delete #'company-math-symbols-unicode company-backends))
+  (pcase arg
+    (`on
+     (setq-local company-backends
+                 (cons #'company-math-symbols-unicode company-backends)))))
+
+(company-coq-define-feature block-end-backend (arg)
+  "Completion of Section and Module names.
+Autocompletes names after 'End '."
+  (pcase arg
+    (`on (company-coq-add-backend #'company-coq-block-end-backend))
+    (`off (company-coq-remove-backend #'company-coq-block-end-backend))))
+
+(company-coq-define-feature reserved-keywords-backend (arg)
+  "Completion of Coq reserved keywords.
+Autocompletes 'fix', 'with', 'let', etc."
+  (pcase arg
+    (`on (company-coq-add-backend #'company-coq-reserved-keywords-backend))
+    (`off (company-coq-remove-backend #'company-coq-reserved-keywords-backend))))
+
+(company-coq-define-feature refman-backend (arg)
+  "Completion of tactics and commands documented in the manual.
+Autcompletes 'applin' into 'apply ... in ...'."
+  (pcase arg
+    (`on (company-coq-add-backend #'company-coq-refman-backend))
+    (`off (company-coq-remove-backend #'company-coq-refman-backend))))
+
+(company-coq-define-feature context-backend (arg)
+  "Completion of hypotheses.
+Autocompletes hypothesis names from the current proof context."
+  (pcase arg
+    (`on (company-coq-add-backend #'company-coq-context-backend))
+    (`off (company-coq-remove-backend #'company-coq-context-backend))))
+
+(company-coq-define-feature modules-backend (arg)
+  "Completion of module names.
+Autocompletes after 'Require '."
+  (pcase arg
+    (`on (company-coq-add-backend #'company-coq-modules-backend))
+    (`off (company-coq-remove-backend #'company-coq-modules-backend))))
+
+(company-coq-define-feature local-definitions-backend (arg)
+  "Completion of local definitions.
+Autocompletes theorem and tactic names from the current buffer."
+  (pcase arg
+    (`on (company-coq-add-backend #'company-coq-local-definitions-backend))
+    (`off (company-coq-remove-backend #'company-coq-local-definitions-backend))))
+
+(company-coq-define-feature search-results-backend (arg)
+  "Completion using search results.
+Autocompletes theorem names from results of the last search."
+  (pcase arg
+    (`on (company-coq-add-backend #'company-coq-search-results-backend))
+    (`off (company-coq-remove-backend #'company-coq-search-results-backend))))
+
+(company-coq-define-feature dynamic-tactics-backend (arg)
+  "Completion of tactics (dynamic).
+Autocompletes tactics and notations by querying the prover."
+  (pcase arg
+    (`on (company-coq-add-backend #'company-coq-dynamic-tactics-backend))
+    (`off (company-coq-remove-backend #'company-coq-dynamic-tactics-backend))))
+
+(company-coq-define-feature dynamic-symbols-backend (arg)
+  "Completion of global definitions [experiental, slow].
+Autocompletes theorem names by querying the prover."
+  (pcase arg
+    (`on (company-coq-add-backend #'company-coq-dynamic-symbols-backend))
+    (`off (company-coq-remove-backend #'company-coq-dynamic-symbols-backend))))
+
+(defun company-coq-warn-obsolete-setting (setting)
+  "Warn about the use of obsolete setting SETTING."
+  ;; TODO start issuing warnings for outdated customizations in a future release
+  (unless t
+    (company-coq-warn "Option %S is obsolete. Customize `company-coq-disabled-features' instead." setting)))
+
+(company-coq-define-feature obsolete-settings (arg)
+  "Obsolete settings support (from versions before 1.0).
+Understands settings inherited from previous versions of
+company-coq."
+  (pcase arg
+    (`on
+     (let ((used-obsolete-settings nil))
+       (unless company-coq-autocomplete-context
+         (push 'company-coq-autocomplete-context used-obsolete-settings)
+         (add-to-list 'company-coq-disabled-features 'context-backend))
+       (unless company-coq-autocomplete-modules
+         (push 'company-coq-autocomplete-modules used-obsolete-settings)
+         (add-to-list 'company-coq-disabled-features 'modules-backends))
+       (unless company-coq-autocomplete-symbols
+         (push 'company-coq-autocomplete-symbols used-obsolete-settings)
+         (add-to-list 'company-coq-disabled-features 'dynamic-symbols-backend))
+       (unless company-coq-autocomplete-block-end
+         (push 'company-coq-autocomplete-block-end used-obsolete-settings)
+         (add-to-list 'company-coq-disabled-features 'block-end-backend))
+       (unless company-coq-autocomplete-search-results
+         (push 'company-coq-autocomplete-search-results used-obsolete-settings)
+         (add-to-list 'company-coq-disabled-features 'search-results-backend))
+       (unless company-coq-prettify-symbols
+         (push 'company-coq-prettify-symbols used-obsolete-settings)
+         (add-to-list 'company-coq-disabled-features 'prettify-symbols))
+       (when company-coq-dynamic-autocompletion
+         (push 'company-coq-dynamic-autocompletion used-obsolete-settings)
+         (cl-loop for feature in '(dynamic-symbols-backend)
+                  do (setq company-coq-disabled-features (remove feature company-coq-disabled-features))))
+       (dolist (setting used-obsolete-settings)
+         (company-coq-warn-obsolete-setting setting))))))
+
+(defun company-coq-enabled-features ()
+  "Compute the list of enabled company-coq features."
+  (cl-remove-if (lambda (b) (member b company-coq-disabled-features))
+                (mapcar #'car company-coq-available-features)))
+
+;;;###autoload
+(define-minor-mode company-coq-mode
+  "Toggle company-coq-mode on or off.
+
+With a prefix argument ARG, enable %s if ARG is
+positive, and disable it otherwise.  If called from Lisp, enable
+the mode if ARG is omitted or nil, and toggle it if ARG is `toggle'.
+
+Company-coq is a collection of Proof-General extensions.  See
+https://github.com/cpitclaudel/company-coq/ for a detailed
+description, including screenshots and documentation.  First time
+users may want to use \\[company-coq-tutorial] to open the
+tutorial.
+
+\\{company-coq-map}"
+  :lighter " 🐣" ;; 🐤 🐓
+  :group 'company-coq
+  :keymap company-coq--core-map
+  :variable company-coq-mode
+  (if company-coq-mode
+      (if (company-coq-coq-mode-p)
+          (company-coq-toggle-features (company-coq-enabled-features) t)
+        (user-error "Company-coq only works with coq-mode"))
+    (company-coq-toggle-features (company-coq-enabled-features) nil)))
+
+;;;###autoload
+(defun company-coq-initialize () ;; TODO deprecate this
+  "Deprecated: Use `company-coq-mode' instead."
   (interactive)
-  (when (not (company-coq-coq-mode-p))
-    (error "company-coq only works with coq-mode."))
-
-  ;; Setup backends and relevant minor modes
-  (company-coq-setup-optional-backends)
-  (company-coq-setup-minor-modes)
-
-  ;; Some more improvements that don't fit in any of the minor modes
-  (company-coq-setup-misc-pc-improvements)
-
-  ;; Load keywords
-  (company-coq-init-keywords)
-
-  ;; Setup hooks
-  (company-coq-setup-hooks)
-
-  ;; Set up a few convenient key bindings
-  (company-coq-setup-keybindings))
+  (company-coq-mode))
 
 (defun company-coq-unload-function ()
+  "Unload function for company-coq."
+  (company-coq-do-in-coq-buffers (company-coq-mode -1))
   (cl-loop for feature in '(company-coq-abbrev company-coq-tg)
            when (featurep feature)
            do (unload-feature feature t))
-
-  (remove-hook 'proof-shell-init-hook #'company-coq-prover-init)
-  (remove-hook 'proof-shell-insert-hook #'company-coq-maybe-proof-input-reload-things)
-  (remove-hook 'proof-shell-handle-delayed-output-hook #'company-coq-maybe-proof-output-reload-things)
-  (remove-hook 'proof-shell-handle-error-or-interrupt-hook #'company-coq-maybe-reload-context)
-
-  (remove-hook 'coq-goals-mode-hook #'company-coq-setup-goals-buffer)
-  (remove-hook 'coq-response-mode-hook #'company-coq-setup-response-buffer)
-
-  (remove-hook 'yas-after-exit-snippet-hook #'company-coq-forget-choices)
-  (remove-hook 'hack-local-variables-hook #'company-coq-update-local-symbols)
-
-  (setq font-lock-syntactic-face-function (default-value 'font-lock-syntactic-face-function))
-  (help-at-pt-cancel-timer)
-
-  (setq company-backends     (delete company-coq-backends company-backends))
-  (setq company-backends     (delete #'company-coq-choices company-backends))
-  (setq company-transformers (delete #'company-coq-sort-in-backends-order company-transformers))
-
-  (cl-loop for buffer in (buffer-list)
-           do (with-current-buffer buffer
-                (when (company-coq-coq-mode-p)
-                  (company-mode -1)
-                  (yas-minor-mode -1)
-                  (outline-minor-mode -1)
-                  (when (fboundp 'prettify-symbols-mode)
-                    (company-coq-suppress-warnings (prettify-symbols-mode -1)))
-                  (company-coq--keybindings-minor-mode -1))))
-
   nil)
 
 (defun toggle-company-coq-debug ()
@@ -2874,6 +3416,10 @@ When on, print debug messages during operation."
   (message "company-coq-debug: %s" company-coq-debug))
 
 ;; TODO add a binding to look up the word at point
+
+;; Local Variables:
+;; checkdoc-arguments-in-order-flag: nil
+;; End:
 
 (provide 'company-coq)
 ;;; company-coq.el ends here
