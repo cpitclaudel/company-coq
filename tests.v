@@ -12,11 +12,12 @@ Ltac SimpleLtac a b cde := idtac.
 Goal True = False -> False.
   intros.
   rewrite <- ?H. (* Is this colored? Ideally it should not be colored at all *)
+  (* Are contents of goal buffer prettified? *)
   apply I.
 Qed.
 
 (* This should be underlined. *)
-Unset Undo.
+Unset Undo. (* Putting cursor or point on error should show help-echo *)
 
 (* This should not be underlined *)
 Fail abc_Unset Undo.
@@ -34,6 +35,28 @@ Definition PrettySymbols : (nat -> nat -> Prop) :=
   (fun (n m: nat) =>
      forall p, p <> n -> p >= m -> True \/ False).
 
+Definition bullets: True \/ (True \/ True) -> True.
+Proof.
+  - intros.                     (* Does this fold? *)
+    destruct H.
+    + {                         (* What about this (inside and outside the brackets)? *)
+        apply I.
+      }
+    + idtac.                    (* and this? *)
+      apply I.
+Qed.
+
+Definition braces: True \/ (True \/ True) -> True.
+Proof.
+  { intros.
+    destruct H.
+    {
+      apply I.
+    }
+    { apply I. }
+  }
+Qed.
+
 (** Is this comment highlighted differently? Does it fill? (try pressing M-q (fill-paragraph)) *)
 
 (*+++++++++++++++++++++++++++*)
@@ -41,14 +64,16 @@ Definition PrettySymbols : (nat -> nat -> Prop) :=
 (*+ what about this one? +*)
 (*** And this one? **)
 (******** but not this one? *)
+(* Does disabling company-coq restore the comments to a small font? *)
 
 (* AAABBB and BBBCCC should autocomplete without starting the prover, and appear in the outline (C-c C-,) *)
 
 (* Start prover *)
-Require Import Omega Coq.Arith.Arith. (* This should autocomplete *)
+Require Import Omega Coq.Arith.Arith. (* This should autocomplete (first result should be correct) *)
 SearchAbout plus.
+
 (* plu should autocomplete after running this search *)
-(* Pressing <menu> on plus should show a definition inline. Same for SimpleLtac *)
+(* Pressing <menu> or control-clicking on plus should show a definition inline, prettified. Same for SimpleLtac *)
 
 Lemma clear_search : True. Proof I.
 
@@ -74,7 +99,7 @@ Lemma TestSubscripts :
   forall x: True, True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> nat -> nat.
 Proof.
   intros.
-  (* Are subscripts displaying properly? *)
+  (* Are subscripts displaying properly? What about the goals line? *)
   constructor.
 Qed.
 
@@ -93,7 +118,8 @@ Proof.
   intros number hypothesis.
   induction number. (* number should be autocompleted here *)
   simpl in *.
-  omega. (* Documentation should be available here *)
+
+  omega. (* Documentation should be available here *) (* omega shouldn't be duplicated in the completions list *)
 
   simpl in *.
   (* This should be typeable using:
@@ -118,6 +144,8 @@ Definition plus1 (n: nat) :=
 Example NameContaining_with_ : True. (* Dummy Example to add a name containing "with" to the context *)
 apply I.
 Qed.
+
+(* FIXME indentation is slow here *)
 
 Fixpoint TestFixpoint (l: list nat) :=
   (* It should be possible to type "match ... with" and press enter to go to the next line *)
@@ -148,9 +176,8 @@ Section TestSectionName.
     Lemma t: True -> 1 + 1 = 2.
     Proof.
       intros.
-      (* Try lemma-from-goal C-c C-a C-x here *)
+      (* Try extract-lemma-from-goal C-c C-a C-x here *)
     Abort.
-
   End OtherSection. (* These names should autocomplete *)
 End TestSectionName.
 
@@ -180,7 +207,7 @@ Qed.
 
 (* M-x company-coq-tutorial should work *)
 
-(* Print Instances should show a dropdown when inserted *)
+(* Print Instances should show a dropdown when inserted. *)
 
 Require Import Utf8.
 Lemma MathCompletion : ∀ x, x > 1 → x > 0. (* This can be typed using \forall *)
@@ -275,8 +302,7 @@ Qed.
 
 Require Import Omega.
 
-(* Does [zif] yield a list of tactic names? Are they browsable? (C-w) *)
-
+(* Does [zif] yield a list of tactic names? Are they browsable? (C-w) o they have the right 'meta' property? *)
 (* Does [Simple] yield a tactic completion? Is it a snippet? Is there a source view feature? *)
 
 Tactic Notation "myR" constr(from) "->" constr(to) "by" tactic(tac) := idtac.
@@ -696,3 +722,5 @@ Require Import RelationPairs.
 (* Loaded 8092 symbols (0.088 seconds) With optimized proof-general search *)
 (* Loaded 8092 symbols (0.136 seconds) With plain proof-general search *)
 (* Loaded 8092 symbols (0.155 seconds) With optimized proof-general search on battery *)
+
+(* !!! Still broken: Completion of block end *)
