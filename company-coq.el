@@ -81,12 +81,19 @@
 (require 'coq)          ;; `coq-insert-match'
 
 (defgroup company-coq nil
-  "Completion back-end for Coq"
+  "Extensions for Proof General's Coq mode."
   :group 'company)
 
-(defcustom company-coq-debug nil
-  "Debug mode for company-coq."
+(defgroup company-coq-obsolete nil
+  "Company-coq obsolete settings."
   :group 'company-coq)
+
+(defgroup company-coq-faces nil
+  "Company-coq faces."
+  :group 'company-coq)
+
+(defvar company-coq-debug nil
+  "Debug mode for company-coq.")
 
 (defcustom company-coq-custom-snippets '("Section ${1:SectionName}.\n$0\nEnd $1."
                               "Chapter ${1:ChapterName}.\n$0\nEnd $1." ;; Commented out in RefMan-ext.v
@@ -98,14 +105,14 @@
                               "lazymatch constr:($1) with\n$0\nend"
                               "match goal with\n$0\nend"
                               "lazymatch goal with\n$0\nend")
-  "Custom YAS snippets.")
+  "Custom snippets.  Feel free to share your snippets on company-coq's Github!")
 
 (defcustom company-coq-dynamic-autocompletion nil
   "Get suggestions by querying coq about defined identifiers.
 
 This is an experimental feature.  It requires Coq 8.5 beta 3 or a
 patched version of Coq 8.4 to work properly."
-  :group 'company-coq)
+  :group 'company-coq-obsolete)
 (make-obsolete-variable 'company-coq-dynamic-autocompletion 'company-coq-disabled-features "company-coq 1.0")
 
 (defconst company-coq--capability-detection-cmd "Test Search Output Name Only"
@@ -121,39 +128,39 @@ One of 'unknown, 'yes, 'no.")
 (defcustom company-coq-autocomplete-context t
   "Autocomplete hypotheses by parsing the latest Goals output.
 This is an experimental feature."
-  :group 'company-coq)
+  :group 'company-coq-obsolete)
 (make-obsolete-variable 'company-coq-autocomplete-context 'company-coq-disabled-features "company-coq 1.0")
 
 (defcustom company-coq-autocomplete-modules t
   "Autocomplete module names from Coq's load path."
-  :group 'company-coq)
+  :group 'company-coq-obsolete)
 (make-obsolete-variable 'company-coq-autocomplete-modules 'company-coq-disabled-features "company-coq 1.0")
 
 (defcustom company-coq-autocomplete-block-end t
   "Autocomplete the name of the last opened block."
-  :group 'company-coq)
+  :group 'company-coq-obsolete)
 (make-obsolete-variable 'company-coq-autocomplete-block-end 'company-coq-disabled-features "company-coq 1.0")
 
 (defcustom company-coq-autocomplete-search-results t
   "Autocomplete symbol names pulled from the results of the last search."
-  :group 'company-coq)
+  :group 'company-coq-obsolete)
 (make-obsolete-variable 'company-coq-autocomplete-search-results 'company-coq-disabled-features "company-coq 1.0")
 
 (defcustom company-coq-autocomplete-symbols t
   "Autocomplete symbols by searching in the buffer for lemmas and theorems.
 If the dynamic completion feature is on, query the proof
 assistant in addition to searching."
-  :group 'company-coq)
+  :group 'company-coq-obsolete)
 (make-obsolete-variable 'company-coq-autocomplete-symbols 'company-coq-disabled-features "company-coq 1.0")
 
 (defcustom company-coq-prettify-symbols t
   "Transparently replace keywords by the corresponding symbols.
 The contents of the buffer are not changed."
-  :group 'company-coq)
+  :group 'company-coq-obsolete)
 (make-obsolete-variable 'company-coq-prettify-symbols 'company-coq-disabled-features "company-coq 1.0")
 
 (defcustom company-coq-explicit-placeholders t
-  "Show holes in snippets using explicit placeholders."
+  "Show holes in snippets using explicit '_' placeholders."
   :group 'company-coq)
 
 (defvar company-coq-enabled-backends nil
@@ -161,9 +168,8 @@ The contents of the buffer are not changed."
 Do not enable or disable backends by editing this list; instead,
 customize `company-coq-disabled-features'.")
 
-(defcustom company-coq-disabled-patterns '("without loss")
-  "List of patterns that are not imported from Proof General's list."
-  :group 'company-coq)
+(defvar company-coq-disabled-patterns '("without loss")
+  "List of patterns that are not imported from Proof General's list.")
 
 (defvar company-coq-disabled-patterns-regexp (regexp-opt company-coq-disabled-patterns)
   "Regexp version of `company-coq-disabled-patterns'.")
@@ -505,27 +511,27 @@ infinite loop (they are not cleared by [generalize dependent]).")
 (defface company-coq-doc-header-face-source
   '((t :height 1.5))
   "Face used to highlight the target line in source view."
-  :group 'company-coq)
+  :group 'company-coq-faces)
 
 (defface company-coq-doc-header-face-docs
   '((t :inherit highlight :height 1.2))
   "Face used to highlight the target line in the docs."
-  :group 'company-coq)
+  :group 'company-coq-faces)
 
 (defface company-coq-doc-tt-face
   '((t :inherit font-lock-keyword-face :weight bold))
   "Face used to highlight keywords in the docs."
-  :group 'company-coq)
+  :group 'company-coq-faces)
 
 (defface company-coq-doc-i-face
   '((t :inherit font-lock-variable-name-face :weight bold :slant italic))
   "Face used to highlight symbol names in the docs."
-  :group 'company-coq)
+  :group 'company-coq-faces)
 
 (defface company-coq-subscript-face
   '((t :height 0.9))
   "Face used to change numbers to subscripts in hypothese names."
-  :group 'company-coq)
+  :group 'company-coq-faces)
 
 (defconst company-coq-subscript-spec
   `((,company-coq-numeric-hypothesis-regexp 1 '(face 'company-coq-subscript-face display (raise -0.1)) append))

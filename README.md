@@ -90,12 +90,12 @@ Add the following to your `.emacs`
 (require 'proof-site)
 
 ;; Load company-coq when opening Coq files
-(add-hook 'coq-mode-hook #'company-coq-initialize)
+(add-hook 'coq-mode-hook #'company-coq-mode)
 ```
 
 ## Quick start guide
 
-*You can check out the interactive tutorial by pressing `M-x company-coq-tutorial`.*
+*You can check out the interactive tutorial by pressing `M-x company-coq-tutorial RET`.*
 
 `company-coq` should be pretty transparent. Completion windows will pop up when `company-coq` has suggestions to make. By default, this would be when you start writing a tactic name or a command. You can also launch manual completion by using <kbd>C-RET</kbd> (or whatever was originally assigned to `proof-script-complete` in Coq mode).
 
@@ -129,6 +129,8 @@ Loading `company-coq` also binds the following keys:
 * Using <kdb>M-S-RET</kbd> to insert new cases in a `match goal` saves a lot of time (and finger contortions).
 * The point-and-click feature (quick help) also works in non-graphic mode, if you enable `xterm-mouse-mode`.
 * `company-coq` improves on some of Proof-General's features. Try <kbd>C-c C-a RET nat RET</kbd>.
+
+`company-coq` is implemented as a collection of small modules implementing independent features; check out `M-x customize-variable RET company-coq-disabled-features RET` and `M-x customize-group RET company-coq RET` for more info!
 
 ## Screenshots
 
@@ -295,20 +297,6 @@ The procedure above will give you auto-completion and documentation for tactics,
 ```
 
 This feature won't work unless you build and use a patched coq REPL: see [this fork](https://github.com/cpitclaudel/coq/tree/v8.5-with-cc-patches). One of the relevant patches has been merged upstream; the other two are being discussed [here](https://github.com/coq/coq/pull/64) and [here](https://github.com/coq/coq/pull/56).
-
-### Disabling some modules
-
-Modules, context, symbols, end of block and search results auto-completion can be turned off using the following lines
-
-```elisp
-(setq company-coq-autocomplete-modules nil)
-(setq company-coq-autocomplete-context nil)
-(setq company-coq-autocomplete-symbols nil)
-(setq company-coq-autocomplete-block-end nil)
-(setq company-coq-autocomplete-search-results nil)
-```
-
-You can set these variables using `M-x customize-group RET company-coq RET
 
 ### Disabling company-coq
 
