@@ -3217,27 +3217,78 @@ folding at the level of Proofs."
   (pcase arg
     (`on
      (company-coq-do-in-coq-buffers
-       (outline-minor-mode)
        (setq-local outline-level #'company-coq-outline-level)
        (setq-local outline-regexp company-coq-outline-regexp)
-       (setq-local outline-heading-end-regexp company-coq-outline-heading-end-regexp)))
+       (setq-local outline-heading-end-regexp company-coq-outline-heading-end-regexp)
+       (outline-minor-mode)))
     (`off
      (company-coq-do-in-coq-buffers
-       (outline-minor-mode -1)
        (kill-local-variable 'outline-level)
        (kill-local-variable 'outline-regexp)
-       (kill-local-variable 'outline-heading-end-regexp)))))
+       (kill-local-variable 'outline-heading-end-regexp)
+       (outline-minor-mode -1)))))
+
+(defconst company-coq-features/code-folding--bullet-regexp
+  "^\\s-*\\([*+-]\\)"
+  "Regexp matching bullets.")
 
 ;; TODO The documentation of hs-special-modes-alist specifically warns against
 ;; leading spaces in regexps, but we need them to tell bullets apart from
 ;; operators.
 (defconst company-coq-features/code-folding--hs-spec
-  '(coq-mode "\\(^\\s-*[*+-]\\|{\\)" "}" "(\\*" nil nil)
+  `(coq-mode ,(concat "\\(" company-coq-features/code-folding--bullet-regexp "\\|{\\)") "}" "(\\*" nil nil)
   "Hide-show specification for Coq buffers.
 The closing '}' is not made optional, because `looking-back'
 wouldn't ever match it if it was.  `hs-minor-mode' doesn't mind a
 missing end marker (it uses `forward-sexp' to find the end of
 each block).")
+
+(defface company-coq-features/code-folding-bullet-face
+  '((t (:weight bold :inherit link)))
+  "Face used to change numbers to subscripts in hypothese names."
+  :group 'company-coq-faces)
+
+(defun company-coq-features/code-folding--click-bullet (event)
+  "Fold or unfold bullet at beginning of clicked line.
+EVENT is the corresponding mouse event."
+  (interactive "e")
+  (let* ((position (event-start event))
+         (window (posn-window position))
+         (buffer (window-buffer window)))
+    (with-selected-window window
+      (with-current-buffer buffer
+        (goto-char (posn-point position))
+        (company-coq-features/code-folding-toggle-bullet)))))
+
+(defun company-coq-features/code-folding-toggle-bullet ()
+  "Fold or unfold bullet at beginning of line of POS."
+  (interactive)
+  (-when-let* ((end (save-excursion
+                      (forward-line 0)
+                      (looking-at-p company-coq-features/code-folding--bullet-regexp)
+                      (point-at-eol))))
+    (forward-line 0)
+    (if (hs-overlay-at end)
+        (hs-show-block)
+      (hs-hide-block-at-point))
+    ;; Reposition before bullet
+    (backward-char)))
+
+(defconst company-coq-features/code-folding--keymap
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "<mouse-1>") #'company-coq-features/code-folding--click-bullet)
+    (define-key map (kbd "RET") #'company-coq-features/code-folding-toggle-bullet)
+    map)
+  "Keymap active over bullets.")
+
+(defconst company-coq-features/code-folding--bullet-spec
+  `((,company-coq-features/code-folding--bullet-regexp
+     1 '(face company-coq-features/code-folding-bullet-face
+              mouse-face highlight
+              keymap ,company-coq-features/code-folding--keymap
+              help-echo "Click this bullet to hide or show its body.")
+     append))
+  "Font-lock spec for bullets.")
 
 (company-coq-define-feature code-folding (arg)
   "Code folding.
@@ -3246,11 +3297,16 @@ the level of bullets."
   (pcase arg
     (`on
      (add-to-list 'hs-special-modes-alist company-coq-features/code-folding--hs-spec)
-     (company-coq-do-in-coq-buffers (hs-minor-mode)))
+     (company-coq-do-in-coq-buffers
+       (hs-minor-mode)
+       (font-lock-add-keywords nil company-coq-features/code-folding--bullet-spec 'add)
+       (company-coq-fontify-buffer)))
     (`off
-     (setq hs-special-modes-alist
-           (delete company-coq-features/code-folding--hs-spec hs-special-modes-alist))
-     (company-coq-do-in-coq-buffers (hs-minor-mode -1)))))
+     (setq hs-special-modes-alist (delete company-coq-features/code-folding--hs-spec hs-special-modes-alist))
+     (company-coq-do-in-coq-buffers
+       (hs-minor-mode -1)
+       (font-lock-remove-keywords company-coq-features/code-folding--bullet-spec company-coq-deprecated-spec)
+       (company-coq-fontify-buffer)))))
 
 (company-coq-define-feature company (arg)
   "Context-sensitive completion.
