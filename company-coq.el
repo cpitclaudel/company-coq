@@ -535,6 +535,11 @@ infinite loop (they are not cleared by [generalize dependent]).")
 (defconst company-coq-script-full-path load-file-name
   "Full path of this script.")
 
+(defconst company-coq-refman-path
+  (when company-coq-script-full-path
+    (expand-file-name "refman/" (file-name-directory company-coq-script-full-path)))
+  "Refman (and other assets)'s directory.")
+
 (defface company-coq-doc-header-face-source
   '((t :height 1.5))
   "Face used to highlight the target line in source view."
@@ -1865,8 +1870,7 @@ present."
     (let* ((anchor         (if (stringp name-or-anchor) (company-coq-get-anchor name-or-anchor) name-or-anchor))
            (shr-target-id  (and anchor (concat "qh" (int-to-string (cdr anchor)))))
            (doc-short-path (and anchor (concat (car anchor) ".html.gz")))
-           (doc-full-path  (and doc-short-path
-                                (concat (file-name-directory company-coq-script-full-path) "refman/" doc-short-path))))
+           (doc-full-path  (and doc-short-path (expand-file-name doc-short-path company-coq-refman-path))))
       (when doc-full-path
         (company-coq-with-clean-doc-buffer
           (company-coq-doc-refman-put-html doc-full-path truncate)
