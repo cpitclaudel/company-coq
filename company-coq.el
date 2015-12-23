@@ -3402,6 +3402,19 @@ The spec uses local-map instead of keymap, because it needs to
 take precedence over PG's own keymaps, introduced by the overlays
 that it adds after processing a buffer section.")
 
+;; TODO make this a defcustom
+(defvar company-coq-features/code-folding-ellipsis " […] " ;; … ⤶ ↲ ▶ ⏩ ▸
+  "Ellipsis used for code folding.")
+
+(defun company-coq-features/code-folding--set-display-table ()
+  "Add `company-coq-features/code-folding-ellipsis' to current buffer's display table."
+  (unless buffer-display-table
+    (setq buffer-display-table (make-display-table)))
+  (set-display-table-slot buffer-display-table 4 ;; 4 is the '...' slot
+                          (vconcat (mapcar (lambda (c) (make-glyph-code c font-lock-preprocessor-face))
+                                           company-coq-features/code-folding-ellipsis)))
+  (setq buffer-display-table buffer-display-table))
+
 (company-coq-define-feature code-folding (arg)
   "Code folding.
 Configures `hs-minor-mode' for use with Coq.  Support folding at
@@ -3411,6 +3424,7 @@ the level of bullets."
      (add-to-list 'hs-special-modes-alist company-coq-features/code-folding--hs-spec)
      (company-coq-do-in-coq-buffers
        (hs-minor-mode)
+       (company-coq-features/code-folding--set-display-table)
        (make-local-variable 'font-lock-extra-managed-props)
        (add-to-list 'font-lock-extra-managed-props 'display)
        (add-to-list 'font-lock-extra-managed-props 'front-sticky)
@@ -3423,6 +3437,7 @@ the level of bullets."
      (setq hs-special-modes-alist (delete company-coq-features/code-folding--hs-spec hs-special-modes-alist))
      (company-coq-do-in-coq-buffers
        (hs-minor-mode -1)
+       (kill-local-variable 'buffer-display-table)
        (font-lock-remove-keywords company-coq-features/code-folding--bullet-fl-spec company-coq-deprecated-spec)
        (company-coq-request-refontification)))))
 
