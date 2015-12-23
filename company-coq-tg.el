@@ -26,6 +26,8 @@
 
 ;;; Code:
 
+(require 'cl-lib)
+
 (defconst company-coq-tg--preprocessor-substitutions '(("\n"  . " ") ("[ "  . "( OR-GROUP ") (" ]"  . " )")
                                                        (" | " . " OR ") ("; "  . " AND "))
   "List of replacements to facilitate parsing.")
@@ -101,13 +103,13 @@
     (_ (error "Subentry parsing failure [%s]" sexp))))
 
 (defun company-coq-tg--parse-toplevel-helper (name entries rest)
-  "Turn top-level ENTRIES filed under NAME into tactic abbrevs.
+  "Turn top level ENTRIES filed under NAME into tactic abbrevs.
 Then, process REST."
   (cons (cons 'ENTRY (cons name (company-coq-tg--parse-group entries #'company-coq-tg--parse-entry)))
         (company-coq-tg--parse-toplevel rest)))
 
 (defun company-coq-tg--parse-toplevel (sexp)
-  "Turn a top-level SEXP into tactic abbrevs."
+  "Turn a top level SEXP into tactic abbrevs."
   (pcase sexp
     (`nil nil)
     (`(Entry ,name is ,(and entries (pred listp))     . ,rest) (company-coq-tg--parse-toplevel-helper name entries rest))
@@ -167,6 +169,10 @@ GRAMMAR-STR should be the output of a Print Grammar Tactic call."
     (cl-loop for s-tac in (company-coq-tg--find-tactics (company-coq-tg--parse-toplevel sexp))
              append (cl-loop for tac in (company-coq-tg--format-tactic s-tac)
                              collect (mapconcat #'identity tac " ")))))
+
+;; Local Variables:
+;; checkdoc-arguments-in-order-flag: nil
+;; End:
 
 (provide 'company-coq-tg)
 ;;; company-coq-tg.el ends here
