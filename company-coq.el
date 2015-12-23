@@ -3593,6 +3593,19 @@ company-coq."
   (cl-remove-if (lambda (b) (member b company-coq-disabled-features))
                 (mapcar #'car company-coq-available-features)))
 
+(defvar company-coq--lighter-var
+  (concat " "
+          (propertize "🐣" 'display ;; 🐤 🐓
+                      `(image :type imagemagick ;; Image file from emojione
+                              :file ,(expand-file-name "rooster.png" company-coq-refman-path) ;; rooster
+                              :ascent center
+                              :mask heuristic
+                              :height 15)))
+  "Lighter var for company-coq-mode.
+Must be tagged risky to display properly.")
+
+(put 'company-coq--lighter-var 'risky-local-variable t)
+
 ;;;###autoload
 (define-minor-mode company-coq-mode
   "Toggle company-coq-mode on or off.
@@ -3608,7 +3621,7 @@ users may want to use \\[company-coq-tutorial] to open the
 tutorial.
 
 \\{company-coq-map}"
-  :lighter " 🐣" ;; 🐤 🐓
+  :lighter company-coq--lighter-var
   :group 'company-coq
   :keymap company-coq--core-map
   :variable company-coq-mode
