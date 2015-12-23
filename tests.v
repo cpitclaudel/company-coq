@@ -52,9 +52,9 @@ Definition InactiveBraces := "{{}}"%string. (* These braces shouldn't be active 
    +
    - *)
 
-Definition braces: True \/ (True \/ True) -> True.
+Definition braces: forall epsilon: nat, True \/ (True \/ True) -> True.
 Proof.
-  { intros.
+  { intros.                     (* is epsilon prettified in the goals buffer? *)
     destruct H.
     { (* Does this fold? *)
       apply I.

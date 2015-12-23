@@ -88,6 +88,7 @@
   ;; Explicitly loading PG is a huge mess, so instead of trying that just expect
   ;; hope that the user will have loaded it independently of this package.
   (defvar proof-goals-buffer)
+  (defvar proof-script-buffer)
   (defvar proof-response-buffer)
   (defvar proof-script-fly-past-comments)
   (defvar proof-shell-last-goals-output)
@@ -3108,21 +3109,38 @@ types using <C-click> or <menu>."
   (pcase arg
     (`off (company-coq-do-in-coq-buffers (company-coq-clear-definition-overlay)))))
 
-(defun company-coq-features/prettify-symbols--enable-1 ()
-  "Set up prettify-symbols in the current buffer."
+(defun company-coq-features/prettify-symbols--enable-1 (buffer)
+  "Set up prettify-symbols in the current buffer.
+BUFFER is used to retrieve the buffer-local values of
+`prettify-symbols-alist' etc."
   (when (and (display-graphic-p)
              (fboundp #'prettify-symbols-mode))
-    (company-coq-suppress-warnings  ;; FIXME deduplicate?
-      (setq-local prettify-symbols-alist (append prettify-symbols-alist
-                                                 company-coq-prettify-symbols-alist
-                                                 company-coq-local-symbols))
-      (prettify-symbols-mode))))
+    (setq-local prettify-symbols-alist
+                (with-current-buffer buffer
+                  (-distinct (append prettify-symbols-alist
+                                     company-coq-prettify-symbols-alist
+                                     company-coq-local-symbols))))
+    (prettify-symbols-mode)))
+
+(defun company-coq-features/prettify-symbols--enable-script ()
+  "Set up prettify-symbols in the current (scripting) buffer."
+  (company-coq-features/prettify-symbols--enable-1 (current-buffer)))
+
+(defun company-coq-features/prettify-symbols--enable-other ()
+  "Set up prettify-symbols in the current (goals or response) buffer."
+  (company-coq-features/prettify-symbols--enable-1 (if (buffer-live-p proof-script-buffer)
+                                            proof-script-buffer
+                                          (current-buffer))))
+
+(defun company-coq-features/prettify-symbols--enable-others ()
+  "Enable prettify-symbols in response and goals buffers."
+  (company-coq-do-in-goals-buffer (company-coq-features/prettify-symbols--enable-other))
+  (company-coq-do-in-response-buffer(company-coq-features/prettify-symbols--enable-other)))
 
 (defun company-coq-features/prettify-symbols--enable ()
   "Enable prettify-symbols in all Coq buffers."
-  (company-coq-do-in-coq-buffers (company-coq-features/prettify-symbols--enable-1))
-  (company-coq-do-in-goals-buffer (company-coq-features/prettify-symbols--enable-1))
-  (company-coq-do-in-response-buffer (company-coq-features/prettify-symbols--enable-1)))
+  (company-coq-do-in-coq-buffers (company-coq-features/prettify-symbols--enable-script))
+  (company-coq-features/prettify-symbols--enable-others))
 
 (defun company-coq-features/prettify-symbols--disable ()
   "Disable prettify-symbols in all Coq buffers."
@@ -3143,14 +3161,12 @@ for display (the buffer contents are not modified, though).
   (pcase arg
     (`on
      (company-coq-features/prettify-symbols--enable)
-     (add-hook 'coq-goals-mode-hook #'company-coq-features/prettify-symbols--enable-1)
-     (add-hook 'coq-response-mode-hook #'company-coq-features/prettify-symbols--enable-1)
-     (add-hook 'hack-local-variables-hook #'company-coq-features/prettify-symbols--update-table))
+     (add-hook 'hack-local-variables-hook #'company-coq-features/prettify-symbols--update-table)
+     (add-hook 'proof-activate-scripting-hook #'company-coq-features/prettify-symbols--enable-others))
     (`off
      (company-coq-features/prettify-symbols--disable)
-     (remove-hook 'coq-goals-mode-hook #'company-coq-features/prettify-symbols--enable-1)
-     (remove-hook 'coq-response-mode-hook #'company-coq-features/prettify-symbols--enable-1)
-     (remove-hook 'hack-local-variables-hook #'company-coq-features/prettify-symbols--update-table))))
+     (remove-hook 'hack-local-variables-hook #'company-coq-features/prettify-symbols--update-table)
+     (remove-hook 'proof-activate-scripting-hook #'company-coq-features/prettify-symbols--enable-others))))
 
 (company-coq-define-feature snippets (arg)
   "Snippets for various common Coq forms.
