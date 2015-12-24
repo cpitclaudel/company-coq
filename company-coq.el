@@ -1556,7 +1556,9 @@ Nothing is reloaded immediately; instead the relevant flags are set."
 If NAME has an 'anchor text property, returns a help message."
   (company-coq-dbg "company-coq-meta-refman: Called for name %s" name)
   (and (company-coq-get-anchor name) ;; substitute-command-keys doesn't work here
-       "C-h: Quick docs. C-w: Full docs (scrollable)."))
+       (format "%s: Show the documentation of this Coq command."
+               (key-description (where-is-internal #'company-show-doc-buffer
+                                                   company-active-map t)))))
 
 (defun company-coq-meta-simple (name)
   "Read precomputed company's meta for NAME."
@@ -1832,27 +1834,19 @@ DOM and FONT are as in these functions."
   "Fromat an i tag CONT."
   (company-coq-shr-fontize cont 'company-coq-doc-i-face))
 
-(defun company-coq-doc-refman-prettify-title (target-point truncate)
+(defun company-coq-doc-refman-prettify-title (target-point)
   "Make a pretty title at TARGET-POINT, optionally TRUNCATE -ing everything before."
-  ;; Company-mode returns to the beginning of the buffer, so centering
-  ;; vertically doesn't work.  Instead, just truncate everything, leaving
-  ;; just a bit of room for comments preceeding the tactic if any.
-  ;; FIXME this is fixed in company's master
   (goto-char (or target-point (point-min)))
   (when target-point
     (company-coq-make-title-line 'company-coq-doc-header-face-docs)
     (when (= (char-after (point)) ?*)
-      (delete-char 1)) ;; Remove the star (*) added by shr
-    (if (not (eq truncate 'truncate))
-        (recenter)
-      (forward-line -2)
-      (delete-region (point-min) (point)))))
+      (delete-char 1)))) ;; Remove the star (*) added by shr
 
 (defun company-coq-emacs-below-25-p ()
   "Check if current Emacs version is below 25."
   (< emacs-major-version 25))
 
-(defun company-coq-doc-refman-put-html (html-full-path truncate)
+(defun company-coq-doc-refman-put-html (html-full-path)
   "Print formatted html from HTML-FULL-PATH in current buffer.
 With TRUNCATE, remove text before formatted title line, if
 present."
@@ -1869,9 +1863,9 @@ present."
         (shr-external-rendering-functions '((tt . company-coq-shr-tag-tt)
                                             (i  . company-coq-shr-tag-i))))
     (shr-insert-document doc) ;; This sets the 'shr-target-id property upon finding the shr-target-id anchor
-    (company-coq-doc-refman-prettify-title (next-single-property-change (point-min) 'shr-target-id) truncate)))
+    (company-coq-doc-refman-prettify-title (next-single-property-change (point-min) 'shr-target-id))))
 
-(defun company-coq-doc-buffer-refman (name-or-anchor &optional truncate)
+(defun company-coq-doc-buffer-refman (name-or-anchor)
   "Prepare company's doc buffer for keyword NAME-OR-ANCHOR.
 With TRUNCATE, remove text before formatted title line, if
 present."
@@ -1884,8 +1878,8 @@ present."
            (doc-full-path  (and doc-short-path (expand-file-name doc-short-path company-coq-refman-path))))
       (when doc-full-path
         (company-coq-with-clean-doc-buffer
-          (company-coq-doc-refman-put-html doc-full-path truncate)
-          (cons (current-buffer) (point)))))))
+          (company-coq-doc-refman-put-html doc-full-path)
+          (cons (current-buffer) (save-excursion (forward-line -2) (point))))))))
 
 (defun company-coq-candidates-symbols (prefix)
   "Find symbols matching PREFIX."
@@ -2235,8 +2229,8 @@ Proof General itself."
   (company-coq-dbg "refman backend: called with command %s" command)
   (pcase command
     (`meta (company-coq-meta-refman arg))
-    (`doc-buffer (car (company-coq-doc-buffer-refman arg 'truncate)))
-    (`location (company-coq-doc-buffer-refman arg nil)) ;; TODO
+    (`doc-buffer (company-coq-doc-buffer-refman arg))
+    (`location (company-coq-doc-buffer-refman arg)) ;; TODO show an actual location?
     (`comparison-fun #'company-coq-string-lessp-static-abbrevs)
     (_ (apply #'company-coq-generic-snippets-backend #'company-coq-init-static-abbrevs
               #'company-coq-refman-backend command arg ignored))))
