@@ -1569,12 +1569,14 @@ If NAME has an 'anchor text property, returns a help message."
 (defun company-coq-display-in-pg-window (buffer)
   "Display BUFFER in PG window."
   ;; This always displays the buffer, unless no window is available.  This was
-  ;; important, because if the window is not displayed upon calling
-  ;; shr-insert-document, then shr would get the window width incorrectly, and
-  ;; thus fail to wrap text properly. Setting the wrap limit to a large value
-  ;; fixes this, except when it yields an out of memory exception (eg. for the
-  ;; "mutually co-inductive records error" documentation) due to <hr>s or
-  ;; <table>s
+  ;; important (but it doesn't matter too much anymore), because if the window
+  ;; is not displayed and shr-width is not set upon calling
+  ;; `shr-insert-document', then shr will get the window width incorrectly, and
+  ;; thus fail to wrap text properly.
+  ;; Setting the wrap limit to a large value, as done by `company-coq-doc-refman-put-html'
+  ;; fixes this, but it requires that we remove <table>s and <hr>s from the
+  ;; manual, lest they cause an out of memory exception when rendering (eg. for
+  ;; the "mutually co-inductive records error" documentation)
   (company-coq-dbg "Called company-coq-display-in-pg-buffer with %s" buffer)
   (-if-let* ((pg-window (company-coq-get-goals-window)))
       (progn (set-window-dedicated-p pg-window nil)
