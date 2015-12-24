@@ -1598,6 +1598,7 @@ If NAME has an 'anchor text property, returns a help message."
              (buffer-disable-undo)
              (visual-line-mode 1)
              (setq-local show-trailing-whitespace nil)
+             (setq-local cursor-type nil)
              ,@body))))))
 
 (defun company-coq-setup-temp-coq-buffer ()
