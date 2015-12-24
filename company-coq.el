@@ -598,7 +598,7 @@ If WINDOWS is nil, just run BODY."
   (declare (indent defun)
            (debug t))
   `(progn
-     (let* ((windows (cl-remove-if #'null ,windows))
+     (let* ((windows (remove nil ,windows))
             (wstarts (mapcar #'window-start windows)))
        (prog1
            (progn ,@body)
@@ -1107,8 +1107,8 @@ comparison function."
 
 (defun company-coq-get-annotated-abbrevs ()
   "Construct a list of all abbrevs (tactics, vernacs, ...)."
-  (let ((pg-abbrevs (remove nil (mapcar (apply-partially #'apply #'company-coq-parse-abbrevs-pg-entry)
-                                        (company-coq-get-pg-abbrevs-db))))
+  (let ((pg-abbrevs (-keep (apply-partially #'apply #'company-coq-parse-abbrevs-pg-entry)
+                           (company-coq-get-pg-abbrevs-db)))
         (man-abbrevs (company-coq-number (mapcar #'company-coq-parse-man-db-entry
                                       (company-coq-get-man-abbrevs-db)))))
     (company-coq-union-nosort #'company-coq-abbrev-equal #'string-lessp #'company-coq-read-stripped-abbrev
