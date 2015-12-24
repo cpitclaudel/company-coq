@@ -3412,7 +3412,7 @@ take precedence over PG's own keymaps, introduced by the overlays
 that it adds after processing a buffer section.")
 
 ;; TODO make this a defcustom
-(defvar company-coq-features/code-folding-ellipsis " […] " ;; … ⤶ ↲ ▶ ⏩ ▸
+(defvar company-coq-features/code-folding-ellipsis " […]" ;; … ⤶ ↲ ▶ ⏩ ▸
   "Ellipsis used for code folding.")
 
 (defun company-coq-features/code-folding--set-display-table ()
