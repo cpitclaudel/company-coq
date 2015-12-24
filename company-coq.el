@@ -1760,14 +1760,14 @@ With SKIP-SPACE, do not format leading spaces."
          (_       (replace-regexp-in-string company-coq-placeholder-regexp counter snippet)))
     count))
 
-(defun company-coq-annotation-snippet (candidate)
+(defun company-coq-annotation-snippet (source candidate)
   "Compute company's annotation for snippet CANDIDATE."
   (let* ((snippet   (company-coq-get-snippet candidate))
          (num-holes (and snippet (company-coq-count-holes snippet)))
-         (prefix    (if (company-coq-get-anchor candidate) "..." "")))
+         (prefix    (if (company-coq-get-anchor candidate) "..." ""))) ;; 🕮 📓 …
     (if (and (numberp num-holes) (> num-holes 0))
-        (format "%s<kwd (%d)>" prefix num-holes)
-      (format "%s<kwd>" prefix))))
+        (format "%s<%s[%d]>" prefix source num-holes)
+      (format "%s<%s>" prefix source))))
 
 (defun company-coq-annotation-context (_)
   "Compute company's annotation for candidates from the proof contexts."
@@ -2215,7 +2215,6 @@ backend.  COMMAND, ARG and IGNORED: see `company-backends'."
     (`ignore-case nil)
     (`no-cache t)
     (`match (company-coq-match arg))
-    (`annotation (company-coq-annotation-snippet arg))
     (`post-completion (company-coq-post-completion-snippet arg))
     (`require-match 'never)))
 
@@ -2232,6 +2231,7 @@ Proof General itself."
     (`doc-buffer (company-coq-doc-buffer-refman arg))
     (`location (company-coq-doc-buffer-refman arg)) ;; TODO show an actual location?
     (`comparison-fun #'company-coq-string-lessp-static-abbrevs)
+    (`annotation (company-coq-annotation-snippet "ref" arg))
     (_ (apply #'company-coq-generic-snippets-backend #'company-coq-init-static-abbrevs
               #'company-coq-refman-backend command arg ignored))))
 
@@ -2242,6 +2242,7 @@ COMMAND, ARG and IGNORED: see `company-backends'."
   (company-coq-dbg "user snippets backend: called with command %s" command)
   (pcase command
     (`comparison-fun #'company-coq-string-lessp-foldcase)
+    (`annotation (company-coq-annotation-snippet "usr" arg))
     (_ (apply #'company-coq-generic-snippets-backend #'company-coq-collect-user-snippets
               #'company-coq-user-snippets-backend command arg ignored))))
 
