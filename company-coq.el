@@ -408,7 +408,7 @@ Needed in 8.4, not in 8.5.")
   "Separation line between sections of the doc buffer.")
 
 (defconst company-coq-dabbrev-to-yas-regexp "#\\|@{\\([^}]+\\)}"
-  "Ragexp matching holes in abbrevs.")
+  "Regexp matching holes in abbrevs.")
 
 (defconst company-coq-yasnippet-choice-regexp "${\\([a-z]+\\(|[a-z]+\\)+\\)}"
   "Regexp matching alternatives in abbrevs.")
@@ -975,21 +975,32 @@ redundant elements (such as omega)."
   "Collect abbrevs imported from the manual."
   company-coq-abbrevs)
 
-(defun company-coq-normalize-abbrev (kwd)
-  "Cleanup abbreviation KWD."
+(defun company-coq-normalize-abbrev (abbrev)
+  "Normalize abbreviation ABBREV for duplicate detection."
   (downcase
    (replace-regexp-in-string
     "[ .]+\\'" ""
     (replace-regexp-in-string
      (concat " *\\(" company-coq-placeholder-regexp "\\) *") "#"
-     kwd))))
+     abbrev))))
+
+(defun company-coq-cleanup-abbrev (abbrev)
+  "Cleanup ABBREV for display."
+  abbrev)
+
+;; FIXME look into this again once (when?) company supports it
+;; (replace-regexp-in-string "@{\\([^}]+\\)}"
+;;                           (lambda (match)
+;;                             (propertize (match-string-no-properties 1 match)
+;;                                         'face '(:slant italic :underline t)))
+;;                           abbrev)
 
 (defun company-coq-parse-abbrevs-pg-entry (menuname _abbrev insert &optional _statech _kwreg insert-fun _hide)
   "Convert PG abbrev to internal company-coq format.
 MENUNAME, INSERT, and INSERT-FUN are as in PG interal databases."
   (when (or (and insert (not (string-match-p company-coq-disabled-patterns-regexp insert)))
             (and (not insert) insert-fun))
-    (propertize (if insert-fun menuname insert)
+    (propertize (if insert-fun menuname (company-coq-cleanup-abbrev insert))
                 'source 'pg
                 'insert insert
                 'insert-fun insert-fun
@@ -999,7 +1010,7 @@ MENUNAME, INSERT, and INSERT-FUN are as in PG interal databases."
   "Convert ABBREV-AND-ANCHOR imported from the manual to internal company-coq format."
   (let ((abbrev (car abbrev-and-anchor))
         (anchor (cdr abbrev-and-anchor)))
-    (propertize abbrev
+    (propertize (company-coq-cleanup-abbrev abbrev)
                 'source 'man
                 'anchor anchor
                 'insert abbrev
