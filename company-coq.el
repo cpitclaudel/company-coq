@@ -195,11 +195,11 @@ The contents of the buffer are not changed."
 Do not enable or disable backends by editing this list; instead,
 customize `company-coq-disabled-features'.")
 
-(defvar company-coq-disabled-patterns '("without loss")
+(defvar company-coq-disabled-pg-patterns '("without loss")
   "List of patterns that are not imported from Proof General's list.")
 
-(defvar company-coq-disabled-patterns-regexp (regexp-opt company-coq-disabled-patterns)
-  "Regexp version of `company-coq-disabled-patterns'.")
+(defvar company-coq-disabled-pg-patterns-regexp (regexp-opt company-coq-disabled-pg-patterns)
+  "Regexp version of `company-coq-disabled-pg-patterns'.")
 
 (defcustom company-coq-sorted-backends '(company-coq-reserved-keywords-backend
                               company-coq-user-snippets-backend
@@ -998,7 +998,7 @@ redundant elements (such as omega)."
 (defun company-coq-parse-abbrevs-pg-entry (menuname _abbrev insert &optional _statech _kwreg insert-fun _hide)
   "Convert PG abbrev to internal company-coq format.
 MENUNAME, INSERT, and INSERT-FUN are as in PG interal databases."
-  (when (or (and insert (not (string-match-p company-coq-disabled-patterns-regexp insert)))
+  (when (or (and insert (not (string-match-p company-coq-disabled-pg-patterns-regexp insert)))
             (and (not insert) insert-fun))
     (propertize (if insert-fun menuname (company-coq-cleanup-abbrev insert))
                 'source 'pg
