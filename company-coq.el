@@ -2470,6 +2470,7 @@ Do not edit this keymap: instead, edit `company-coq-map'.")
     (define-key cc-map (kbd "<C-down-mouse-1>") #'company-coq-show-definition-overlay-under-pointer)
     (define-key cc-map (kbd "<C-mouse-1>")      #'company-coq-clear-definition-overlay)
     (define-key cc-map (kbd "<menu>")           #'company-coq-show-definition-overlay)
+    (define-key cc-map (kbd "<backtab>")        #'company-coq-features/code-folding-toggle-current-block)
     (define-key cc-map (kbd "SPC")              #'company-coq-maybe-exit-snippet)
     (define-key cc-map (kbd "RET")              #'company-coq-maybe-exit-snippet)
     (define-key cc-map [remap coq-insert-match] #'company-coq-insert-match-construct)
@@ -2794,7 +2795,7 @@ Return MAX-LINES if there are more than that."
 (defun company-coq-error-unless-feature-active (cc-feature)
   "Display an error, unless CC-FEATURE is enabled."
   (unless (company-coq-feature-active-p cc-feature)
-    (error "The `%s' feature is disabled" cc-feature)))
+    (user-error "The `%s' feature is disabled" cc-feature)))
 
 (defun company-coq-show-definition-overlay ()
   "Toggle inline docs for symbol at point."
@@ -3341,12 +3342,15 @@ EVENT is the corresponding mouse event."
     (with-selected-window window
       (with-current-buffer buffer
         (goto-char (posn-point position))
-        (company-coq-features/code-folding-toggle-bullet)))))
+        (company-coq-features/code-folding-toggle-bullet-at-point)))))
 
-(defun company-coq-features/code-folding-toggle-bullet ()
-  "Fold or unfold bullet at point."
+(defun company-coq-features/code-folding-toggle-bullet-at-point (&optional beg)
+  "Fold or unfold bullet at point.
+If BEG is specified, skip the bullet detection logic and assume
+BEG is a good position to call hidesho functions."
   (interactive)
-  (-when-let* ((beg (cond ((member (char-after) '(?* ?+ ?-))
+  (-when-let* ((beg (cond (beg beg)
+                          ((member (char-after) '(?* ?+ ?-))
                            (point-at-bol))
                           ((member (char-after) '(?{))
                            (point)))))
@@ -3359,7 +3363,7 @@ EVENT is the corresponding mouse event."
 (defconst company-coq-features/code-folding--keymap
   (let ((map (copy-keymap coq-mode-map)))
     (define-key map (kbd "<mouse-1>") #'company-coq-features/code-folding--click-bullet)
-    (define-key map (kbd "RET") #'company-coq-features/code-folding-toggle-bullet)
+    (define-key map (kbd "RET") #'company-coq-features/code-folding-toggle-bullet-at-point)
     map)
   "Keymap active over bullets.
 Explicitly copies `coq-mode-map' to mitigate the fact that it
@@ -3395,20 +3399,31 @@ will be used as a local-map.")
                (backward-up-list)
                (looking-back "Proof" (point-at-bol))))))))
 
-(defun company-coq-features/code-folding--search-forward (regexp bound)
-  "Find an instance of REGEXP, outside strings or comments.
+(defun company-coq-features/code-folding--search (search-fn regexp &optional bound)
+  "Find a bullet matching REGEXP using SEARCH-FN.
 BOUND is as in `re-search-forward'."
   (let ((found nil))
     (save-excursion
-      (while (and (setq found (re-search-forward regexp bound t))
+      (while (and (setq found (funcall search-fn regexp bound t))
                   (not (company-coq-features/code-folding--really-on-bullet-p)))))
     (when found
       (goto-char found))))
 
+(defun company-coq-features/code-folding-toggle-current-block ()
+  (interactive)
+  (company-coq-error-unless-feature-active 'code-folding)
+  (pcase-let* ((`(,bullet . ,end-of-bullet)
+                (save-excursion
+                  (when (company-coq-features/code-folding--search
+                         're-search-backward company-coq-features/code-folding--hs-regexp)
+                    (cons (point) (progn (forward-sexp) (point)))))))
+    (when (> end-of-bullet (point))
+      (company-coq-features/code-folding-toggle-bullet-at-point bullet))))
+
 (defconst company-coq-features/code-folding--bullet-fl-spec
-  `((,(apply-partially #'company-coq-features/code-folding--search-forward company-coq-features/code-folding--brace-regexp)
+  `((,(apply-partially #'company-coq-features/code-folding--search #'re-search-forward company-coq-features/code-folding--brace-regexp)
      0 ',company-coq-features/code-folding--bullet-fl-face nil)
-    (,(apply-partially #'company-coq-features/code-folding--search-forward company-coq-features/code-folding--bullet-regexp)
+    (,(apply-partially #'company-coq-features/code-folding--search #'re-search-forward company-coq-features/code-folding--bullet-regexp)
      1 ',company-coq-features/code-folding--bullet-fl-face nil))
   "Font-lock spec for bullets.
 The spec uses local-map instead of keymap, because it needs to
