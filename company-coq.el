@@ -189,8 +189,8 @@ The contents of the buffer are not changed."
   :group 'company-coq-obsolete)
 (make-obsolete-variable 'company-coq-prettify-symbols 'company-coq-disabled-features "company-coq 1.0")
 
-(defcustom company-coq-explicit-placeholders t
-  "Show holes in snippets using explicit '_' placeholders."
+(defcustom company-coq-snippet-default-hole-contents "_"
+  "String to use to indicate holes in inserted snippets."
   :group 'company-coq)
 
 (defvar company-coq-enabled-backends nil
@@ -1976,9 +1976,7 @@ in `company-coq-last-search-scan-size'."
 
 (defun company-coq-dabbrev-to-yas-format-one (match)
   "Convert dabbrev placeholder in MATCH to yasnippet format."
-  (let ((identifier (or (match-string 1 match)
-                        (and company-coq-explicit-placeholders "_") "")))
-    (concat  "${" identifier "}")))
+  (concat  "${" (or (match-string 1 match) company-coq-snippet-default-hole-contents) "}"))
 
 (defun company-coq-yasnippet-choicify-one (match)
   "Convert dabbrev choice in MATCH to yasnippet format."
