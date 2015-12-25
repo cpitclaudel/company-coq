@@ -3360,23 +3360,29 @@ BEG is a good position to call hidesho functions."
           (hs-show-block)
         (hs-hide-block-at-point)))))
 
-(defconst company-coq-features/code-folding--keymap
+(defun company-coq-features/code-folding--keymap ()
+  "Compute a keymap for bullets.
+Explicitly copies `coq-mode-map' to mitigate the fact that it
+will be used as a local-map."
   (let ((map (copy-keymap coq-mode-map)))
     (define-key map (kbd "<mouse-1>") #'company-coq-features/code-folding--click-bullet)
     (define-key map (kbd "RET") #'company-coq-features/code-folding-toggle-bullet-at-point)
-    map)
-  "Keymap active over bullets.
-Explicitly copies `coq-mode-map' to mitigate the fact that it
-will be used as a local-map.")
+    map))
 
-(defconst company-coq-features/code-folding--bullet-fl-face
-  `(face company-coq-features/code-folding-bullet-face
-         front-sticky nil
-         rear-nonsticky t
-         mouse-face highlight
-         local-map ,company-coq-features/code-folding--keymap
-         help-echo "Click (or press RET on) this bullet to hide or show its body.")
+(defvar company-coq-features/code-folding--bullet-fl-face nil
   "Display spec for bullets.")
+
+(defun company-coq-features/code-folding--update-bullet-spec ()
+  "Update `company-coq-features/code-folding--bullet-fl-face'.
+Needed because loading `coq' is not enough to get `coq-mode-map'
+fully populated."
+  (setq company-coq-features/code-folding--bullet-fl-face
+        `(face company-coq-features/code-folding-bullet-face
+               front-sticky nil
+               rear-nonsticky t
+               mouse-face highlight
+               local-map ,(company-coq-features/code-folding--keymap)
+               help-echo "Click (or press RET on) this bullet to hide or show its body.")))
 
 (defun company-coq-features/code-folding--really-on-bullet-p ()
   "Check if previous regexp search really matched a bullet."
@@ -3410,6 +3416,7 @@ BOUND is as in `re-search-forward'."
       (goto-char found))))
 
 (defun company-coq-features/code-folding-toggle-current-block ()
+  "Fold or unfold current bullet or brace pair."
   (interactive)
   (company-coq-error-unless-feature-active 'code-folding)
   (pcase-let* ((`(,bullet . ,end-of-bullet)
@@ -3422,9 +3429,9 @@ BOUND is as in `re-search-forward'."
 
 (defconst company-coq-features/code-folding--bullet-fl-spec
   `((,(apply-partially #'company-coq-features/code-folding--search #'re-search-forward company-coq-features/code-folding--brace-regexp)
-     0 ',company-coq-features/code-folding--bullet-fl-face nil)
+     0 company-coq-features/code-folding--bullet-fl-face nil)
     (,(apply-partially #'company-coq-features/code-folding--search #'re-search-forward company-coq-features/code-folding--bullet-regexp)
-     1 ',company-coq-features/code-folding--bullet-fl-face nil))
+     1 company-coq-features/code-folding--bullet-fl-face nil))
   "Font-lock spec for bullets.
 The spec uses local-map instead of keymap, because it needs to
 take precedence over PG's own keymaps, introduced by the overlays
@@ -3453,6 +3460,7 @@ the level of bullets."
      (company-coq-do-in-coq-buffers
        (hs-minor-mode)
        (company-coq-features/code-folding--set-display-table)
+       (company-coq-features/code-folding--update-bullet-spec)
        (make-local-variable 'font-lock-extra-managed-props)
        (add-to-list 'font-lock-extra-managed-props 'display)
        (add-to-list 'font-lock-extra-managed-props 'front-sticky)
