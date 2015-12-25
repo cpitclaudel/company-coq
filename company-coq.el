@@ -109,14 +109,17 @@
 
 (defgroup company-coq nil
   "Extensions for Proof General's Coq mode."
+  :prefix "company-coq-"
   :group 'company)
 
 (defgroup company-coq-obsolete nil
   "Company-coq obsolete settings."
+  :prefix "company-coq-"
   :group 'company-coq)
 
 (defgroup company-coq-faces nil
   "Company-coq faces."
+  :prefix "company-coq-"
   :group 'company-coq)
 
 (defvar company-coq-debug nil
