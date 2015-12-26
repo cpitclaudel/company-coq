@@ -385,14 +385,18 @@ Needed in 8.4, not in 8.5.")
 (defconst company-coq-end-of-def-regexp "\\(is\\|are\\) \\(recursively \\)?\\(defined\\|assumed\\|declared\\)"
   "Regexp used to detect signs that new symbols have been defined.")
 
-(defconst company-coq-error-regexp "\\`Error: "
-  "Regexp used to detect errors (useful in particular to prevent reloading the modules list after a failed import).")
+(defconst company-coq-basic-error-regexp "\\`Error: "
+  "Regexp used to detect simple errors.
+Useful in particular to prevent reloading the modules list after a failed import.")
 
-(defconst company-coq-error-regexps `(,company-coq-error-regexp
+(defconst company-coq-error-regexps `(,company-coq-basic-error-regexp
                            " not a defined object.\\s-\\'"
                            "\\`No object of basename"
                            "\\`Toplevel input, characters"
                            "\\`No Ltac definition is referred to by")
+  "Regexps used to detect invalid output.")
+
+(defconst company-coq-error-regexp (concat "\\(" (mapconcat #'identity company-coq-error-regexps "\\|") "\\)")
   "Regexp used to detect invalid output.")
 
 (defconst company-coq-import-regexp (regexp-opt '("From" "Require" "Import" "Export"))
@@ -624,12 +628,14 @@ goals and response windows."
       (company-coq-dbg "Prover not available; [%s] discarded" question)
       nil)))
 
+(defun company-coq-error-message-p (msg)
+  "Check if MSG is an error message."
+  (string-match-p company-coq-error-regexp msg))
+
 (defun company-coq-unless-error (str)
   "Return STR, unless STR is an error message."
-  (and str
-       (cl-loop for regexp in company-coq-error-regexps
-                never (string-match-p regexp str))
-       str))
+  (unless (company-coq-error-message-p str)
+    str))
 
 (defun company-coq-ask-prover-swallow-errors (question)
   "Call `company-coq-ask-prover' with QUESTION, swallowing errors."
@@ -1497,7 +1503,7 @@ Nothing is reloaded immediately; instead the relevant flags are set."
     (setq company-coq-goals-window (company-coq-get-goals-window)))
 
   ;; Hide the docs and redisplay the goals buffer
-  (-when-let* ((doc-buf   (get-buffer "*company-documentation*")))
+  (-when-let* ((doc-buf (get-buffer "*company-documentation*")))
     (bury-buffer doc-buf))
   (-when-let* ((goals-buf proof-goals-buffer)
                (goals-win (company-coq-get-goals-window)))
