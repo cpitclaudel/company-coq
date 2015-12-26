@@ -3627,13 +3627,14 @@ company-coq."
                 (mapcar #'car company-coq-available-features)))
 
 (defvar company-coq--lighter-var
-  (concat " "
-          (propertize "🐣" 'display ;; 🐤 🐓
-                      `(image :type imagemagick ;; Image file from emojione
-                              :file ,(expand-file-name "rooster.png" company-coq-refman-path) ;; rooster
-                              :ascent center
-                              :mask heuristic
-                              :height 15)))
+  (let* ((img-path (expand-file-name "rooster.png" company-coq-refman-path))
+         (display-spec `(image :type imagemagick ;; Image file from emojione
+                               :file ,img-path ;; rooster
+                               :ascent center
+                               :mask heuristic
+                               :height 15)))
+    (concat " " (apply #'propertize "🐣" (when (file-exists-p img-path) ;; 🐤 🐓
+                                          (list 'display display-spec)))))
   "Lighter var for company-coq-mode.
 Must be tagged risky to display properly.")
 
