@@ -548,12 +548,12 @@ infinite loop (they are not cleared by [generalize dependent]).")
     (expand-file-name "refman/" (file-name-directory company-coq-script-full-path)))
   "Refman (and other assets)'s directory.")
 
-(defface company-coq-doc-header-face-source
+(defface company-coq-doc-header-face-docs-and-sources
   '((t :height 1.5))
   "Face used to highlight the target line in source view."
   :group 'company-coq-faces)
 
-(defface company-coq-doc-header-face-docs
+(defface company-coq-doc-header-face-about
   '((t :inherit highlight :height 1.2))
   "Face used to highlight the target line in the docs."
   :group 'company-coq-faces)
@@ -1639,7 +1639,7 @@ comment."
              (goto-char (point-min))
              (re-search-forward target nil t)
              (progn
-               (company-coq-make-title-line 'company-coq-doc-header-face-source t)
+               (company-coq-make-title-line 'company-coq-doc-header-face-docs-and-sources t)
                (forward-line -2)
                (or (and (functionp 'coq-looking-at-comment)
                         (company-coq-suppress-warnings (coq-looking-at-comment))
@@ -1821,7 +1821,7 @@ If no command succeed, do the same with FALLBACKS as TEMPLATES."
         (when (fboundp 'coq-response-mode)
           (coq-response-mode))
         (goto-char (point-min))
-        (company-coq-make-title-line 'company-coq-doc-header-face-docs)
+        (company-coq-make-title-line 'company-coq-doc-header-face-about)
         (current-buffer)))))
 
 (defun company-coq-doc-buffer-symbol (name)
@@ -1860,7 +1860,7 @@ DOM and FONT are as in these functions."
   "Make a pretty title at TARGET-POINT, optionally TRUNCATE -ing everything before."
   (goto-char (or target-point (point-min)))
   (when target-point
-    (company-coq-make-title-line 'company-coq-doc-header-face-docs)
+    (company-coq-make-title-line 'company-coq-doc-header-face-docs-and-sources nil)
     (when (= (char-after (point)) ?*)
       (delete-char 1)))) ;; Remove the star (*) added by shr
 
@@ -2084,7 +2084,7 @@ Which conversion function to use is determined from SOURCE."
         (when (re-search-forward "\\`[^\0]*?find.*" (point-max) t)
           (replace-match (replace-quote (format "Searching for [%s] in [%s]\n" regexp default-directory)))
           (goto-char (point-min))
-          (company-coq-make-title-line 'company-coq-doc-header-face-docs))))))
+          (company-coq-make-title-line 'company-coq-doc-header-face-about))))))
 
 (defun company-coq-diff-unification-error (&optional context)
   "Compare two terms of a unification error, highlighting differences.
