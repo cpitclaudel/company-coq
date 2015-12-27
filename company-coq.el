@@ -71,6 +71,7 @@
 (require 'company-coq-abbrev) ;; Tactics from the manual
 (require 'company-coq-tg)     ;; Parsing code for tactic notations
 
+;; This doesn't run at compile time
 (if (require 'proof-site nil t)
     (progn
       (with-no-warnings (proof-ready-for-assistant 'coq)) ;; Required by proof-shell
@@ -80,7 +81,7 @@
       (require 'proof-config) ;; `proof-fly-past-comments'
       (require 'proof-script) ;; `proof-unprocessed-begin'
       (require 'coq-syntax)   ;; `coq-tactics-db'
-      (require 'coq))          ;; `coq-insert-match'
+      (require 'coq))         ;; `coq-insert-match'
   (error "Company-coq: Unable to load proof-site.  Is Proof General installed properly?"))
 
 (eval-when-compile
@@ -993,16 +994,25 @@ redundant elements (such as omega)."
      (concat " *\\(" company-coq-placeholder-regexp "\\) *") "#"
      abbrev))))
 
+(defvar company-coq--prettify-abbrevs nil
+  "If non-nil, use fontification in abbrevs.")
+
+(defface company-coq-snippet-hole-face
+  '((t :slant italic :weight bold))
+  "Face used to highlight holes in snippets.
+Only active if `company-coq--prettify-abbrevs' is non-nil"
+  :group 'company-coq-faces)
+
 (defun company-coq-cleanup-abbrev (abbrev)
   "Cleanup ABBREV for display."
-  abbrev)
-
-;; FIXME look into this again once (when?) company supports it
-;; (replace-regexp-in-string "@{\\([^}]+\\)}"
-;;                           (lambda (match)
-;;                             (propertize (match-string-no-properties 1 match)
-;;                                         'face '(:slant italic :underline t)))
-;;                           abbrev)
+  (if company-coq--prettify-abbrevs
+      (replace-regexp-in-string
+       "@{\\([^}]+\\)}"
+       (lambda (match)
+         (propertize (match-string-no-properties 1 match)
+                     'company-face '(company-coq-snippet-hole-face)))
+       abbrev)
+    abbrev))
 
 (defun company-coq-parse-abbrevs-pg-entry (menuname _abbrev insert &optional _statech _kwreg insert-fun _hide)
   "Convert PG abbrev to internal company-coq format.
