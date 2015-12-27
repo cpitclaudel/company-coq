@@ -2,7 +2,7 @@
   "company-coq"
   "0.4"
   "Company-mode backend for Proof General's coq-mode"
-  '((company-math "0")
+  '((company-math "1.0.1")
     (company "0.8.12")
     (yasnippet "0.9.0.1")
     (dash "2.10.0")

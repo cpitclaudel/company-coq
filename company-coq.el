@@ -1869,9 +1869,7 @@ DOM and FONT are as in these functions."
   (< emacs-major-version 25))
 
 (defun company-coq-doc-refman-put-html (html-full-path)
-  "Print formatted html from HTML-FULL-PATH in current buffer.
-With TRUNCATE, remove text before formatted title line, if
-present."
+  "Print formatted html from HTML-FULL-PATH in current buffer."
   (let ((doc (with-temp-buffer
                (insert-file-contents html-full-path)
                (libxml-parse-html-region (point-min) (point-max))))
@@ -1888,9 +1886,7 @@ present."
     (company-coq-doc-refman-prettify-title (next-single-property-change (point-min) 'shr-target-id))))
 
 (defun company-coq-doc-buffer-refman (name-or-anchor)
-  "Prepare company's doc buffer for keyword NAME-OR-ANCHOR.
-With TRUNCATE, remove text before formatted title line, if
-present."
+  "Prepare company's doc buffer for keyword NAME-OR-ANCHOR."
   (interactive)
   (company-coq-dbg "company-coq-doc-buffer-refman: Called for %s" name-or-anchor)
   (when (fboundp 'libxml-parse-html-region)
@@ -2096,7 +2092,7 @@ With prefix CONTEXT, display that many lines of context around
 difference."
   (interactive "P")
   (unless (numberp context) (setq context 10))
-  (with-current-buffer "*response*"
+  (with-current-buffer proof-response-buffer
     (save-match-data
       (save-excursion
         (goto-char (point-min))
