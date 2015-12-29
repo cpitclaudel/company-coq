@@ -3452,12 +3452,17 @@ that it adds after processing a buffer section.")
 (defvar company-coq-features/code-folding-ellipsis " […]" ;; … ⤶ ↲ ▶ ⏩ ▸
   "Ellipsis used for code folding.")
 
+(defface company-coq-features/code-folding-ellipsis-face
+  '((t (:inherit font-lock-preprocessor-face)))
+  "Face used to display `company-coq-features/code-folding-ellipsis'."
+  :group 'company-coq-faces)
+
 (defun company-coq-features/code-folding--set-display-table ()
   "Add `company-coq-features/code-folding-ellipsis' to current buffer's display table."
   (unless buffer-display-table
     (setq buffer-display-table (make-display-table)))
   (set-display-table-slot buffer-display-table 4 ;; 4 is the '...' slot
-                          (vconcat (mapcar (lambda (c) (make-glyph-code c font-lock-preprocessor-face))
+                          (vconcat (mapcar (lambda (c) (make-glyph-code c 'company-coq-features/code-folding-ellipsis-face))
                                            company-coq-features/code-folding-ellipsis)))
   (setq buffer-display-table buffer-display-table))
 
