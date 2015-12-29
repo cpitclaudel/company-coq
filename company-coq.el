@@ -123,8 +123,9 @@
   :prefix "company-coq-"
   :group 'company-coq)
 
-(defvar company-coq-debug nil
-  "Debug mode for company-coq.")
+(eval-and-compile
+  (defvar company-coq-debug nil
+    "Debug mode for company-coq."))
 
 (defcustom company-coq-custom-snippets '("Section ${1:SectionName}.\n$0\nEnd $1."
                               "Chapter ${1:ChapterName}.\n$0\nEnd $1." ;; Commented out in RefMan-ext.v
