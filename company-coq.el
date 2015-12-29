@@ -200,11 +200,8 @@ The contents of the buffer are not changed."
 Do not enable or disable backends by editing this list; instead,
 customize `company-coq-disabled-features'.")
 
-(defvar company-coq-disabled-pg-patterns '("without loss")
+(defvar company-coq-excluded-pg-patterns '("without loss" "Fixpoint")
   "List of patterns that are not imported from Proof General's list.")
-
-(defvar company-coq-disabled-pg-patterns-regexp (regexp-opt company-coq-disabled-pg-patterns)
-  "Regexp version of `company-coq-disabled-pg-patterns'.")
 
 (defcustom company-coq-sorted-backends '(company-coq-reserved-keywords-backend
                               company-coq-user-snippets-backend
@@ -632,7 +629,7 @@ goals and response windows."
 
 (defun company-coq-error-message-p (msg)
   "Check if MSG is an error message."
-  (string-match-p company-coq-error-regexp msg))
+  (and msg (string-match-p company-coq-error-regexp msg)))
 
 (defun company-coq-unless-error (str)
   "Return STR, unless STR is an error message."
@@ -1018,7 +1015,7 @@ Only active if `company-coq--prettify-abbrevs' is non-nil"
 (defun company-coq-parse-abbrevs-pg-entry (menuname _abbrev insert &optional _statech _kwreg insert-fun _hide)
   "Convert PG abbrev to internal company-coq format.
 MENUNAME, INSERT, and INSERT-FUN are as in PG interal databases."
-  (when (or (and insert (not (string-match-p company-coq-disabled-pg-patterns-regexp insert)))
+  (when (or (and insert (not (string-match-p (regexp-opt company-coq-excluded-pg-patterns) insert)))
             (and (not insert) insert-fun))
     (propertize (if insert-fun menuname (company-coq-cleanup-abbrev insert))
                 'source 'pg
@@ -2989,7 +2986,7 @@ changes immediately.  From Lisp code, make sure to set this
 variable before enabling `company-coq-mode', or set it
 using `customize-set-variable'.
 
-Technical note: The `:type' of thiis defcustom is recomputed every
+Technical note: The `:type' of this defcustom is recomputed every
 time a new feature is added."
   :group 'company-coq
   :set #'company-coq--set-disabled-features
