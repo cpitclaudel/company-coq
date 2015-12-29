@@ -3032,26 +3032,28 @@ Defining a feature adds it to `company-coq-available-features'."
          (arg (car args)))
     (unless (equal 1 (length args))
       (error "Features take a single argument"))
-    ;; Register this feature
-    (add-to-list 'company-coq-available-features (cons symbol doc) t)
-    (company-coq-disabled-features--update-type)
-    ;; Mark it disabled, for now
-    (put 'toggle-function 'company-coq-feature-active nil)
-    `(defun ,toggle-function (,arg)
-       ,docs
-       (interactive (or current-prefix-arg 'toggle))
-       (cond
-        ((eq ,arg 'toggle)
-         (,toggle-function (not (company-coq-feature-active-p ',symbol))))
-        ((or (eq ,arg 'on) (and (numberp arg) (> ,arg 0)))
-         (setq ,arg 'on)
-         (unless (company-coq-value-or-nil 'company-coq-mode)
-           (user-error "%s depends on company-coq-mode" ,(symbol-name symbol)))
-         (put ',toggle-function 'company-coq-feature-active t))
-        ((or (eq ,arg 'off) (and (numberp arg) (<= ,arg 0)))
-         (setq ,arg 'off)
-         (put ',toggle-function 'company-coq-feature-active nil)))
-       ,@body)))
+    `(progn
+       ;; Register this feature
+       (add-to-list 'company-coq-available-features (cons ',symbol ,doc) t)
+       (company-coq-disabled-features--update-type)
+       ;; Mark it disabled, for now
+       (put ',toggle-function 'company-coq-feature-active nil)
+       ;; Define the actual function
+       (defun ,toggle-function (,arg)
+         ,docs
+         (interactive (or current-prefix-arg 'toggle))
+         (cond
+          ((eq ,arg 'toggle)
+           (,toggle-function (not (company-coq-feature-active-p ',symbol))))
+          ((or (eq ,arg 'on) (and (numberp arg) (> ,arg 0)))
+           (setq ,arg 'on)
+           (unless (company-coq-value-or-nil 'company-coq-mode)
+             (user-error "%s depends on company-coq-mode" ,(symbol-name symbol)))
+           (put ',toggle-function 'company-coq-feature-active t))
+          ((or (eq ,arg 'off) (and (numberp arg) (<= ,arg 0)))
+           (setq ,arg 'off)
+           (put ',toggle-function 'company-coq-feature-active nil)))
+         ,@body))))
 
 (defvar company-coq--refontification-requested nil
   "Whether a refontification is needed, due to feature changes.")
