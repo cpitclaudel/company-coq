@@ -2,74 +2,17 @@
 
 A collection of extensions for Proof General's Coq mode.
 
-See features and screenshots below, or jump right to [setup instructions](#setup) and try the tutorial with `M-x company-coq-tutorial` after setting up!
-
-## Features
-
-### Completion
-
-* Auto-completion of [math symbols](img/tactic-completion-doc.png) (using company-math).
-
-* Auto-completion of [theorems and tactics](img/defun-completion.png) defined in the same buffer.
-
-* Fuzzy auto-completion of (most of) Coq's [tactics](img/command-completion-doc.png) and [commands](img/symbol-completion-doc.png), with snippets auto-extracted from the manual.
-
-* Fuzzy auto-completion of library [module names](img/module-completion.png) in `Import` commands.
-
-* Auto-completion of [hypotheses](img/hypotheses-completion.png) in proof contexts, and of section and modules names.
-
-* Auto-completion of [search results](img/search-completion.png): after running a search, results are available as completions.
-
-* Easy access to [Proof-General's templates](img/lemma-completion.png) (using yasnippet), with smart templates for sections and modules.
-
-### Proof-General Extensions
-
-* [Documentation](img/keyword-completion-doc.png) for (most) auto-completion entries, with excerpts from the manual shown directly in Emacs.
-
-* [Documentation](img/errors-doc.png) for many error messages, with automagic matching of the last error message against errors documented in the manual.
-
-* Interactive lemma extraction: press <kbd>C-c C-a C-x</kbd> to extract the current goal into a separate lemma, keeping the hypotheses of your choice.
-
-* Convenient snippets: easily insert [new `match` cases](img/match-function.gif) and [`match goal` rules](img/match-goal.gif).
-
-* Interactive [proof script outlines](img/outline.png)
-
-* [Coarse-grained](img/folding.png) (proof-level) and fine-grained (bullet-level) code folding.
-
-* Visual [word diff](img/unification.png) of large unification error messages (<code>The term "<i>blah</i>" has type "<i>huge blob</i>" while it is expected to have type "<i>slightly different blob</i>"</code>).
-
-* Basic project search (search for instances of the word at point in neighboring files).
-
-* Extended [font beautification](img/prettify.png): keywords are transparently replaced with the corresponding symbols (`⊢⊤⊥→⇒λ∀∃∧∨¬≠ℕ𝔹𝓟`), and the goals line (`========`) actually looks like a line (`════════`).
-
-* Minimal [quick help](img/inline-docs.gif) (inline documentation).
-
-* Automatic [highlighting](img/deprecated.png) of deprecated forms (`assert (_ := _)`, `SearchAbout`, etc.).
-
-* Occur in `*coq*` buffer (`company-coq-search-in-coq-buffer`).
-
-* Source view for same-buffer definitions.
-
-### Advanced features
-
-(These require Coq 8.5, or a [patched version](https://github.com/coq/coq/pull/64) of `coqtop`)
-
-* Auto-completion of all known [types and theorems](img/symbol-completion.png) with [annotations](img/symbol-completion-doc.png), and of all [user-defined tactics](ltac-completion.png) and [tactic notations](img/tactic-notation-completion.png).
-
-* [Source view](img/source-view.png) for auto-completed symbols and [user-defined tactics](img/source-view-ltac.png) (needs `.v` files). Works to a limited extent with an unpatched `coqtop`.
-
+See screenshots below, or jump right to [setup instructions](#setup) and try the tutorial with `M-x company-coq-tutorial` after setting up!
 
 ## Setup
 
-Note: You need a version of Emacs ≥ 24 for this to work properly. You can check which version you are running with <kbd>M-x emacs-version RET</kbd>. Note that some features, like beautification of symbols or syntax highlighting in the manual, only work with emacs ≥ 24.4.
-
 ### Proof-General
+
+Preferably for [GitHub](https://github.com/ProofGeneral/PG). Alternatively,
 
 ```bash
 sudo apt-get install proof-general
 ```
-
-(or [from source](http://proofgeneral.inf.ed.ac.uk/releases/ProofGeneral-4.2.tgz))
 
 ### company-coq
 
@@ -128,8 +71,7 @@ Loading `company-coq` also binds the following keys:
 
 ## Tips
 
-* Module completion is fuzzy: you can type `Require Import C.N..Ab.ZPa` and press <kbd>RET</kbd> to insert `Coq.Numbers.Integer.Abstract.ZParity`.
-* Tactics completion is fuzzy too: typing `setrewin` and pressing <kbd>RET</kbd> is enough to insert <code>setoid_rewrite <i>term</i> in <i>ident</i></code>. You can (and must) omit spaces: `SLD` will insert `Set Ltac Debug` (of course `SetLtDeb` will also work), and `ULD` will insert `Unset Ltac Debug`.
+* Most completion engines support fuzzy matching: you can type `Require Import C.N..Ab.ZPa` and press <kbd>RET</kbd> to insert `Coq.Numbers.Integer.Abstract.ZParity`, and typing `setrewin` is enough to insert <code>setoid_rewrite <i>term</i> in <i>ident</i></code>. You can (and must) omit spaces: `SLD` will insert `Set Ltac Debug` (of course `SetLtDeb` will also work), and `ULD` will insert `Unset Ltac Debug`.
 * Using <kdb>M-S-RET</kbd> to insert new cases in a `match goal` saves a lot of time (and finger contortions).
 * The point-and-click feature (quick help) also works in non-graphic mode, if you enable `xterm-mouse-mode`.
 * `company-coq` improves on some of Proof-General's features. Try <kbd>C-c C-a RET nat RET</kbd>.
@@ -138,89 +80,37 @@ Loading `company-coq` also binds the following keys:
 
 ## Screenshots
 
-### Auto-completion of tactics with documentation
+#### Prettification of operators and types
 
-<img src="img/tactic-completion-doc.png" alt="Auto-completion of tactics with documentation" />
+<img src="img/prettify.png" alt="Prettification of math symbols (enabled)" /> <img src="img/prettify-disabled.png" alt="Prettification of math symbols (disabled)" />
 
-### Auto-completion of commands with documentation
+#### Auto-completion
 
-<img src="img/keyword-completion-doc.png" alt="Auto-completion of commands with documentation" />
+<img src="img/refman-tactics.png" alt="Auto-completion of tactics, with documentation" /> <img src="img/refman-commands.png" alt="Auto-completion of commands, with documentation" />
 
-### Auto-completion of local definitions
+<img src="img/defun-completion.png" alt="Auto-completion of local definitions" /> <img src="img/modules-completion.png" alt="Fuzzy auto-completion of module names" />
 
-<img src="img/defun-completion.png" alt="Auto-completion of local definitions" />
+<img src="img/hypotheses-completion.png" alt="Auto-completion of hypotheses" /> <img src="img/search-completion.png" alt="Auto-completion of search results" /> <img src="img/math-completion.png" alt="Unicode math symbols" />
 
-### Fuzzy auto-completion of module names
+<img src="img/ltac-completion.png" alt="Auto-completion of user-defined tactic notations" /> <img src="img/source-view.png" alt="Source browser (requires symbol completion)" />
 
-<img src="img/modules-completion.png" alt="Fuzzy auto-completion of module names" />
+#### Snippets and smart commands
 
-### Auto-completion of hypotheses
+<img src="img/match-function.gif" alt="Insertion of new match cases" />
+<img src="img/match-goal.gif" alt="Insertion of new match goal rules" />
+<img src="img/smart-intros.gif" alt="Fully explicit intros (smart intros)" />
 
-<img src="img/hypotheses-completion.png" alt="Auto-completion of hypotheses" />
+#### Outlines and code folding
 
-### Auto-completion of search results
+<img src="img/outline.png" alt="Outline of Coq source files" /> <img src="img/folding.gif" alt="Code folding" />
 
-<img src="img/search-completion.png" alt="Auto-completion of search results" />
+#### Help with errors
 
-### Keyword beautification
+<img src="img/unification.png" alt="Diffs of unification errors" /> <img src="img/errors-doc.png" alt="Documentation for (documented) error messages" />
 
-<img src="img/prettify.png" alt="Keyword beautification" />
+#### Misc. extensions of Proof General
 
-### Quick help (inline docs)
-
-<img src="img/inline-docs.gif" alt="Quick help (inline docs)" />
-
-Currently works for symbols and user-defined tactics (prover must be started)
-
-### Neat snippets
-
-<img src="img/match-function.gif" alt="Insert new match cases" />
-<img src="img/match-goal.gif" alt="Insert new match goal rules" />
-
-### Highlighting of deprecated forms
-
-<img src="img/deprecated.png" alt="Highlighting of deprecated forms" />
-
-### Documentation for (documented) error messages
-
-<img src="img/errors-doc.png" alt="Documentation for (documented) error messages" />
-
-### Outline and folding
-
-<img src="img/outline.png" alt="Outline" />
-<img src="img/folding.png" alt="Folding" />
-
-### Auto insertion of Proof-General's templates
-
-<img src="img/lemma-completion.png" alt="Auto insertion of Proof-General's templates" />
-
-### Unicode math symbols
-
-<img src="img/math-completion.png" alt="Unicode math symbols" />
-
-### Diffs of unification errors
-
-<img src="img/unification.png" alt="Diffs of unification errors" />
-
-### Auto-completion of theorems and types (w/ patched `coqtop`, see notes)
-
-<img src="img/symbol-completion.png" alt="Auto-completion of symbol names" />
-
-(notice the help string in the mini-buffer)
-
-<img src="img/symbol-completion-doc.png" alt="Auto-completion of symbol names with type annotations" />
-
-### Auto-completion of user-defined tactics and tactic notations (w/ patched `coqtop`)
-
-<img src="img/ltac-completion.png" alt="Auto-completion of user-defined tactics" />
-
-<img src="img/tactic-notation-completion.png" alt="Auto-completion of user-defined tactic notations" />
-
-### Source view (with patched `coqtop`)
-
-<img src="img/source-view.png" alt="Source view" />
-
-<img src="img/source-view-ltac.png" alt="Source view on tactics" />
+<img src="img/deprecated.png" alt="Highlighting of deprecated forms" /> <img src="img/titles.png" alt="Special syntax for titles in comments" /> <img src="img/inline-docs.gif" alt="Quick help (inline docs)" />
 
 ## Troubleshooting
 

@@ -31,6 +31,9 @@ package: clean-package package-name
 	cp -R *.el refman build/$(PKG)
 	cd build && tar -cf $(PKG).tar $(PKG)
 
+screenshots: elc
+	\emacs --debug-init -Q --load etc/rebuild-screenshots.el
+
 clean-package:
 	rm -rf build
 
