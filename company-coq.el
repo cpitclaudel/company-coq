@@ -3639,14 +3639,19 @@ company-coq."
                 (mapcar #'car company-coq-available-features)))
 
 (defvar company-coq--lighter-var
-  (let* ((img-path (expand-file-name "rooster.png" company-coq-refman-path))
-         (display-spec `(image :type imagemagick ;; Image file from emojione
-                               :file ,img-path ;; rooster
-                               :ascent center
-                               :mask heuristic
-                               :height 15)))
-    (concat " " (apply #'propertize "🐣" (when (file-exists-p img-path) ;; 🐤 🐓
-                                          (list 'display display-spec)))))
+  '(:eval (let* ((img-path (expand-file-name "rooster.png" company-coq-refman-path))
+                 ;; FIXME this should use mode-line-inactive in unselected windows
+                 (mode-line-background (face-attribute 'mode-line :background nil 'default))
+                 (mode-line-height (face-attribute 'mode-line :height nil 'default))
+                 (display-spec `(image :type imagemagick ;; Image file from emojione
+                                       :file ,img-path ;; rooster
+                                       :ascent center
+                                       :mask heuristic
+                                       :height ,(ceiling (* 0.14 mode-line-height))
+                                       ;; Inherit bg explicitly
+                                       :background ,mode-line-background)))
+            (list " " (apply #'propertize "🐤" (when (file-exists-p img-path) ;; 🐤 🐣 🐓 🐔
+                                                (list 'display display-spec))))))
   "Lighter var for company-coq-mode.
 Must be tagged risky to display properly.")
 
