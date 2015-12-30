@@ -759,7 +759,8 @@ Ensures that the inserted text starts on a blank line."
 
 (defmacro company-coq-with-current-buffer-maybe (bufname &rest body)
   "If BUFNAME is a live buffer, run BODY in it."
-  (declare (indent defun))
+  (declare (indent defun)
+           (debug t))
   `(-when-let* ((bufname ,bufname)
                 (buf (get-buffer bufname)))
      (with-current-buffer buf
@@ -3463,12 +3464,12 @@ BOUND is as in `re-search-forward'."
   "Fold or unfold current bullet or brace pair."
   (interactive)
   (company-coq-error-unless-feature-active 'code-folding)
-  (pcase-let* ((`(,bullet . ,end-of-bullet)
+  (pcase-let* (((seq bullet end-of-bullet)
                 (save-excursion
                   (when (company-coq-features/code-folding--search
                          're-search-backward company-coq-features/code-folding--hs-regexp)
                     (cons (point) (progn (forward-sexp) (point)))))))
-    (when (> end-of-bullet (point))
+    (when (and bullet (> end-of-bullet (point)))
       (company-coq-features/code-folding-toggle-bullet-at-point bullet))))
 
 (defconst company-coq-features/code-folding--bullet-fl-spec
