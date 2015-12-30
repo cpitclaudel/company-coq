@@ -2119,7 +2119,11 @@ difference."
                     (list (concat "--unified=" (int-to-string context)) "--minimal" "--ignore-all-space")
                     'noasync)
               (company-coq-with-current-buffer-maybe "*Diff*"
-                (diff-refine-hunk))
+                (diff-refine-hunk)
+                (goto-char (point-min))
+                (when (re-search-forward "^@@" nil t)
+                  (let ((inhibit-read-only t))
+                    (delete-region (point-min) (match-beginning 0)))))
               (kill-buffer b1)
               (kill-buffer b2))
           (error "Buffer *response* does not match the format of a unification error message"))))))
