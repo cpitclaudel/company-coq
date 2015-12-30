@@ -567,6 +567,21 @@ infinite loop (they are not cleared by [generalize dependent]).")
   "Face used to highlight symbol names in the docs."
   :group 'company-coq-faces)
 
+(defface company-coq-comment-h1-face
+  '((t :inherit font-lock-doc-face :height 2.5))
+  "Face used to *** comments."
+  :group 'company-coq-faces)
+
+(defface company-coq-comment-h2-face
+  '((t :inherit font-lock-doc-face :height 1.8))
+  "Face used to *** comments."
+  :group 'company-coq-faces)
+
+(defface company-coq-comment-h3-face
+  '((t :inherit font-lock-doc-face :height 1.2))
+  "Face used to *** comments."
+  :group 'company-coq-faces)
+
 (defface company-coq-subscript-face
   '((t :height 0.9))
   "Face used to change numbers to subscripts in hypothese names."
@@ -2884,9 +2899,9 @@ subsequent invocations)."
       (let* ((comment-opener (company-coq-get-comment-opener comment-opener-pos))
              (matches        (lambda (pattern) (string-match-p (concat "\\`" (regexp-quote pattern)) comment-opener))))
         (cond
-         ((funcall matches "(*!")   '(:inherit font-lock-doc-face :height 1.2))
-         ((funcall matches "(*+")   '(:inherit font-lock-doc-face :height 1.8))
-         ((funcall matches "(*** ") '(:inherit font-lock-doc-face :height 2.5))
+         ((funcall matches "(*!")   'company-coq-comment-h3-face)
+         ((funcall matches "(*+")   'company-coq-comment-h2-face)
+         ((funcall matches "(*** ") 'company-coq-comment-h1-face)
          ((funcall matches "(**")   font-lock-doc-face)
          (t        font-lock-comment-face)))))))
 
