@@ -2415,11 +2415,25 @@ order."
   (setq-local company-coq-enabled-backends (company-coq-sort-according-to-reference
                                  backends company-coq-sorted-backends)))
 
+(defun company-coq-put-exact-matches-on-top (sorted-candidates)
+  (let ((exact-matches nil)
+        (partial-matches nil))
+    (dolist (candidate sorted-candidates)
+      (if (and (eq (get-text-property 0 'match-beginning candidate) 0)
+               (eq (get-text-property 0 'match-end candidate) (length candidate)))
+          (push candidate exact-matches)
+        (push candidate partial-matches)))
+    (if exact-matches
+        (append (nreverse exact-matches)
+                (nreverse partial-matches))
+      sorted-candidates)))
+
 (defun company-coq-candidates-master (prefix)
   "Compute all company-coq candidates for PREFIX."
   ;; FIXME sort to put exact matches at the top
-  (cl-loop for backend in company-coq-enabled-backends
-           nconc (company-coq-tagged-candidates backend prefix)))
+  (company-coq-put-exact-matches-on-top
+   (cl-loop for backend in company-coq-enabled-backends
+            nconc (company-coq-tagged-candidates backend prefix))))
 
 (defun company-coq-master-backend (command &optional arg &rest ignored)
   "The master company-coq backend, merging results of other backends.
