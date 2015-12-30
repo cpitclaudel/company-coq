@@ -137,7 +137,8 @@
                               "lazymatch constr:($1) with\n$0\nend"
                               "match goal with\n$0\nend"
                               "lazymatch goal with\n$0\nend")
-  "Custom snippets.  Feel free to share your snippets on company-coq's Github!")
+  "Custom snippets.
+Feel free to share your snippets on company-coq's GitHub!")
 
 (defcustom company-coq-dynamic-autocompletion nil
   "Get suggestions by querying coq about defined identifiers.
