@@ -2790,12 +2790,12 @@ to show at most MAX-LINES."
       (cl-loop for str in strs ;;  for len in lengths   for ins-point = (point)
                do (insert str "\n"))
       (company-coq-truncate-buffer (point-min) max-lines "...")
-      (let* ((block-width (company-coq-max-line-length))
-             (real-offset (max 0 (min offset (- line-width block-width)))))
-        (company-coq-prefix-all-lines (propertize " " 'display `(space . (:width ,real-offset)))))
       ;; Needed when not using jit-lock
       (setq-local font-lock-fontified nil)
       (company-coq-setup-temp-coq-buffer)
+      (let* ((block-width (company-coq-max-line-length))
+             (real-offset (max 0 (min offset (- line-width block-width)))))
+        (company-coq-prefix-all-lines (propertize " " 'display `(space . (:width ,real-offset)))))
       ;; Prevent text from inheriting properties of neighbouring characters
       (when (fboundp 'add-face-text-property)
         (company-coq-suppress-warnings (add-face-text-property (point-min) (point-max) 'default t)))
