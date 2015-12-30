@@ -2808,9 +2808,10 @@ to show at most MAX-LINES."
 Return MAX-LINES if there are more than that."
   (setq max-lines (or max-lines (window-body-height)))
   (save-excursion
-    (let ((line-move-visual 1))
+    (let ((line-move-visual 1)
+          (win-end (window-end nil t)))
       (cl-loop for x = 0 then (1+ x)
-               while (and (< x max-lines) (pos-visible-in-window-p))
+               while (and (< x max-lines) (< (point) win-end))
                do (vertical-motion 1)
                finally return x))))
 
