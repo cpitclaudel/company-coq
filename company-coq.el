@@ -1011,8 +1011,7 @@ redundant elements (such as omega)."
   :group 'company-coq-faces)
 
 (defun company-coq-cleanup-abbrev-1 (abbrev regexp rep)
-  "Cleanup ABBREV for display using REGEXP and REP.
-Return nil if ABBREV was unchanged."
+  "Cleanup ABBREV for display using REGEXP and REP."
   (replace-regexp-in-string
    regexp (lambda (match)
             (propertize (replace-match rep t nil match)
@@ -1020,7 +1019,10 @@ Return nil if ABBREV was unchanged."
    abbrev))
 
 (defun company-coq-cleanup-abbrev (abbrev)
-  "Cleanup ABBREV for display."
+  "Cleanup ABBREV for display.
+This doesn't move match-beginning and match-end, so it's a bit
+risky to call it after computing company's `match', at it will
+change the length of the candidate."
   (pcase-dolist (`(,regexp . ,rep) '(("@{\\(?1:[^}]+\\)}" . "\\1")
                                      ("${\\(?:[0-9]+:\\)?\\(?1:[^}]+\\)}" . "\\1")
                                      ("$[0-9]" . "#")
@@ -1033,7 +1035,7 @@ Return nil if ABBREV was unchanged."
 MENUNAME, INSERT, and INSERT-FUN are as in PG interal databases."
   (when (or (and insert (not (string-match-p (regexp-opt company-coq-excluded-pg-patterns) insert)))
             (and (not insert) insert-fun))
-    (propertize (if insert-fun menuname insert)
+    (propertize (if insert-fun menuname (company-coq-cleanup-abbrev insert))
                 'source 'pg
                 'insert insert
                 'insert-fun insert-fun
@@ -1043,7 +1045,7 @@ MENUNAME, INSERT, and INSERT-FUN are as in PG interal databases."
   "Convert ABBREV-AND-ANCHOR imported from the manual to internal company-coq format."
   (let ((abbrev (car abbrev-and-anchor))
         (anchor (cdr abbrev-and-anchor)))
-    (propertize abbrev
+    (propertize (company-coq-cleanup-abbrev abbrev)
                 'source 'man
                 'anchor anchor
                 'insert abbrev
@@ -1052,20 +1054,20 @@ MENUNAME, INSERT, and INSERT-FUN are as in PG interal databases."
 (defun company-coq-parse-dynamic-ltacs-db-entry (line)
   "Convert one LINE of output of `company-coq-all-ltacs-cmd' to internal company-coq format."
   (let ((abbrev (replace-regexp-in-string " \\(\\S-+\\)" " @{\\1}" line)))
-    (propertize abbrev
+    (propertize (company-coq-cleanup-abbrev abbrev)
                 'source 'ltac 'insert abbrev
                 'stripped (company-coq-normalize-abbrev abbrev))))
 
 ;; TODO this should be in tg
 (defun company-coq-parse-dynamic-notations-db-entry (tactic)
   "Convert TACTIC notation to internal company-coq format."
-  (propertize tactic
+  (propertize (company-coq-cleanup-abbrev tactic)
               'source 'tacn 'insert tactic
               'stripped (company-coq-normalize-abbrev tactic)))
 
 (defun company-coq-parse-custom-db-entry (abbrev)
   "Convert custom ABBREV to internal company-coq format."
-  (propertize abbrev
+  (propertize (company-coq-cleanup-abbrev abbrev)
               'source 'custom
               'insert abbrev
               'stripped (company-coq-normalize-abbrev abbrev)))
@@ -2261,7 +2263,7 @@ backend.  COMMAND, ARG and IGNORED: see `company-backends'."
     (`no-cache t)
     (`match (company-coq-match arg))
     (`post-completion (company-coq-post-completion-snippet arg))
-    (`pre-render (company-coq-cleanup-abbrev arg))
+    (`pre-render arg)
     (`require-match 'never)))
 
 (defun company-coq-refman-backend (command &optional arg &rest ignored)
