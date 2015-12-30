@@ -882,8 +882,6 @@ manual, and should thus be ignored by the tactic grammar parser,
 lest duplicates pop up."
   (setq company-coq-tg--useless (company-coq--list-to-table (company-coq-get-all-notations))))
 
-;; FIXME cleanup this init/force-reload mess
-
 (defun company-coq-force-reload-symbols ()
   "Reload symbols by querying the prover."
   (when (company-coq-feature-active-p 'dynamic-symbols-backend)
@@ -1052,7 +1050,7 @@ MENUNAME, INSERT, and INSERT-FUN are as in PG interal databases."
                 'source 'pg
                 'insert insert
                 'insert-fun insert-fun
-                'stripped (company-coq-normalize-abbrev insert)))) ;; TODO: Remove inter-word spaces
+                'stripped (company-coq-normalize-abbrev insert))))
 
 (defun company-coq-parse-man-db-entry (abbrev-and-anchor)
   "Convert ABBREV-AND-ANCHOR imported from the manual to internal company-coq format."
@@ -1555,7 +1553,6 @@ Nothing is reloaded immediately; instead the relevant flags are set."
   "Compute prefix at point, for completion."
   ;; Only one prefix function; otherwise the first backend in the list of
   ;; backend shadows the others.
-  ;; FIXME: Should not return nil at the beginning of a hole
   (company-coq-dbg "company-coq-prefix-at-point: Called")
   (when (company-coq-coq-mode-p)
     (unless (and (char-after) (memq (char-syntax (char-after)) '(?w ?_)))
@@ -2542,7 +2539,7 @@ Do not edit this keymap: instead, edit `company-coq-map'.")
     (define-key cc-map (kbd "SPC")              #'company-coq-maybe-exit-snippet)
     (define-key cc-map (kbd "RET")              #'company-coq-maybe-exit-snippet)
     (define-key cc-map [remap coq-insert-match] #'company-coq-insert-match-construct)
-    (define-key cc-map [remap narrow-to-defun]  #'company-coq-narrow-to-defun) ;; FIXME handle sections properly
+    (define-key cc-map [remap narrow-to-defun]  #'company-coq-narrow-to-defun)
     cc-map)
   "Keymap of company-coq keybindings.")
 
