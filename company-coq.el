@@ -271,9 +271,6 @@ impossible, for example in `proof-shell-insert-hook'")
 (defconst company-coq-all-symbols-slow-regexp (concat "^\\(" company-coq-symbol-regexp "\\):")
   "Regexp matching symbol names in search results.")
 
-(defconst company-coq-goals-hyp-regexp (concat "\\`  \\(" company-coq-id-regexp "\\) : \\(.*\\)\\'")
-  "Regexp used to find hypotheses in goals output.")
-
 (defconst company-coq-goal-separator-regexp "  \\(=============================*\\)")
 
 (defconst company-coq-goal-separator-line-regexp (concat "^" company-coq-goal-separator-regexp " *$")
