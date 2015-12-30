@@ -957,10 +957,9 @@ definitions in the unprocessed part of the buffer."
 
 (defun company-coq-line-is-import-p ()
   "Return non-nil if current line is part of an Import statement."
-  (save-excursion ;; FIXME Multi line imports
-    (let* ((limit         (point))
-           (bol           (point-at-bol))
-           (command-begin (or (search-backward ". " bol t) bol)))
+  (save-excursion
+    (-when-let* ((limit (point))
+                 (command-begin (or (re-search-backward "\\.[ \t\n]" nil t) (point-min))))
       (goto-char command-begin)
       (re-search-forward company-coq-import-regexp limit t))))
 
