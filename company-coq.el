@@ -2421,11 +2421,12 @@ because it makes it easier to enable or disable backends."
     (`no-cache t)
     (`require-match 'never)
     (_ (when (stringp arg)
-         ;; -when-let, because annotations may not be tagged with a backend
-         (-when-let* ((backend (get-text-property 0 'company-coq-original-backend arg)))
-           (apply backend command (cons arg ignored)))))))
+         (-if-let* ((backend (get-text-property 0 'company-coq-original-backend arg)))
+             (apply backend command (cons arg ignored))
+           ;; Only annotations may appear without a -backend tag
+           (cl-assert (and (eq command 'pre-render) (car ignored))))))))
 
-(defvar company-coq-choices-list nil)
+  (defvar company-coq-choices-list nil)
 (defvar company-coq-saved-idle-delay nil)
 
 (defun company-coq-choose-value (values)
