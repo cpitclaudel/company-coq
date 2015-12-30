@@ -59,7 +59,7 @@
 (require 'cl-lib)       ;; Compatibility
 (require 'company)      ;; Autocompletion
 (require 'company-math) ;; Math symbols
-(require 'dash)         ;; -when-let and -if-let ;; FIXME: Require only on compilation
+(require 'dash)         ;; -when-let, -if-let, -zip, -keep, etc.
 (require 'diff-mode)    ;; Browsing through large error messages
 (require 'outline)      ;; Outlines
 (require 'hideshow)     ;; Code folding
@@ -505,7 +505,6 @@ infinite loop (they are not cleared by [generalize dependent]).")
             "\\)\\s-*")))
   "Rexep matching unification error messages.")
 
-;; TODO move to PG
 (defconst company-coq-deprecated-options '("Equality Scheme" "Record Elimination Schemes"
                                 "Tactic Evars Pattern Unification" "Undo")
   "Deprecated options, as reported by [Print Tables].")
@@ -678,7 +677,7 @@ REGEXP and LIMIT are as in `looking-back'."
 (defun company-coq-text-width (from to)
   "Measure the width of the text between FROM and TO.
 Results are meaninful only if FROM and TO are on the same line."
-  ;; TODO: Is this faster? (string-width (buffer-substring (point-at-bol) (point-at-eol)))
+  ;; (current-column) takes prettification into account
   (- (save-excursion (goto-char to)   (current-column))
      (save-excursion (goto-char from) (current-column))))
 
@@ -1232,7 +1231,7 @@ of SYMBOL on each string."
 
 (defun company-coq-complete-prefix-substring (prefix completions &optional ignore-case)
   "List elements of COMPLETIONS starting with PREFIX.
-With IGNORE-CASE, sort case-insensitive."
+With IGNORE-CASE, search case-insensitive."
   (let ((completion-ignore-case ignore-case)
         (case-fold-search       ignore-case)
         (prefix-re              (regexp-quote prefix)))
