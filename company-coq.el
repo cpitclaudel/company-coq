@@ -534,6 +534,9 @@ infinite loop (they are not cleared by [generalize dependent]).")
                                  "\\)")
   "Regexp matching all deprecated forms.")
 
+(defconst company-coq--doc-buffer "*company-coq: documentation*"
+  "Name to give to company-coq documentation buffers.")
+
 (defconst company-coq-script-full-path load-file-name
   "Full path of this script.")
 
@@ -1539,7 +1542,7 @@ Nothing is reloaded immediately; instead the relevant flags are set."
     (setq company-coq-goals-window (company-coq-get-goals-window)))
 
   ;; Hide the docs and redisplay the goals buffer
-  (-when-let* ((doc-buf (get-buffer "*company-documentation*")))
+  (-when-let* ((doc-buf (get-buffer company-coq--doc-buffer)))
     (bury-buffer doc-buf))
   (-when-let* ((goals-buf proof-goals-buffer)
                (goals-win (company-coq-get-goals-window)))
@@ -1636,8 +1639,8 @@ If NAME has an 'anchor text property, returns a help message."
   (declare (indent defun)
            (debug body))
   `(progn
-     (company-coq-dbg "company-prepare-doc-buffer: Called") ;; TODO the buffer could have a different name
-     (let ((doc-buffer (get-buffer-create "*company-documentation*")))
+     (company-coq-dbg "company-prepare-doc-buffer: Called")
+     (let ((doc-buffer (get-buffer-create company-coq--doc-buffer)))
        (with-selected-window (company-coq-display-in-pg-window doc-buffer)
          (with-current-buffer doc-buffer
            (let ((inhibit-read-only t))
