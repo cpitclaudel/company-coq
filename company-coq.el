@@ -1025,7 +1025,7 @@ Only active if `company-coq--prettify-abbrevs' is non-nil"
        "@{\\([^}]+\\)}"
        (lambda (match)
          (propertize (match-string-no-properties 1 match)
-                     'company-face '(company-coq-snippet-hole-face)))
+                     'face '(company-coq-snippet-hole-face)))
        abbrev)
     abbrev))
 
@@ -1034,7 +1034,7 @@ Only active if `company-coq--prettify-abbrevs' is non-nil"
 MENUNAME, INSERT, and INSERT-FUN are as in PG interal databases."
   (when (or (and insert (not (string-match-p (regexp-opt company-coq-excluded-pg-patterns) insert)))
             (and (not insert) insert-fun))
-    (propertize (if insert-fun menuname (company-coq-cleanup-abbrev insert))
+    (propertize (if insert-fun menuname insert)
                 'source 'pg
                 'insert insert
                 'insert-fun insert-fun
@@ -1044,7 +1044,7 @@ MENUNAME, INSERT, and INSERT-FUN are as in PG interal databases."
   "Convert ABBREV-AND-ANCHOR imported from the manual to internal company-coq format."
   (let ((abbrev (car abbrev-and-anchor))
         (anchor (cdr abbrev-and-anchor)))
-    (propertize (company-coq-cleanup-abbrev abbrev)
+    (propertize abbrev
                 'source 'man
                 'anchor anchor
                 'insert abbrev
@@ -2262,6 +2262,7 @@ backend.  COMMAND, ARG and IGNORED: see `company-backends'."
     (`no-cache t)
     (`match (company-coq-match arg))
     (`post-completion (company-coq-post-completion-snippet arg))
+    (`pre-render (company-coq-cleanup-abbrev arg))
     (`require-match 'never)))
 
 (defun company-coq-refman-backend (command &optional arg &rest ignored)
@@ -2429,7 +2430,8 @@ because it makes it easier to enable or disable backends."
     (`no-cache t)
     (`require-match 'never)
     (_ (when (stringp arg)
-         (let ((backend (get-text-property 0 'company-coq-original-backend arg)))
+         ;; -when-let, because annotations may not be tagged with a backend
+         (-when-let* ((backend (get-text-property 0 'company-coq-original-backend arg)))
            (apply backend command (cons arg ignored)))))))
 
 (defvar company-coq-choices-list nil)
