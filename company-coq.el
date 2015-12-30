@@ -2059,23 +2059,34 @@ Which conversion function to use is determined from SOURCE."
   "Close occur buffer and go to position at point."
   (interactive)
   (let ((pos (occur-mode-find-occurrence)))
-    (switch-to-buffer (marker-buffer pos))
-    (goto-char pos)
-    (kill-buffer "*Occur*")))
+    (let ((occur-buf (current-buffer)))
+      (switch-to-buffer (marker-buffer pos))
+      (goto-char pos)
+      (kill-buffer occur-buf))))
 
 (defun company-coq-occur ()
-  "Dhow an outline of the current proof script."
+  "Show an outline of the current proof script."
   (interactive)
   (company-coq-error-unless-feature-active 'outline)
-  (let ((same-window-buffer-names '("*Occur*")))
+  (let* ((same-window-buffer-names '("*Occur*"))
+         (source-name (buffer-name))
+         (occur-title (format "Outline of [%s]" source-name)))
     (occur company-coq-outline-regexp)
     (company-coq-with-current-buffer-maybe "*Occur*"
+      (rename-buffer occur-title)
       (let ((local-map (copy-keymap (current-local-map))))
         (substitute-key-definition #'occur-mode-goto-occurrence
                                    #'company-coq-goto-occurence local-map)
         (substitute-key-definition #'occur-mode-mouse-goto
                                    #'company-coq-goto-occurence local-map)
-        (use-local-map local-map)))))
+        (use-local-map local-map))
+      (let ((inhibit-read-only t))
+        (save-excursion ;; Prettify buffer title
+          (goto-char (point-min))
+          (when (re-search-forward "\\`[0-9]+\\s-*match.*\n*" (point-max) t)
+            (replace-match (replace-quote (concat occur-title "\n")))
+            (goto-char (point-min))
+            (company-coq-make-title-line 'company-coq-doc-header-face-about)))))))
 
 (defun company-coq-grep-symbol (regexp)
   "Recursively find REGEXP in Coq subdirectories."
