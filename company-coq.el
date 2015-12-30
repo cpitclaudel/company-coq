@@ -1912,7 +1912,7 @@ DOM and FONT are as in these functions."
       (when doc-full-path
         (company-coq-with-clean-doc-buffer
           (company-coq-doc-refman-put-html doc-full-path)
-          (cons (current-buffer) (save-excursion (forward-line -2) (point))))))))
+          (cons (current-buffer) (point)))))))
 
 (defun company-coq-candidates-symbols (prefix)
   "Find symbols matching PREFIX."
