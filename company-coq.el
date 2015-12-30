@@ -3458,7 +3458,7 @@ BOUND is as in `re-search-forward'."
   "Fold or unfold current bullet or brace pair."
   (interactive)
   (company-coq-error-unless-feature-active 'code-folding)
-  (pcase-let* (((seq bullet end-of-bullet)
+  (pcase-let* ((`(,bullet . ,end-of-bullet)
                 (save-excursion
                   (when (company-coq-features/code-folding--search
                          're-search-backward company-coq-features/code-folding--hs-regexp)
