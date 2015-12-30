@@ -46,6 +46,7 @@ Proof.
       apply I.
 Qed.
 
+
 Require Import String.
 Definition InactiveBraces := "{{}}"%string. (* These braces shouldn't be active *)
 (* Neither should these {{}}
@@ -65,9 +66,10 @@ Qed.
 
 (** Is this comment highlighted differently? Does it fill? (try pressing M-q (fill-paragraph)) *)
 
-(*+++++++++++++++++++++++++++*)
 (*! Is this comment bigger? +*)
+(*++++++++++++++++++++++++*)
 (*+ what about this one? +*)
+(*++++++++++++++++++++++++*)
 (*** And this one? **)
 (******** but not this one? *)
 (* Does disabling company-coq restore the comments to a small font? *)
@@ -81,7 +83,7 @@ SearchAbout plus.                 (* Scroll down in response window *)
 (* plu should autocomplete after running this search. Does the response window keep its offset? *)
 (* Pressing <menu> or control-clicking on plus should show a definition inline, prettified. Same for SimpleLtac *)
 
-Lemma clear_search : True. Proof I.
+Lemma clear_search : True. Proof I. (* Does <menu> on I show properly offset inline docs? *)
 
 Fail Fix_F_inv. (* Does the infobox resize properly? *)
 
