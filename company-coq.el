@@ -1011,14 +1011,23 @@ redundant elements (such as omega)."
   "Face used to highlight holes in snippets."
   :group 'company-coq-faces)
 
+(defun company-coq-cleanup-abbrev-1 (abbrev regexp rep)
+  "Cleanup ABBREV for display using REGEXP and REP.
+Return nil if ABBREV was unchanged."
+  (replace-regexp-in-string
+   regexp (lambda (match)
+            (propertize (replace-match rep t nil match)
+                        'face '(company-coq-snippet-hole-face)))
+   abbrev))
+
 (defun company-coq-cleanup-abbrev (abbrev)
   "Cleanup ABBREV for display."
-  (replace-regexp-in-string
-   "@{\\([^}]+\\)}"
-   (lambda (match)
-     (propertize (match-string-no-properties 1 match)
-                 'face '(company-coq-snippet-hole-face)))
-   abbrev))
+  (pcase-dolist (`(,regexp . ,rep) '(("@{\\(?1:[^}]+\\)}" . "\\1")
+                                     ("${\\(?:[0-9]+:\\)?\\(?1:[^}]+\\)}" . "\\1")
+                                     ("$[0-9]" . "#")
+                                     ("#" . "#")))
+    (setq abbrev (company-coq-cleanup-abbrev-1 abbrev regexp rep)))
+  abbrev)
 
 (defun company-coq-parse-abbrevs-pg-entry (menuname _abbrev insert &optional _statech _kwreg insert-fun _hide)
   "Convert PG abbrev to internal company-coq format.
