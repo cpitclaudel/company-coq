@@ -292,7 +292,6 @@ The result matches any symbol in HEADERS, followed by BODY."
   (concat "^[[:blank:]]*\\_<\\(" (regexp-opt headers) "\\)\\_>"
           (when body (concat "\\s-*\\(" body "\\)"))))
 
-;; TODO Merge with coq-keywords-defn
 (defconst company-coq-definitions-kwds `("Class" "CoFixpoint" "CoInductive" "Corollary"
                               "Declare Module" "Definition" "Example" "Fact" "Fixpoint"
                               "Function" "Functional Scheme" "Inductive" "Instance" "Lemma"
@@ -1070,7 +1069,6 @@ MENUNAME, INSERT, and INSERT-FUN are as in PG interal databases."
                 'source 'ltac 'insert abbrev
                 'stripped (company-coq-normalize-abbrev abbrev))))
 
-;; TODO this should be in tg
 (defun company-coq-parse-dynamic-notations-db-entry (tactic)
   "Convert TACTIC notation to internal company-coq format."
   (propertize (company-coq-cleanup-abbrev tactic)
@@ -2430,7 +2428,6 @@ order."
 
 (defun company-coq-candidates-master (prefix)
   "Compute all company-coq candidates for PREFIX."
-  ;; FIXME sort to put exact matches at the top
   (company-coq-put-exact-matches-on-top
    (cl-loop for backend in company-coq-enabled-backends
             nconc (company-coq-tagged-candidates backend prefix))))
@@ -2563,9 +2560,6 @@ Do not edit this keymap: instead, edit `company-coq-map'.")
   "Get the snippet under the current point."
   (car (yas--snippets-at-point)))
 
-;; FIXME this should only happend in the last hole, and only if not in
-;; nested parens, so as to prevent [assert true by (blah;] from
-;; exiting.
 (defun company-coq-maybe-exit-snippet (arg)
   "Exit the current snippet, if any.
 Pass ARG to the function that would have been called had the
@@ -2661,8 +2655,8 @@ With prefix ARG, insert an inductive constructor with arguments."
         (candidates (cons "" (car-safe (company-coq-run-then-parse-context-and-goal "Show")))))
     (while (string-equal lemma-name "")
       (setq lemma-name (read-string "Lemma name? ")))
-    (while candidates ;; TODO consider completing-read-multiple
-      (let ((hyp (completing-read "Hypothesis to keep? " candidates nil t)))
+    (while candidates
+      (let ((hyp (completing-read "Hypothesis to keep (name of hypothesis, or C-j when done)? " candidates nil t)))
         (if (string-equal hyp "")
             (setq candidates nil)
           (setq candidates (remove hyp candidates))
@@ -2827,7 +2821,7 @@ to show at most MAX-LINES."
       (company-coq-insert-spacer (point-max))
       (buffer-string))))
 
-(defun company-coq--count-lines-under-point (&optional max-lines) ;; FIXME this could be much more efficient
+(defun company-coq--count-lines-under-point (&optional max-lines)
   "Count number of lines beyond POINT.
 Return MAX-LINES if there are more than that."
   (setq max-lines (or max-lines (window-body-height)))
@@ -2859,8 +2853,6 @@ Return MAX-LINES if there are more than that."
      (ins-pos (error "No information found for %s" (car sb-pos)))
      (sb-pos  (error "No newline at end of file"))
      (t       (error "No symbol here")))))
-
-;; FIXME: The docs are broken
 
 (defun company-coq-error-unless-feature-active (cc-feature)
   "Display an error, unless CC-FEATURE is enabled."
@@ -3163,8 +3155,6 @@ Interactively, prompt for FEATURE."
   (pcase arg
     (`on
      (yas-minor-mode)
-     ;; TODO these hooks could be made more fine-grained and be enabled or
-     ;; disabled by the various features that depend on them
      (add-hook 'proof-shell-init-hook #'company-coq-prover-init)
      (add-hook 'proof-state-change-hook #'company-coq-state-change)
      (add-hook 'proof-shell-insert-hook #'company-coq-maybe-proof-input-reload-things)
@@ -3388,7 +3378,7 @@ folding at the level of Proofs."
           company-coq-features/code-folding--brace-regexp "\\)")
   "Regexp matching hide-show openers.")
 
-;; TODO The documentation of hs-special-modes-alist specifically warns against
+;; NOTE: The documentation of hs-special-modes-alist specifically warns against
 ;; leading spaces in regexps, but we need them to tell bullets apart from
 ;; operators.
 (defconst company-coq-features/code-folding--hs-spec
@@ -3471,8 +3461,8 @@ fully populated."
                                        (when (looking-at company-coq-features/code-folding--line-beginning-regexp)
                                          (match-end 0)))))
          (<= (point) furthest-bullet))
-       ;; Really at the topelevel of a proof
-       ;; FIXME this check would work very well, but it is too slow
+       ;; Really at the topelevel of a proof.
+       ;; NOTE: This check works very well, but it is too slow, so it's disabled
        (or t (save-excursion
                (backward-up-list)
                (looking-back "Proof" (point-at-bol))))))))
@@ -3509,9 +3499,11 @@ The spec uses local-map instead of keymap, because it needs to
 take precedence over PG's own keymaps, introduced by the overlays
 that it adds after processing a buffer section.")
 
-;; TODO make this a defcustom
-(defvar company-coq-features/code-folding-ellipsis " […]" ;; … ⤶ ↲ ▶ ⏩ ▸
-  "Ellipsis used for code folding.")
+(defcustom company-coq-features/code-folding-ellipsis " […]" ;;
+  "Ellipsis used for code folding.
+Suggested values: […] [⤶] [↲] [▶] [⏩] [▸]."
+  :type #'stringp
+  :group 'company-coq)
 
 (defface company-coq-features/code-folding-ellipsis-face
   '((t (:inherit font-lock-preprocessor-face)))
@@ -3661,7 +3653,7 @@ Autocompletes theorem names by querying the prover."
 
 (defun company-coq-warn-obsolete-setting (setting)
   "Warn about the use of obsolete setting SETTING."
-  ;; TODO start issuing warnings for outdated customizations in a future release
+  ;; LATER: start issuing warnings for outdated customizations
   (unless t
     (company-coq-warn "Option %S is obsolete. Customize `company-coq-disabled-features' instead." setting)))
 
@@ -3704,7 +3696,6 @@ company-coq."
 
 (defvar company-coq--lighter-var
   '(:eval (let* ((img-path (expand-file-name "rooster.png" company-coq-refman-path))
-                 ;; FIXME this should use mode-line-inactive in unselected windows
                  (mode-line-background (face-attribute 'mode-line :background nil 'default))
                  (mode-line-height (face-attribute 'mode-line :height nil 'default))
                  (display-spec `(image :type imagemagick ;; Image file from emojione
@@ -3747,7 +3738,7 @@ tutorial.
     (company-coq-toggle-features (company-coq-enabled-features) nil)))
 
 ;;;###autoload
-(defun company-coq-initialize () ;; TODO deprecate this
+(defun company-coq-initialize () ;; LATER: Deprecate this
   "Deprecated: Use `company-coq-mode' instead."
   (interactive)
   (company-coq-mode))
@@ -3766,8 +3757,6 @@ When on, print debug messages during operation."
   (interactive)
   (setq company-coq-debug (not company-coq-debug))
   (message "company-coq-debug: %s" company-coq-debug))
-
-;; TODO add a binding to look up the word at point
 
 ;; Local Variables:
 ;; checkdoc-arguments-in-order-flag: nil
