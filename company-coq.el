@@ -1009,25 +1009,19 @@ redundant elements (such as omega)."
      (concat " *\\(" company-coq-placeholder-regexp "\\) *") "#"
      abbrev))))
 
-(defvar company-coq--prettify-abbrevs nil
-  "If non-nil, use fontification in abbrevs.")
-
 (defface company-coq-snippet-hole-face
   '((t :slant italic :weight bold))
-  "Face used to highlight holes in snippets.
-Only active if `company-coq--prettify-abbrevs' is non-nil"
+  "Face used to highlight holes in snippets."
   :group 'company-coq-faces)
 
 (defun company-coq-cleanup-abbrev (abbrev)
   "Cleanup ABBREV for display."
-  (if company-coq--prettify-abbrevs
-      (replace-regexp-in-string
-       "@{\\([^}]+\\)}"
-       (lambda (match)
-         (propertize (match-string-no-properties 1 match)
-                     'face '(company-coq-snippet-hole-face)))
-       abbrev)
-    abbrev))
+  (replace-regexp-in-string
+   "@{\\([^}]+\\)}"
+   (lambda (match)
+     (propertize (match-string-no-properties 1 match)
+                 'face '(company-coq-snippet-hole-face)))
+   abbrev))
 
 (defun company-coq-parse-abbrevs-pg-entry (menuname _abbrev insert &optional _statech _kwreg insert-fun _hide)
   "Convert PG abbrev to internal company-coq format.
