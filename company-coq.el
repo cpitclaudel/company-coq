@@ -920,26 +920,53 @@ lest duplicates pop up."
   (company-coq-init-db 'company-coq-dynamic-tactics 'company-coq-force-reload-tactics))
 
 (defun company-coq-find-all (re beg end)
-  "Find all occurences of RE between BEG and END."
+  "Find all occurences of RE between BEG and END.
+Return results as ((MATCH-STRING 2) . POSITION)."
   (when (< beg end) ;; point-at-bol may be before unproc-beg
     (let ((case-fold-search nil)
           (matches          nil))
       (save-excursion
         (goto-char beg)
         (while (search-forward-regexp re end t)
-          (push (match-string-no-properties 2) matches)))
+          (push (cons (match-string-no-properties 2) (match-beginning 2)) matches)))
       matches)))
+
+(defvar company-coq-local-definitions nil
+  "Cache of local function definitions")
+(make-variable-buffer-local 'company-coq-local-definitions)
+
+(defvar-local company-coq-local-definitions-valid-from 1
+  "Point up to which `company-coq-local-definitions' is accurate.")
+
+(defvar-local company-coq-local-definitions-valid-up-to 1
+  "Point up to which `company-coq-local-definitions' is accurate.")
 
 (defun company-coq-collect-local-definitions ()
   "Find definitions of Coq symbols in the current buffer.
 When completions are available directly from Coq, only look for
 definitions in the unprocessed part of the buffer."
-  (interactive) ;; FIXME should timeout after some time, and should cache search results
+  (interactive) ;; NOTE this could timeout after a while
   (when (company-coq-feature-active-p 'local-definitions-backend)
-    (let* ((unproc-beg (proof-unprocessed-begin)))
-      (if (company-coq-feature-active-p 'dynamic-symbols-backend)
-          (company-coq-find-all company-coq-definitions-regexp unproc-beg (point-at-bol))
-        (company-coq-find-all company-coq-definitions-regexp (point-min) (point-at-bol))))))
+    (let ((should-be-valid-from (if (company-coq-feature-active-p 'dynamic-symbols-backend)
+                                    (proof-unprocessed-begin)
+                                  (point-min)))
+          (should-be-valid-up-to (point-at-bol)))
+      (setq company-coq-local-definitions
+            (append
+             ;; New elements before cache
+             (company-coq-find-all company-coq-definitions-regexp should-be-valid-from
+                        (min should-be-valid-up-to company-coq-local-definitions-valid-from))
+             ;; Old cache, minus stale elements
+             (-filter (lambda (def)
+                        (and (>= (cdr def) should-be-valid-from)
+                             (<= (cdr def) should-be-valid-up-to)))
+                      company-coq-local-definitions)
+             ;; New elements after cache
+             (company-coq-find-all company-coq-definitions-regexp (max should-be-valid-from company-coq-local-definitions-valid-up-to)
+                        should-be-valid-up-to)))
+      (setq company-coq-local-definitions-valid-from should-be-valid-from
+            company-coq-local-definitions-valid-up-to should-be-valid-up-to))
+    (mapcar #'car company-coq-local-definitions)))
 
 (defun company-coq-line-is-import-p ()
   "Return non-nil if current line is part of an Import statement."
