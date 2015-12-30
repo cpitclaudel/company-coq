@@ -609,21 +609,6 @@ infinite loop (they are not cleared by [generalize dependent]).")
       `(with-no-warnings ,@body)
     `(progn ,@body)))
 
-;; FIXME: This should happen at the PG level. Introduced to fix #8.
-(defmacro company-coq-with-window-starts (windows &rest body)
-  "Save offsets of non-nil WINDOWS, run BODY, and restore offsets.
-If WINDOWS is nil, just run BODY."
-  (declare (indent defun)
-           (debug t))
-  `(progn
-     (let* ((windows (remove nil ,windows))
-            (wstarts (mapcar #'window-start windows)))
-       (prog1
-           (progn ,@body)
-         (pcase-dolist (`(,window . ,wstart) (-zip windows wstarts))
-           (when (not (equal wstart (window-start window)))
-             (set-window-start window wstart)))))))
-
 (defun company-coq-ask-prover (question)
   "Synchronously send QUESTION to the prover.
 This function attemps to preserve the offsets of the
@@ -633,7 +618,7 @@ goals and response windows."
         (progn
           (setq company-coq-talking-to-prover t)
           (unwind-protect
-              (company-coq-with-window-starts (list (company-coq-get-goals-window) (company-coq-get-response-window))
+              (save-window-excursion ;; FIXME: PG shouldn't reset point in response and goals windows.
                 (proof-shell-invisible-cmd-get-result question))
             (setq company-coq-talking-to-prover nil)))
       (company-coq-dbg "Prover not available; [%s] discarded" question)
