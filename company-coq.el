@@ -560,7 +560,7 @@ infinite loop (they are not cleared by [generalize dependent]).")
   "Refman (and other assets)'s directory.")
 
 (defface company-coq-doc-header-face-docs-and-sources
-  '((t :height 1.5))
+  '((t :height 1.5 :weight bold))
   "Face used to highlight the target line in source view."
   :group 'company-coq-faces)
 
