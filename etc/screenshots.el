@@ -78,10 +78,12 @@
                  (target-width (floor (* (car width-spec) my/real-github-w))))
       (when (> frame-w target-width)
         (error "Frame is too large (%d > %d)" frame-w target-width))
-      (process-lines "mogrify" "-matte"
+      (process-lines "mogrify" "-strip" "-matte"
                      "-bordercolor" (face-attribute 'fringe :background) "-border" (format "0x%d" my/fringe-width)
                      "-background" "none" "-gravity" gravity "-extent" (format "%dx%d" target-width (+ frame-h (* 2 my/fringe-width)))
-                     fname))))
+                     fname)
+      (when (member ext '(nil "png"))
+        (process-lines "optipng" "-o3" fname)))))
 
 (defun my/save-screencast (name frame-duration frame-ids)
   (apply #'process-lines

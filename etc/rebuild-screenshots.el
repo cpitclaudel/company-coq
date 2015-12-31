@@ -1,12 +1,14 @@
 ;; Packages
 
-(package-initialize)
-
 (eval-and-compile
   (add-to-list 'load-path "~/.emacs.d/lisp/ProofGeneral/generic")
   (add-to-list 'load-path "~/.emacs.d/lisp/company-coq/etc/")
-  (add-to-list 'load-path "~/.emacs.d/lisp/company-coq"))
+  (add-to-list 'load-path "~/.emacs.d/lisp/company-coq")
+  (add-to-list 'load-path "~/.emacs.d/lisp/company-mode"))
 
+(require 'company)
+
+(package-initialize)
 (require 'dash)
 (require 'noflet)
 (require 'screenshots)
@@ -15,8 +17,6 @@
 (my/faces-setup)
 
 ;;; Redefine parts of company
-
-(require 'company)
 
 (defmacro company--electric-do (&rest body)
   (declare (indent 0) (debug t))
@@ -189,7 +189,7 @@ myR")
   (my/send-keys "C-x 1 M->")
   (split-window-horizontally 26)
   (my/send-keys "<C-return> C-u 10 <down> C-u 8 <up> C-w")
-  (with-current-buffer "*company-documentation*"
+  (with-current-buffer "*company-coq: documentation*"
     (toggle-truncate-lines 1)
     (message nil)))
 
@@ -286,7 +286,7 @@ Goal forall n: nat, exists m, n = m.
   (my/send-keys "C-c C-a C-e")
   (my/send-keys "C-x 1")
   (with-selected-window (split-window-vertically 4)
-    (set-window-buffer-with-search "*company-documentation*" "omega can")
+    (set-window-buffer-with-search "*company-coq: documentation*" "omega can")
     (with-selected-window (split-window-vertically 8)
       (with-current-buffer proof-response-buffer
         (set-window-buffer nil (current-buffer))
@@ -345,7 +345,7 @@ Qed.")
 (my/with-screencast my/github-width/3 13 "center" 20 8 "Snippets for match branches (Ltac)." "match-goal"
   (:split "mgw") "<C-return>" "<C-return> RET"
   "<M-S-return>" "TAB" (:split "?a /\\ ?b") "TAB" (:split "?a") "TAB" "RET"
-  (:split "destr") "<C-return>" "<C-return> RET" (:split "H; assu") "<C-return> <down>" "<C-return> <down> RET" "M->" ".")
+  (:split "destr") "<C-return>" "<C-return> RET" (:split "H; eas") "<C-return>" "<C-return> RET" "M->" ".")
 
 (my/with-screencast my/github-width/3 13 "east" 20 8 "Smart intros." "smart-intros"
   (progn
@@ -358,7 +358,5 @@ Proof.
     (proof-shell-wait)
     (my/send-keys "C-x 1 M-< M->"))
   (:split "intros!") "<C-return>" "<C-return> RET")
-
-;; TODO Lemma extraction video?
 
 (kill-emacs)
