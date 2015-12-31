@@ -46,8 +46,11 @@ Proof.
       apply I.
 Qed.
 
+Require Import String
+        NArith ZArith.                     (* Does multiline completion work? *)
 
-Require Import String.
+(* But not here *)
+
 Definition InactiveBraces := "{{}}"%string. (* These braces shouldn't be active *)
 (* Neither should these {{}}
    +
