@@ -67,6 +67,10 @@ Proof.
   }
 Qed.
 
+(* Run this:
+    (setq company-coq-completion-predicate 'company-coq-not-in-comment-p)
+   does completion still happen in comments? plus *)
+
 (** Is this comment highlighted differently? Does it fill? (try pressing M-q (fill-paragraph)) *)
 
 (*! Is this comment bigger? +*)

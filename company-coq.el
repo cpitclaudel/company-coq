@@ -475,6 +475,17 @@ the file.  Most useful as a file- or dir-local variable."
   :type 'alist
   :safe 'listp)
 
+(defcustom company-coq-completion-predicate nil
+  "Function called before offering completions, or nil.
+If nil, offer candidates everywhere.  If set to
+`company-coq-not-in-comment-p', offer completions in source code,
+but not in comments.  This function should change the point.")
+
+(defun company-coq-not-in-comment-p ()
+  "Return nil if point is inside a comment.
+Useful as a value for `company-coq-completion-predicate'"
+  (not (coq-looking-at-comment)))
+
 (defconst company-coq-numeric-hypothesis-regexp "\\(?:^  \\|, \\)[A-Za-zΑ-Ωα-ω]\\([0-9]+\\)\\b"
   "Regexp used to detect hypotheses of the form Hyp25 and change them into Hyp_25.")
 
@@ -1557,15 +1568,17 @@ Nothing is reloaded immediately; instead the relevant flags are set."
   (derived-mode-p 'coq-mode))
 
 (defun company-coq-prefix-at-point ()
-  "Compute prefix at point, for completion."
-  ;; Only one prefix function; otherwise the first backend in the list of
-  ;; backend shadows the others.
+  "Compute prefix at point, for completion.
+All candidates for a given company completion session must share
+the same prefix: thus there can only be one prefix function for
+all company-coq backends."
   (company-coq-dbg "company-coq-prefix-at-point: Called")
   (when (company-coq-coq-mode-p)
     (unless (and (char-after) (memq (char-syntax (char-after)) '(?w ?_)))
-      (save-excursion
-        (when (company-coq-looking-back company-coq-prefix-regexp (point-at-bol))
-          (match-string-no-properties 0))))))
+      (when (funcall company-coq-completion-predicate)
+        (save-excursion
+          (when (company-coq-looking-back company-coq-prefix-regexp (point-at-bol))
+            (match-string-no-properties 0)))))))
 
 (defun company-coq-symbol-at-point-with-pos ()
   "Return symbol at point and its left bound.
