@@ -81,6 +81,7 @@
       (require 'proof-config) ;; `proof-fly-past-comments'
       (require 'proof-script) ;; `proof-unprocessed-begin'
       (require 'coq-syntax)   ;; `coq-tactics-db'
+      (require 'coq-indent)   ;; `coq-looking-at-comment'
       (require 'coq))         ;; `coq-insert-match'
   (error "Company-coq: Unable to load proof-site.  Is Proof General installed properly?"))
 
@@ -106,7 +107,9 @@
   (declare-function proof-unprocessed-begin "ext:proof-script.el")
   (declare-function proof-goto-point "ext:pg-user.el")
   (declare-function coq-mode "ext:coq.el")
-  (declare-function coq-insert-match "ext:coq.el"))
+  (declare-function coq-insert-match "ext:coq.el")
+  (declare-function coq-get-comment-region "ext:coq.el" pt)
+  (declare-function coq-looking-at-comment "ext:coq-indent.el" cmd))
 
 (defgroup company-coq nil
   "Extensions for Proof General's Coq mode."
@@ -1672,10 +1675,8 @@ comment."
              (progn
                (company-coq-make-title-line 'company-coq-doc-header-face-docs-and-sources t)
                (forward-line -2)
-               (or (and (functionp 'coq-looking-at-comment)
-                        (company-coq-suppress-warnings (coq-looking-at-comment))
-                        (functionp 'coq-get-comment-region)
-                        (car (company-coq-suppress-warnings (coq-get-comment-region (point)))))
+               (or (and (coq-looking-at-comment)
+                        (car (coq-get-comment-region (point))))
                    (point))))
         0)))
 
@@ -1871,13 +1872,15 @@ If no command succeed, do the same with FALLBACKS as TEMPLATES."
   (setq name (replace-regexp-in-string " .*" "" name))
   (company-coq-doc-buffer-generic name (list company-coq-tactic-def-cmd)))
 
+(defun company-coq-call-compat (func fallback &rest args)
+  "Call FUNC, or FALLBACK if FUNC is undefined.
+Acts as a compatibility layer for obsolete function in 24.3."
+  (apply #'funcall (if (functionp func) func fallback) args))
+
 (defun company-coq-shr-fontize (dom font)
   "Wrapper around `shr-fontize-cont' and `shr-fontize-dom'.
 DOM and FONT are as in these functions."
-  (funcall (if (functionp 'shr-fontize-cont)
-               'shr-fontize-cont
-             'shr-fontize-dom)
-           dom font))
+  (company-coq-call-compat 'shr-fontize-cont 'shr-fontize-dom dom font))
 
 (defun company-coq-shr-tag-tt (cont)
   "Fromat a tt tag CONT."
@@ -2162,11 +2165,6 @@ difference."
     (condition-case nil
         (progn (outline-back-to-heading) nil)
       ('error t))))
-
-(defun company-coq-call-compat (func fallback)
-  "Call FUNC, or FALLBACK if FUNC is undefined.
-Acts as a compatibility layer for obsolete function in 24.3."
-  (funcall (if (functionp func) func fallback)))
 
 (defun company-coq-fold ()
   "Hide the body of the current proof or definition.
