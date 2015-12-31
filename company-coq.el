@@ -256,7 +256,7 @@ impossible, for example in `proof-shell-insert-hook'")
   "List of predefined Coq syntax forms.")
 
 (defvar company-coq-last-goals-output nil
-  "Cache tracking proof-shell-last-goals-output.")
+  "Cache tracking `proof-shell-last-goals-output'.")
 
 (defvar company-coq-last-search-results nil
   "Cache tracking symbols mentionned in search results.")
@@ -935,7 +935,7 @@ Return results as ((MATCH-STRING 2) . POSITION)."
       matches)))
 
 (defvar company-coq-local-definitions nil
-  "Cache of local function definitions")
+  "Cache of local function definitions.")
 (make-variable-buffer-local 'company-coq-local-definitions)
 
 (defvar-local company-coq-local-definitions-valid-from 1
@@ -1049,7 +1049,7 @@ redundant elements (such as omega)."
 
 (defun company-coq-cleanup-abbrev (abbrev)
   "Cleanup ABBREV for display.
-This doesn't move match-beginning and match-end, so it's a bit
+This doesn't move `match-beginning' and `match-end', so it's a bit
 risky to call it after computing company's `match', at it will
 change the length of the candidate."
   (pcase-dolist (`(,regexp . ,rep) '(("@{\\(?1:[^}]+\\)}" . "\\1")
@@ -1582,7 +1582,7 @@ all company-coq backends."
 
 (defun company-coq-symbol-at-point-with-pos ()
   "Return symbol at point and its left bound.
-Does not use coq-id-or-notation-at-point, because we want to
+Does not use `coq-id-or-notation-at-point', because we want to
 return the starting point as well."
   (let* ((start  (and (company-coq-looking-back company-coq-prefix-regexp (point-at-bol))
                       (match-beginning 0)))
@@ -1828,7 +1828,8 @@ With SKIP-SPACE, do not format leading spaces."
     count))
 
 (defun company-coq-annotation-snippet (source candidate)
-  "Compute company's annotation for snippet CANDIDATE."
+  "Compute company's annotation for snippet CANDIDATE.
+SOURCE identified the backend that produced CANDIDATE."
   (let* ((snippet   (company-coq-get-snippet candidate))
          (num-holes (and snippet (company-coq-count-holes snippet)))
          (prefix    (if (company-coq-get-anchor candidate) "..." ""))) ;; 🕮 📓 …
@@ -1886,7 +1887,7 @@ If no command succeed, do the same with FALLBACKS as TEMPLATES."
   (company-coq-doc-buffer-generic name (list company-coq-tactic-def-cmd)))
 
 (defun company-coq-call-compat (func fallback &rest args)
-  "Call FUNC, or FALLBACK if FUNC is undefined.
+  "Call FUNC, or FALLBACK if FUNC is undefined, on ARGS.
 Acts as a compatibility layer for obsolete function in 24.3."
   (apply #'funcall (if (functionp func) func fallback) args))
 
@@ -2427,6 +2428,7 @@ order."
                                  backends company-coq-sorted-backends)))
 
 (defun company-coq-put-exact-matches-on-top (sorted-candidates)
+  "Return a copy of SORTED-CANDIDATES with all exact matches at the front."
   (let ((exact-matches nil)
         (partial-matches nil))
     (dolist (candidate sorted-candidates)
@@ -3112,7 +3114,7 @@ Defining a feature adds it to `company-coq-available-features'."
           ((or (eq ,arg 'on) (and (numberp arg) (> ,arg 0)))
            (setq ,arg 'on)
            (unless (company-coq-value-or-nil 'company-coq-mode)
-             (user-error "%s depends on company-coq-mode" ,(symbol-name symbol)))
+             (user-error "%s depends on `company-coq-mode'" ,(symbol-name symbol)))
            (put ',toggle-function 'company-coq-feature-active t))
           ((or (eq ,arg 'off) (and (numberp arg) (<= ,arg 0)))
            (setq ,arg 'off)
@@ -3720,7 +3722,7 @@ company-coq."
                                        :background ,mode-line-background)))
             (list " " (apply #'propertize "🐤" (when (file-exists-p img-path) ;; 🐤 🐣 🐓 🐔
                                                 (list 'display display-spec))))))
-  "Lighter var for company-coq-mode.
+  "Lighter var for `company-coq-mode'.
 Must be tagged risky to display properly.")
 
 (put 'company-coq--lighter-var 'risky-local-variable t)
@@ -3765,7 +3767,7 @@ tutorial.
   nil)
 
 (defun toggle-company-coq-debug ()
-  "Toggle company-coq-debug.
+  "Toggle `company-coq-debug'.
 When on, print debug messages during operation."
   (interactive)
   (setq company-coq-debug (not company-coq-debug))
