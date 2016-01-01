@@ -188,7 +188,7 @@ myR")
   (my/send-keys "C-c <C-return>")
   (my/send-keys "C-x 1 M->")
   (split-window-horizontally 26)
-  (my/send-keys "<C-return> C-u 10 <down> C-u 8 <up> C-w")
+  (my/send-keys "<C-return> C-w")
   (with-current-buffer "*company-coq: documentation*"
     (toggle-truncate-lines 1)
     (message nil)))
