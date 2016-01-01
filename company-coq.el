@@ -1574,8 +1574,10 @@ the same prefix: thus there can only be one prefix function for
 all company-coq backends."
   (company-coq-dbg "company-coq-prefix-at-point: Called")
   (when (company-coq-coq-mode-p)
+    ;; Don't complete in the middle of a word
     (unless (and (char-after) (memq (char-syntax (char-after)) '(?w ?_)))
-      (when (funcall company-coq-completion-predicate)
+      ;; Only complete if company-coq-completion-predicate allows it
+      (when (or (null company-coq-completion-predicate) (funcall company-coq-completion-predicate))
         (save-excursion
           (when (company-coq-looking-back company-coq-prefix-regexp (point-at-bol))
             (match-string-no-properties 0)))))))
