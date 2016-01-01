@@ -133,7 +133,6 @@
     "Debug mode for company-coq."))
 
 (defcustom company-coq-custom-snippets '("Section ${1:SectionName}.\n$0\nEnd $1."
-                              "Chapter ${1:ChapterName}.\n$0\nEnd $1." ;; Commented out in RefMan-ext.v
                               "Module ${1:ModuleName}.\n$0\nEnd $1."
                               "Module Type ${1:ModuleTypeName}.\n$0\nEnd $1."
                               "match ${ident} with\n$0\nend"
@@ -2262,6 +2261,7 @@ COMMAND, ARG and IGNORED: see `company-backends'."
   (pcase command
     (`comparison-fun #'company-coq-string-lessp-foldcase)
     (`annotation (company-coq-annotation-snippet "usr" arg))
+    (`sorted t)
     (_ (apply #'company-coq-generic-snippets-backend #'company-coq-collect-user-snippets
               #'company-coq-user-snippets-backend command arg ignored))))
 
