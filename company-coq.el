@@ -25,7 +25,6 @@
 ;; See https://github.com/cpitclaudel/company-coq/ for a detailed description,
 ;; including screenshots and documentation.  After installing, you may want to
 ;; use M-x company-coq-tutorial to open the tutorial.
-;;
 
 ;;; Code:
 ;;
@@ -136,6 +135,7 @@
                               "Module Type ${1:ModuleTypeName}.\n$0\nEnd $1."
                               "match ${ident} with\n$0\nend"
                               "lazymatch ${ident} with\n$0\nend"
+                              "multimatch ${ident} with\n$0\nend"
                               "match constr:($1) with\n$0\nend"
                               "lazymatch constr:($1) with\n$0\nend"
                               "match goal with\n$0\nend"
@@ -636,7 +636,7 @@ goals and response windows."
           (unwind-protect
               ;; `save-window-excursion' is still needed to restore any buffer
               ;; that might have been show instead of the goals or the response
-              ;; (the fix to PG doesn't prevent it from retoring the window
+              ;; (the fix to PG doesn't prevent it from restoring the window
               ;; configuration)
               (save-window-excursion
                 (proof-shell-invisible-cmd-get-result question))
@@ -2472,7 +2472,7 @@ because it makes it easier to enable or disable backends."
            ;; Only annotations may appear without a -backend tag
            (cl-assert (and (eq command 'pre-render) (car ignored))))))))
 
-  (defvar company-coq-choices-list nil)
+(defvar company-coq-choices-list nil)
 (defvar company-coq-saved-idle-delay nil)
 
 (defun company-coq-choose-value (values)
