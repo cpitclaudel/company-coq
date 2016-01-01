@@ -96,9 +96,12 @@
   (defvar proof-shell-proof-completed)
   (defvar coq-mode-map)
   (defvar coq-reserved)
-  (defvar coq-commands-db)
-  (defvar coq-tacticals-db)
-  (defvar coq-tactics-db)
+  (defvar coq-user-cheat-tactics-db)
+  (defvar coq-user-commands-db)
+  (defvar coq-user-reserved-db)
+  (defvar coq-user-solve-tactics-db)
+  (defvar coq-user-tacticals-db)
+  (defvar coq-user-tactics-db)
   (defvar coq-hyp-name-in-goal-or-response-regexp)
   (declare-function proof-shell-invisible-cmd-get-result "ext:proof-shell.el" cmd)
   (declare-function proof-shell-available-p "ext:proof-shell.el")
@@ -1016,23 +1019,18 @@ Do not call if the prover process is busy."
 
 (defun company-coq-get-pg-abbrevs-db ()
   "Collect abbrevs known by Proof General.
-`coq-solve-tactics-db' is not included because it contains
-redundant elements (such as omega)."
-  (append coq-tactics-db ;; coq-solve-cheat-tactics-db unrecognized?
-          coq-tacticals-db coq-commands-db))
-
-(defun company-coq-get-man-abbrevs-db ()
-  "Collect abbrevs imported from the manual."
-  company-coq-abbrevs)
-
-(defun company-coq-normalize-abbrev (abbrev)
-  "Normalize abbreviation ABBREV for duplicate detection."
-  (downcase
-   (replace-regexp-in-string
-    "[ .]+\\'" ""
-    (replace-regexp-in-string
-     (concat " *\\(" company-coq-placeholder-regexp "\\) *") "#"
-     abbrev))))
+This used to load all tactics known by PG, but many of them did
+not lend themselves well to autocompletion, and deduplication was
+not fast."
+  (append '(("Module! (interactive)" nil "Module # : #.\n#\nEnd #." nil nil coq-insert-section-or-module)
+            ("match! (from type)" nil "" nil "match" coq-insert-match)
+            ("intros! (guess names)" nil "intros #" nil nil coq-insert-intros))
+          coq-user-cheat-tactics-db
+          coq-user-commands-db
+          coq-user-reserved-db
+          coq-user-solve-tactics-db
+          coq-user-tacticals-db
+          coq-user-tactics-db))
 
 (defface company-coq-snippet-hole-face
   '((t :slant italic :weight bold))
@@ -1059,7 +1057,7 @@ change the length of the candidate."
     (setq abbrev (company-coq-cleanup-abbrev-1 abbrev regexp rep)))
   abbrev)
 
-(defun company-coq-parse-abbrevs-pg-entry (menuname _abbrev insert &optional _statech _kwreg insert-fun _hide)
+(defun company-coq-parse-abbrevs-pg-entry-1 (menuname _abbrev insert &optional _statech _kwreg insert-fun _hide)
   "Convert PG abbrev to internal company-coq format.
 MENUNAME, INSERT, and INSERT-FUN are as in PG interal databases."
   (when (or (and insert (not (string-match-p (regexp-opt company-coq-excluded-pg-patterns) insert)))
@@ -1067,8 +1065,11 @@ MENUNAME, INSERT, and INSERT-FUN are as in PG interal databases."
     (propertize (if insert-fun menuname (company-coq-cleanup-abbrev insert))
                 'source 'pg
                 'insert insert
-                'insert-fun insert-fun
-                'stripped (company-coq-normalize-abbrev insert))))
+                'insert-fun insert-fun)))
+
+(defun company-coq-parse-abbrevs-pg-entry (abbrev)
+  "Convert PG ABBREV to internal company-coq format."
+  (apply #'company-coq-parse-abbrevs-pg-entry-1 abbrev))
 
 (defun company-coq-parse-man-db-entry (abbrev-and-anchor)
   "Convert ABBREV-AND-ANCHOR imported from the manual to internal company-coq format."
@@ -1077,63 +1078,34 @@ MENUNAME, INSERT, and INSERT-FUN are as in PG interal databases."
     (propertize (company-coq-cleanup-abbrev abbrev)
                 'source 'man
                 'anchor anchor
-                'insert abbrev
-                'stripped (company-coq-normalize-abbrev abbrev))))
+                'insert abbrev)))
 
 (defun company-coq-parse-dynamic-ltacs-db-entry (line)
   "Convert one LINE of output of `company-coq-all-ltacs-cmd' to internal company-coq format."
   (let ((abbrev (replace-regexp-in-string " \\(\\S-+\\)" " @{\\1}" line)))
     (propertize (company-coq-cleanup-abbrev abbrev)
-                'source 'ltac 'insert abbrev
-                'stripped (company-coq-normalize-abbrev abbrev))))
+                'source 'ltac
+                'insert abbrev)))
 
 (defun company-coq-parse-dynamic-notations-db-entry (tactic)
   "Convert TACTIC notation to internal company-coq format."
   (propertize (company-coq-cleanup-abbrev tactic)
-              'source 'tacn 'insert tactic
-              'stripped (company-coq-normalize-abbrev tactic)))
+              'source 'tacn
+              'insert tactic))
 
 (defun company-coq-parse-custom-db-entry (abbrev)
   "Convert custom ABBREV to internal company-coq format."
   (propertize (company-coq-cleanup-abbrev abbrev)
               'source 'custom
-              'insert abbrev
-              'stripped (company-coq-normalize-abbrev abbrev)))
+              'insert abbrev))
 
-(defun company-coq-abbrev-equal (a1 a2)
-  "Return t if A1 and A2 are equal modulo placeholders and spacing.
-Always returns nil when A1 and A2 come from the same source, as
-single sources are assumed to be without duplicates."
-  (and (equal (company-coq-read-stripped-abbrev a1)
-              (company-coq-read-stripped-abbrev a2))
-       (or (eq a1 a2)
-           (not (equal (company-coq-read-abbrev-source a1)
-                       (company-coq-read-abbrev-source a2))))))
-
-(defun company-coq-read-stripped-abbrev (kwd)
-  "Read the stripped version of abbrev KWD from its properties."
-  (get-text-property 0 'stripped kwd))
-
-(defun company-coq-read-abbrev-source (kwd)
-  "Read the source of abbrev KWD from its properties."
-  (get-text-property 0 'source kwd))
+(defun company-coq-get-prop (prop str)
+  "Get text property PROP at index 0 of STR."
+  (get-text-property 0 prop str))
 
 (defun company-coq-append-copy (&rest sequences)
   "Append SEQUENCES, copying the last argument too."
   (apply #'append (append sequences '(nil))))
-
-(defun company-coq-union-nosort (test comp key &rest lists)
-  "Concatenate LISTS, removing duplicates according to TEST.
-Use COMP as the comparison function for sorting by KEY."
-  (let ((merged  (cl-stable-sort (apply #'company-coq-append-copy lists) comp :key key))
-        (prev    nil))
-    (dolist (top merged)
-      (when (and prev (funcall test top prev))
-        (put-text-property 0 (length top) 'dup t top))
-      (setq prev top))
-    (cl-loop for abbrev in (apply #'append lists)
-             if (not (get-text-property 0 'dup abbrev))
-             collect abbrev)))
 
 (defun company-coq-union-sort (test comp &rest lists)
   "Sort the concatenation of LISTS and remove duplicates.
@@ -1168,31 +1140,16 @@ comparison function."
             (setq num (+ 1 num)))
           ls)))
 
-(defun company-coq-get-annotated-abbrevs ()
-  "Construct a list of all abbrevs (tactics, vernacs, ...)."
-  (let ((pg-abbrevs (-keep (apply-partially #'apply #'company-coq-parse-abbrevs-pg-entry)
-                           (company-coq-get-pg-abbrevs-db)))
-        (man-abbrevs (company-coq-number (mapcar #'company-coq-parse-man-db-entry
-                                      (company-coq-get-man-abbrevs-db)))))
-    (company-coq-union-nosort #'company-coq-abbrev-equal #'string-lessp #'company-coq-read-stripped-abbrev
-                   man-abbrevs pg-abbrevs)))
-
-(defun company-coq-force-reload-static-abbrevs ()
-  "Reload abbrevs (tactics, vernacs, ...)."
-  (company-coq-dbg "company-coq-force-reload-static-abbrevs: Called")
-  (prog1
-      (setq company-coq-known-static-abbrevs (company-coq-get-annotated-abbrevs))
-    (company-coq-dbg "company-coq-force-reload-static-abbrevs: Loaded %s symbols" (length company-coq-known-static-abbrevs))))
-
-(defun company-coq-init-static-abbrevs ()
-  "Load abbrevs, if needed."
-  (interactive)
-  (company-coq-dbg "company-coq-init-static-abbrevs: Loading abbrevs (if never loaded)")
-  (company-coq-init-db 'company-coq-known-static-abbrevs 'company-coq-force-reload-static-abbrevs))
-
-(defun company-coq-collect-user-snippets ()
-  "Collect and propertize user snippets."
-  (mapcar #'company-coq-parse-custom-db-entry company-coq-custom-snippets))
+(defun company-coq--merge-sorted (seq1 seq2 lessp)
+  "Merge sorted sequences SEQ1 and SEQ2 using comparison LESSP."
+  (let ((merged nil))
+    (while (and seq1 seq2)
+      (if (funcall lessp (car seq1) (car seq2))
+          (progn (push (car seq1) merged)
+                 (setq seq1 (cdr seq1)))
+        (push (car seq2) merged)
+        (setq seq2 (cdr seq2))))
+    (nconc seq1 seq2 (nreverse merged))))
 
 (defun company-coq-is-lower (str)
   "Check if STR is lowercase."
@@ -1203,54 +1160,82 @@ comparison function."
   "Compare STR1 and STR2, case-independently."
   (string-lessp (upcase str1) (upcase str2)))
 
-(defmacro company-coq-bool-lessp-fallback (a1 a2 fallback-t &optional fallback-nil)
-  "Boolean-compare results of evaluating A1 and A2.
-If both yield t, return FALLBACK-T.  If both yield nil, return
-FALLBACK-NIL if present, or FALLBACK-T."
-  (declare (indent defun))
-  `(let ((a1 ,a1)
-         (a2 ,a2))
-     (or (and      a1  (not a2))
-         (and      a1       a2  ,fallback-t)
-         (and (not a1) (not a2) ,(or fallback-nil fallback-t)))))
-
-(defmacro company-coq-attr-lessp (symbol str1 str2 comparison-fn reference fallback-t &optional fallback-nil)
-  "Compare attributes in a convoluted way.
-In more details, boolean-compare results of calling COMPARISON-FN
-on REFERENCE and text property SYMBOL of STR1 and STR2.  If both
-yield t, return FALLBACK-T.  If both yield nil, return
-FALLBACK-NIL if present, or FALLBACK-T.  Binds a1 and a2 in the
-body of this macro, allowing fallbacks to depend on these values.
-Typically EXTRACTION is a function that compares CMP to the value
-of SYMBOL on each string."
-  (declare (indent defun))
-  `(let ((a1 (,comparison-fn ,reference (get-text-property 0 ,symbol ,str1)))
-         (a2 (,comparison-fn ,reference (get-text-property 0 ,symbol ,str2))))
-     (company-coq-bool-lessp-fallback a1 a2
-       ,fallback-t ,fallback-nil)))
+(defmacro company-coq-bool-lessp (bindings both-t &optional both-nil)
+  "Boolean-compare BINDINGS, falling back to BOTH-T or BOTH-NIL."
+  (declare (indent 1))
+  (let ((var1 (caar bindings))
+        (var2 (caadr bindings)))
+    `(let ,bindings
+       (cond
+        ((and ,var1 (not ,var2)) t)
+        ((and ,var1 ,var2) ,both-t)
+        ((and (not, var1) (not ,var2) ,(or both-nil both-t)))))))
 
 (defun company-coq-string-lessp-match-beginning (str1 str2)
-  "Order STR1 and STR2 by match-begining being 0, followed by `string-lessp`."
-  (company-coq-attr-lessp 'match-beginning str1 str2 eq 0
+  "Order STR1 and STR2 by match-begining being 0.
+Falls back to `company-coq-string-lessp-foldcase'."
+  (company-coq-bool-lessp ((m1 (eq 0 (company-coq-get-prop 'match-beginning str1)))
+                (m2 (eq 0 (company-coq-get-prop 'match-beginning str2))))
     (company-coq-string-lessp-foldcase str1 str2)))
 
-(defun company-coq-string-lessp-static-abbrevs (str1 str2)
-  "Order completion candidates STR1 and STR2."
-  ;; Rank lowercase (tactics) before uppercase (vernacs)
-  (company-coq-bool-lessp-fallback (company-coq-is-lower str1) (company-coq-is-lower str2)
-    ;; If both are lowercase (tactics)
-    (company-coq-attr-lessp 'num str1 str2 or nil
-      ;; If both have a number, preserve the original manual order
-      (< a1 a2)
-      ;; Otherwise rank alphabetically (eg two PG tactics)
-      (company-coq-string-lessp-foldcase str1 str2))
-    ;; If both are uppercase (vernacs)
-    (if (and (company-coq-get-anchor str1)
-             (equal (company-coq-get-anchor str1) (company-coq-get-anchor str2)))
-        ;; If both have the same non-nil anchor, sort in original order
-        (< (get-text-property 0 'num str1) (get-text-property 0 'num str2))
-      ;; Otherwise sort alphabetically
+(defsubst company-coq-string-lessp-tactics (str1 str2)
+  "Compare two tactics STR1 and STR2.
+Sort by order of appearance in the manual.  If one of the
+tactics is not in the manual, sort it after the other.  If both
+are not in the manual (inherited from PG) sort them
+alphabetically."
+  (company-coq-bool-lessp ((n1 (company-coq-get-prop 'num str1))
+                (n2 (company-coq-get-prop 'num str2)))
+    (< n1 n2)
+    (string-lessp str1 str2)))
+
+(defsubst company-coq-string-lessp-commands (str1 str2)
+  "Compare two command (vernacs) STR1 and STR2.
+Sort alphabetically, case insensitive, unless STR1 and STR2
+are variants of the same command.  In that case, sort in the order
+in which these variants were generated, to put more complex
+commands last."
+  (let ((a1 (company-coq-get-prop 'anchor str1))
+        (a2 (company-coq-get-prop 'anchor str2)))
+    (if (and a1 (equal a1 a2))
+        (< (company-coq-get-prop 'num str1) (company-coq-get-prop 'num str2))
       (company-coq-string-lessp-foldcase str1 str2))))
+
+(defun company-coq-string-lessp-static-abbrevs (str1 str2)
+  "Compare statically-known abbrevs STR1 and STR2.
+Sort tactics first, followed by commands, and defer to
+`company-coq-string-lessp-tactics' and `company-coq-string-lessp-commands'."
+  (company-coq-bool-lessp ((l1 (company-coq-is-lower str1))
+                (l2 (company-coq-is-lower str2)))
+    (company-coq-string-lessp-tactics str1 str2)
+    (company-coq-string-lessp-commands str1 str2)))
+
+(defun company-coq-parsed-man-abbrevs ()
+  "Cache of abbrevs defined in the manual."
+  (cl-stable-sort (company-coq-number (mapcar #'company-coq-parse-man-db-entry company-coq-abbrevs))
+                  #'company-coq-string-lessp-static-abbrevs))
+
+(defun company-coq-parsed-pg-abbrevs ()
+  "Cache of abbrevs defined in the manual."
+  (cl-stable-sort (-keep #'company-coq-parse-abbrevs-pg-entry (company-coq-get-pg-abbrevs-db))
+                  #'company-coq-string-lessp-static-abbrevs))
+
+(defun company-coq-collect-user-snippets ()
+  "Collect and propertize user snippets."
+  (mapcar #'company-coq-parse-custom-db-entry company-coq-custom-snippets))
+
+(defun company-coq-recompute-static-abbrevs ()
+  "Reload abbrevs (tactics, vernacs, ...)."
+  (company-coq-dbg "company-coq-recompute-static-abbrevs: Called")
+  (let ((pg-abbrevs (company-coq-parsed-pg-abbrevs))
+        (man-abbrevs (company-coq-parsed-man-abbrevs)))
+    (company-coq--merge-sorted man-abbrevs pg-abbrevs #'company-coq-string-lessp-static-abbrevs)))
+
+(defun company-coq-init-static-abbrevs ()
+  "Load abbrevs, if needed."
+  (interactive)
+  (company-coq-dbg "company-coq-init-static-abbrevs: Loading abbrevs (if never loaded)")
+  (company-coq-init-db 'company-coq-known-static-abbrevs 'company-coq-recompute-static-abbrevs))
 
 (defun company-coq-propertize-match (match beginning end)
   "Annotate completion candidate MATCH with BEGINNING and END."
@@ -1268,15 +1253,6 @@ With IGNORE-CASE, search case-insensitive."
     (cl-loop for completion in completions
              if (string-match prefix-re completion)
              collect (company-coq-propertize-match completion (match-beginning 0) (match-end 0)))))
-
-;; (defun company-coq-complete-prefix (prefix completions &optional ignore-case)
-;;   "List elements of COMPLETIONS starting with PREFIX"
-;;   (company-coq-dbg "company-coq-complete-prefix: Completing for prefix %s (%s symbols)" prefix (length completions))
-;;   (let ((completion-ignore-case ignore-case)
-;;         (prefix-len             (length prefix)))
-;;     (mapcar
-;;      (lambda (completion) (company-coq-propertize-match completion 0 prefix-len))
-;;      (all-completions prefix completions))))
 
 (defun company-coq-complete-sub-re (prefix candidates)
   "Find fuzzy candidates for PREFIX in CANDIDATES."
@@ -1623,7 +1599,8 @@ return the starting point as well."
   "Compute company's meta for value NAME.
 If NAME has an 'anchor text property, returns a help message."
   (company-coq-dbg "company-coq-meta-refman: Called for name %s" name)
-  (and (company-coq-get-anchor name) ;; substitute-command-keys doesn't work here
+  (and (company-coq-get-prop 'anchor name) ;; substitute-command-keys doesn't work here
+       ;; FIXME does it really not work, even with a \\ annotation?"
        (format "%s: Show the documentation of this Coq command."
                (key-description (where-is-internal #'company-show-doc-buffer
                                                    company-active-map t)))))
@@ -1632,7 +1609,7 @@ If NAME has an 'anchor text property, returns a help message."
   "Read precomputed company's meta for NAME."
   (company-coq-dbg "company-coq-meta-simple: Called for name %s" name)
   (company-coq-truncate-to-minibuf
-   (get-text-property 0 'meta name)))
+   (company-coq-get-prop 'meta name)))
 
 (defun company-coq-display-in-pg-window (buffer)
   "Display BUFFER in PG window."
@@ -1700,7 +1677,7 @@ comment."
 Once location of NAME is found look for TARGET in it.  With
 INTERACTIVE, fail loudly if no location is found."
   (company-coq-dbg "company-coq-location-simple: Called for name %s" name)
-  (let* ((fname-or-buffer (get-text-property 0 'location name))
+  (let* ((fname-or-buffer (company-coq-get-prop 'location name))
          (is-buffer       (and fname-or-buffer (bufferp fname-or-buffer)))
          (is-fname        (and fname-or-buffer (stringp fname-or-buffer) (file-exists-p fname-or-buffer))))
     (if (or is-buffer is-fname)
@@ -1780,7 +1757,7 @@ Completion candidates are taken from DYNAMIC-POOL."
                             (company-coq-collect-local-definitions)
                             dynamic-pool)))
     (list (completing-read "Name to find sources for? " completions
-                           (lambda (choice) (not (eq (get-text-property 0 'source choice) 'tacn)))
+                           (lambda (choice) (not (eq (company-coq-get-prop 'source choice) 'tacn)))
                            nil nil 'company-coq-location-history (company-coq-symbol-at-point) t)
           t)))
 
@@ -1818,10 +1795,6 @@ With SKIP-SPACE, do not format leading spaces."
          (overlay (make-overlay start end)))
     (overlay-put overlay 'face face)))
 
-(defun company-coq-get-anchor (kwd)
-  "Read the anchor property of KWD."
-  (get-text-property 0 'anchor kwd))
-
 (defun company-coq-count-holes (snippet)
   "Cound placeholders in SNIPPET."
   (let* ((count   0)
@@ -1834,7 +1807,7 @@ With SKIP-SPACE, do not format leading spaces."
 SOURCE identified the backend that produced CANDIDATE."
   (let* ((snippet   (company-coq-get-snippet candidate))
          (num-holes (and snippet (company-coq-count-holes snippet)))
-         (prefix    (if (company-coq-get-anchor candidate) "..." ""))) ;; 🕮 📓 …
+         (prefix    (if (company-coq-get-prop 'anchor candidate) "..." ""))) ;; 🕮 📓 …
     (if (and (numberp num-holes) (> num-holes 0))
         (format "%s<%s[%d]>" prefix source num-holes)
       (format "%s<%s>" prefix source))))
@@ -1845,7 +1818,7 @@ SOURCE identified the backend that produced CANDIDATE."
 
 (defun company-coq-annotation-tactic (candidate)
   "Compute company's annotation for tactic CANDIDATE."
-  (concat "<" (or (symbol-name (get-text-property 0 'source candidate)) "") ">"))
+  (concat "<" (or (symbol-name (company-coq-get-prop 'source candidate)) "") ">"))
 
 (defun company-coq-doc-buffer-collect-outputs (name templates &optional fallbacks)
   "Insert NAME into each TEMPLATES, run these commands, and collect the outputs.
@@ -1940,7 +1913,7 @@ DOM and FONT are as in these functions."
   (interactive)
   (company-coq-dbg "company-coq-doc-buffer-refman: Called for %s" name-or-anchor)
   (when (fboundp 'libxml-parse-html-region)
-    (let* ((anchor         (if (stringp name-or-anchor) (company-coq-get-anchor name-or-anchor) name-or-anchor))
+    (let* ((anchor         (if (stringp name-or-anchor) (company-coq-get-prop 'anchor name-or-anchor) name-or-anchor))
            (shr-target-id  (and anchor (concat "qh" (int-to-string (cdr anchor)))))
            (doc-short-path (and anchor (concat (car anchor) ".html.gz")))
            (doc-full-path  (and doc-short-path (expand-file-name doc-short-path company-coq-refman-path))))
@@ -2031,10 +2004,6 @@ in `company-coq-last-search-scan-size'."
   (company-coq-parse-search-results)
   (company-coq-complete-prefix-substring prefix company-coq-last-search-results))
 
-(defun company-coq-match (completion)
-  "Read company's match from COMPLETION."
-  (get-text-property 0 'match-end completion))
-
 (defun company-coq-dabbrev-to-yas-format-one (match)
   "Convert dabbrev placeholder in MATCH to yasnippet format."
   (concat  "${" (or (match-string 1 match) company-coq-snippet-default-hole-contents) "}"))
@@ -2072,8 +2041,8 @@ Which conversion function to use is determined from SOURCE."
 
 (defun company-coq-get-snippet (candidate)
   "Read yas-formatted snippet from CANDIDATE."
-  (let* ((abbrev  (get-text-property 0 'insert candidate))
-         (source  (company-coq-read-abbrev-source candidate))
+  (let* ((abbrev  (company-coq-get-prop 'insert candidate))
+         (source  (company-coq-get-prop 'source candidate))
          (snippet (and abbrev (company-coq-abbrev-to-yas abbrev source))))
     snippet))
 
@@ -2083,7 +2052,7 @@ Which conversion function to use is determined from SOURCE."
                (start   (match-beginning 0))
                (end     (match-end 0))
                (snippet (company-coq-get-snippet candidate)))
-    (let ((insert-fun (get-text-property 0 'insert-fun candidate)))
+    (let ((insert-fun (company-coq-get-prop 'insert-fun candidate)))
       (if insert-fun
           (progn
             (delete-region start end)
@@ -2222,7 +2191,7 @@ COMMAND, ARG and IGNORED: see `company-backends'."
     (`ignore-case nil)
     (`meta (company-coq-meta-symbol arg))
     (`no-cache t)
-    (`match (company-coq-match arg))
+    (`match (company-coq-get-prop 'match-end arg))
     (`annotation "<symb>")
     (`location (company-coq-location-symbol arg))
     (`doc-buffer (company-coq-doc-buffer-symbol arg))
@@ -2241,7 +2210,7 @@ COMMAND, ARG and IGNORED: see `company-backends'."
     (`duplicates nil)
     (`ignore-case nil)
     (`no-cache t)
-    (`match (company-coq-match arg))
+    (`match (company-coq-get-prop 'match-end arg))
     (`annotation (company-coq-annotation-tactic arg))
     (`location (company-coq-location-tactic arg))
     (`post-completion (company-coq-post-completion-snippet arg))
@@ -2263,7 +2232,7 @@ COMMAND, ARG and IGNORED: see `company-backends'."
     (`ignore-case nil)
     (`meta (company-coq-meta-symbol arg))
     (`no-cache t)
-    (`match (company-coq-match arg))
+    (`match (company-coq-get-prop 'match-end arg))
     (`annotation "<lsymb>")
     (`location (company-coq-location-definition arg))
     (`doc-buffer (company-coq-doc-buffer-definition arg))
@@ -2283,7 +2252,7 @@ backend.  COMMAND, ARG and IGNORED: see `company-backends'."
     (`duplicates nil)
     (`ignore-case nil)
     (`no-cache t)
-    (`match (company-coq-match arg))
+    (`match (company-coq-get-prop 'match-end arg))
     (`post-completion (company-coq-post-completion-snippet arg))
     (`pre-render arg)
     (`require-match 'never)))
@@ -2302,6 +2271,7 @@ Proof General itself."
     (`location (company-coq-doc-buffer-refman arg))
     (`comparison-fun #'company-coq-string-lessp-static-abbrevs)
     (`annotation (company-coq-annotation-snippet "ref" arg))
+    (`sorted t) ;; The static abbrevs cache is kept sorted
     (_ (apply #'company-coq-generic-snippets-backend #'company-coq-init-static-abbrevs
               #'company-coq-refman-backend command arg ignored))))
 
@@ -2349,7 +2319,7 @@ COMMAND, ARG and IGNORED: see `company-backends'."
     (`meta (company-coq-meta-simple arg))
     (`location (company-coq-location-simple arg))
     (`no-cache t)
-    (`match (company-coq-match arg))
+    (`match (company-coq-get-prop 'match-end arg))
     (`require-match 'never)))
 
 (defun company-coq-block-end-backend (command &optional arg &rest ignored)
@@ -2395,7 +2365,7 @@ COMMAND, ARG and IGNORED: see `company-backends'."
     (`interactive (company-begin-backend 'company-coq-search-results-backend))
     (`prefix (company-coq-prefix-at-point))
     (`candidates (company-coq-candidates-search-results arg))
-    (`match (company-coq-match arg))
+    (`match (company-coq-get-prop 'match-end arg))
     (`annotation "<search>")
     (`sorted nil)
     (`duplicates nil)
@@ -2409,9 +2379,12 @@ COMMAND, ARG and IGNORED: see `company-backends'."
 
 (defun company-coq-tagged-candidates (backend prefix)
   "Compute and tag candidates from BACKEND for PREFIX."
-  (cl-stable-sort (cl-loop for candidate in (funcall backend 'candidates prefix)
-                           collect (propertize candidate 'company-coq-original-backend backend))
-                  (or (funcall backend 'comparison-fun) #'company-coq-string-lessp-foldcase)))
+  (let ((candidates (cl-loop for candidate in (funcall backend 'candidates prefix)
+                             collect (propertize candidate 'company-coq-original-backend backend))))
+    (if (funcall backend 'sorted)
+        candidates
+      (cl-stable-sort candidates (or (funcall backend 'comparison-fun)
+                                     #'company-coq-string-lessp-foldcase)))))
 
 (defun company-coq-sort-according-to-reference (seq ref)
   "Return a copy of SEQ, ordered by REF.
@@ -2434,8 +2407,8 @@ order."
   (let ((exact-matches nil)
         (partial-matches nil))
     (dolist (candidate sorted-candidates)
-      (if (and (eq (get-text-property 0 'match-beginning candidate) 0)
-               (eq (get-text-property 0 'match-end candidate) (length candidate)))
+      (if (and (eq (company-coq-get-prop 'match-beginning candidate) 0)
+               (eq (company-coq-get-prop 'match-end candidate) (length candidate)))
           (push candidate exact-matches)
         (push candidate partial-matches)))
     (if exact-matches
@@ -2467,7 +2440,7 @@ because it makes it easier to enable or disable backends."
     (`no-cache t)
     (`require-match 'never)
     (_ (when (stringp arg)
-         (-if-let* ((backend (get-text-property 0 'company-coq-original-backend arg)))
+         (-if-let* ((backend (company-coq-get-prop 'company-coq-original-backend arg)))
              (apply backend command (cons arg ignored))
            ;; Only annotations may appear without a -backend tag
            (cl-assert (and (eq command 'pre-render) (car ignored))))))))
