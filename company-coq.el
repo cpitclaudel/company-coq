@@ -807,20 +807,19 @@ Returns a cons of what remains"
   (and (not company-coq-talking-to-prover)
        (proof-shell-available-p)))
 
-(defun company-coq-force-reload-with-prover (track-symbol store-symbol load-function)
-  "Reset TRACK-SYMBOL, and set STORE-SYMBOL to the result of calling LOAD-FUNCTION."
-  (company-coq-dbg "company-coq-force-reload-from-prover: %s %s %s"
-        (symbol-name track-symbol) (symbol-name store-symbol) (symbol-name load-function))
-  (if (not (company-coq-prover-available))
-      (company-coq-dbg "company-coq-force-reload-from-prover: Reloading aborted; proof process busy")
-    (set track-symbol nil)
-    (set store-symbol (funcall load-function))))
-
-(defun company-coq-init-db (db initfun)
-  "Call INITFUN unless DB is non-nil."
-  (company-coq-dbg "company-coq-init-db: Loading %s (if nil; currently has %s elems)" db (length (symbol-value db)))
-  (or (symbol-value db)
-      (funcall initfun)))
+(defun company-coq-reload-db (db init-fun track-symbol needs-prover force)
+  "Initialize DB using INIT-FUN.
+If NEEDS-PROVER is non-nil, ensure that the prover is available
+before reloading.  If TRACK-SYMBOL is non-nil, use it to track
+whether the database is up-to-date."
+  (company-coq-dbg "company-coq-reload-db: Initializing %S (currently has %s elems)" db (length (symbol-value db)))
+  (unless (and needs-prover (not (company-coq-prover-available)))
+    (let ((non-nil (symbol-value db))
+          (non-stale (or (null track-symbol) (not (symbol-value track-symbol)))))
+      (unless (and non-nil non-stale (not force))
+        (when track-symbol (set track-symbol nil))
+        (set db (funcall init-fun)))))
+  (symbol-value db))
 
 (defun company-coq-prepare-redirection-command (cmd fname)
   "Prepare a command redirection output of CMD to FNAME."
@@ -903,27 +902,15 @@ manual, and should thus be ignored by the tactic grammar parser,
 lest duplicates pop up."
   (setq company-coq-tg--useless (company-coq--list-to-table (company-coq-get-all-notations))))
 
-(defun company-coq-force-reload-symbols ()
-  "Reload symbols by querying the prover."
-  (when (company-coq-feature-active-p 'dynamic-symbols-backend)
-    (company-coq-force-reload-with-prover
-     'company-coq-symbols-reload-needed 'company-coq-dynamic-symbols #'company-coq-get-symbols)))
-
-(defun company-coq-force-reload-tactics ()
-  "Reload tactics by querying the prover."
-  (when (company-coq-feature-active-p 'dynamic-tactics-backend)
-    (company-coq-force-reload-with-prover
-     'company-coq-tactics-reload-needed 'company-coq-dynamic-tactics #'company-coq-get-tactics)))
-
-(defun company-coq-init-symbols ()
-  "Load symbols if needed, by querying the prover."
+(defun company-coq-init-symbols (&optional force)
+  "Load symbols if needed or FORCE'd, by querying the prover."
   (company-coq-dbg "company-coq-init-symbols: Loading symbols (if never loaded)")
-  (company-coq-init-db 'company-coq-dynamic-symbols 'company-coq-force-reload-symbols))
+  (company-coq-reload-db 'company-coq-dynamic-symbols #'company-coq-get-symbols 'company-coq-symbols-reload-needed t force))
 
-(defun company-coq-init-tactics ()
-  "Load tactics if needed, by querying the prover."
-  (company-coq-dbg "company-coq-init-tactics: Loading tactics (if never loaded)")
-  (company-coq-init-db 'company-coq-dynamic-tactics 'company-coq-force-reload-tactics))
+(defun company-coq-init-tactics (&optional force)
+  "Load tactics if needed of FORCE'd, by querying the prover."
+  (interactive '(t))
+  (company-coq-reload-db 'company-coq-dynamic-tactics #'company-coq-get-tactics 'company-coq-tactics-reload-needed t force))
 
 (defun company-coq-find-all (re beg end)
   "Find all occurences of RE between BEG and END.
@@ -1006,16 +993,11 @@ Do not call if the prover process is busy."
     (company-coq-dbg "Loaded %d modules paths (%.03f seconds)" (length path-specs) (float-time (time-since time)))
     path-specs))
 
-(defun company-coq-force-reload-modules ()
-  "Reload modules by querying the prover."
-  (company-coq-force-reload-with-prover 'company-coq-modules-reload-needed
-                             'company-coq-known-path-specs
-                             #'company-coq-get-path-specs))
-
-(defun company-coq-init-modules ()
+(defun company-coq-init-modules (&optional force)
   "Load modules if needed, by querying the prover."
+  (interactive '(t))
   (company-coq-dbg "company-coq-init-modules: Loading modules (if never loaded)")
-  (company-coq-init-db 'company-coq-known-path-specs 'company-coq-force-reload-modules))
+  (company-coq-reload-db 'company-coq-known-path-specs #'company-coq-get-path-specs 'company-coq-modules-reload-needed t force))
 
 (defun company-coq-get-pg-abbrevs-db ()
   "Collect abbrevs known by Proof General.
@@ -1224,18 +1206,18 @@ Sort tactics first, followed by commands, and defer to
   "Collect and propertize user snippets."
   (mapcar #'company-coq-parse-custom-db-entry company-coq-custom-snippets))
 
-(defun company-coq-recompute-static-abbrevs ()
+(defun company-coq-get-static-abbrevs ()
   "Reload abbrevs (tactics, vernacs, ...)."
   (company-coq-dbg "company-coq-recompute-static-abbrevs: Called")
   (let ((pg-abbrevs (company-coq-parsed-pg-abbrevs))
         (man-abbrevs (company-coq-parsed-man-abbrevs)))
     (company-coq--merge-sorted man-abbrevs pg-abbrevs #'company-coq-string-lessp-static-abbrevs)))
 
-(defun company-coq-init-static-abbrevs ()
-  "Load abbrevs, if needed."
-  (interactive)
+(defun company-coq-init-static-abbrevs (&optional force)
+  "Load static abbrevs if needed or FORCE'd."
+  (interactive '(t))
   (company-coq-dbg "company-coq-init-static-abbrevs: Loading abbrevs (if never loaded)")
-  (company-coq-init-db 'company-coq-known-static-abbrevs 'company-coq-recompute-static-abbrevs))
+  (company-coq-reload-db 'company-coq-known-static-abbrevs 'company-coq-get-static-abbrevs nil nil force))
 
 (defun company-coq-propertize-match (match beginning end)
   "Annotate completion candidate MATCH with BEGINNING and END."
@@ -1424,9 +1406,9 @@ search term and a qualifier."
         company-coq-modules-reload-needed)
   (when (company-coq-prover-available)
     (company-coq-detect-capabilities)
-    (when company-coq-tactics-reload-needed (company-coq-force-reload-tactics))
-    (when company-coq-symbols-reload-needed (company-coq-force-reload-symbols))
-    (when company-coq-modules-reload-needed (company-coq-force-reload-modules))))
+    (company-coq-init-tactics)
+    (company-coq-init-symbols)
+    (company-coq-init-modules)))
 
 (defun company-coq-parse-raw-goal (raw-goal)
   "Extract the first goal from RAW-GOAL.
