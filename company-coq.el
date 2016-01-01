@@ -1581,11 +1581,8 @@ return the starting point as well."
   "Compute company's meta for value NAME.
 If NAME has an 'anchor text property, returns a help message."
   (company-coq-dbg "company-coq-meta-refman: Called for name %s" name)
-  (and (company-coq-get-prop 'anchor name) ;; substitute-command-keys doesn't work here
-       ;; FIXME does it really not work, even with a \\ annotation?"
-       (format "%s: Show the documentation of this Coq command."
-               (key-description (where-is-internal #'company-show-doc-buffer
-                                                   company-active-map t)))))
+  (and (company-coq-get-prop 'anchor name)
+       (substitute-command-keys "\\<company-active-map>\\[company-show-doc-buffer]: Show the documentation of this Coq command.")))
 
 (defun company-coq-meta-simple (name)
   "Read precomputed company's meta for NAME."
