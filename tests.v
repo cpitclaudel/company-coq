@@ -160,7 +160,7 @@ Example NameContaining_with_ : True. (* Dummy Example to add a name containing "
 apply I.
 Qed.
 
-(* FIXME indentation is slow here *)
+(* FIXME newline is slow here *)
 
 Fixpoint TestFixpoint (l: list nat) :=
   (* It should be possible to type "match ... with" and press enter to go to the next line *)
@@ -190,7 +190,7 @@ Section TestSectionName.
 
     Lemma t: True -> 1 + 1 = 2.
     Proof.
-      intros.
+      intros. 
       (* Try extract-lemma-from-goal C-c C-a C-x here *)
     Abort.
   End OtherSection. (* These names should autocomplete *)
@@ -222,7 +222,9 @@ Qed.
 
 (* M-x company-coq-tutorial should work *)
 
-(* Print Instances should show a dropdown when inserted. *)
+(* FIXME Print Instances should not show a dropdown when inserted. *)
+
+(* Check that ; and . exit the current snippet field, if it's the last one and the point isn't in parens *)
 
 Require Import Utf8.
 Lemma MathCompletion : ∀ x, x > 1 → x > 0. (* This can be typed using \forall *)

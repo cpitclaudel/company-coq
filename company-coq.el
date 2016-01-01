@@ -2523,21 +2523,40 @@ Do not edit this keymap: instead, edit `company-coq-map'.")
   "Check if previous character is in `company-coq-electric-exit-characters'."
   (member (char-before (point)) company-coq-electric-exit-characters))
 
+(defun company-coq-current-yas-field-if-last (snippet)
+  "Return the current YAS field of SNIPPET, if it is the last one."
+  (-when-let* ((field (overlay-get yas--active-field-overlay 'yas--field))
+               (fields (yas--snippet-fields snippet))
+               (index (cl-position field fields)))
+    (when (equal index (1- (length fields)))
+      field)))
+
 (defun company-coq-snippet-at-point ()
   "Get the snippet under the current point."
   (car (yas--snippets-at-point)))
+
+(defun company-coq-exit-snippet-if-at-exit-point ()
+  "Check if exiting the CURRENT-SNIPPET would be a good idea."
+  ;; Just typed ';' or '.'
+  (when (company-coq-after-exit-char)
+    ;; In a field of a snippet
+    (-when-let* ((snippet (company-coq-snippet-at-point))
+                 (field (company-coq-current-yas-field-if-last snippet)))
+      (let* ((ppss (syntax-ppss))
+             (paren-beginning (nth 1 ppss)))
+        ;; Not in a parens opened after the current field
+        (when (or (null paren-beginning)
+                  (< paren-beginning (yas--field-start field)))
+          (yas-exit-snippet (company-coq-snippet-at-point)))))))
 
 (defun company-coq-maybe-exit-snippet (arg)
   "Exit the current snippet, if any.
 Pass ARG to the function that would have been called had the
 keybinding that called this not been intercepted."
   (interactive "p")
-  (let* ((after-exit-char (company-coq-after-exit-char))
-         (snippet         (and after-exit-char (company-coq-snippet-at-point)))
-         (company-coq--keybindings-minor-mode nil)
+  (company-coq-exit-snippet-if-at-exit-point)
+  (let* ((company-coq--keybindings-minor-mode nil)
          (original-func   (key-binding (this-command-keys-vector) t)))
-    (when snippet
-      (yas-exit-snippet snippet))
     (if original-func (call-interactively original-func)
       (self-insert-command arg))))
 
