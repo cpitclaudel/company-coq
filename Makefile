@@ -1,4 +1,5 @@
 SANDBOX := ./sandbox
+TAGGED_REFMAN_ROOT := /build/coq-8.5-tagged-refman/
 
 .PHONY: symbols
 
@@ -64,15 +65,15 @@ clean-sandbox:
 	rm -rf $(SANDBOX)
 
 etc: clean-etc
-	cd /build/coq/ && make doc-html
-	./parse-hevea.py refman/ ./company-coq-abbrev.el.template /build/coq/doc/refman/html/Reference-Manual*.html
+	make -C $(TAGGED_REFMAN_ROOT) doc-html
+	./parse-hevea.py refman/ ./company-coq-abbrev.el.template $(TAGGED_REFMAN_ROOT)/doc/refman/html/Reference-Manual*.html
 	parallel -j8 gzip -9 -- refman/*.html
 
 clean-etc:
 	rm -rf refman/*.gz
 
 deep-clean: clean clean-etc
-	cd /build/coq/ && make docclean
+	make -C $(TAGGED_REFMAN_ROOT) docclean
 
 symbols:
 	awk -F'\\s+' -v NL=$$(wc -l < etc/symbols) -f etc/symbols.awk < etc/symbols

@@ -77,7 +77,8 @@ class TextPattern:
     def with_option_variants(variants, already_known):
         for variant in variants:
             yield variant
-            if TextPattern.OPTION_RE.match(variant):
+            # NOTE: We don't generate variants for commands with holes
+            if (TextPattern.OPTION_RE.match(variant) and not TextPattern.ID_RE.search(variant)):
                 for repl in ("Unset ", "Test "):
                     new_variant = TextPattern.OPTION_RE.sub(repl, variant)
                     if new_variant not in already_known:
