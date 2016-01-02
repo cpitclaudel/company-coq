@@ -46,6 +46,8 @@ Proof.
       apply I.
 Qed.
 
+(* How are HintResolve candidates ordered? *)
+
 Require Import String
         NArith ZArith.                     (* Does multiline completion work? *)
 

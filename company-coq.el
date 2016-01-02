@@ -1170,15 +1170,23 @@ alphabetically."
     (< n1 n2)
     (string-lessp str1 str2)))
 
+(defun company-coq-strictly-ordered-p (command)
+  "Decide whether COMMAND should always sort alphabetically."
+  (string-match-p "\\`\\(?:\\(?:Se\\|Tes\\|Unse\\)t\\) " command))
+
 (defsubst company-coq-string-lessp-commands (str1 str2)
   "Compare two command (vernacs) STR1 and STR2.
-Sort alphabetically, case insensitive, unless STR1 and STR2
-are variants of the same command.  In that case, sort in the order
-in which these variants were generated, to put more complex
-commands last."
+Sort alphabetically, case insensitive, unless STR1 and STR2 are
+from the same chapter.  In that case, sort in the order in which
+these commands appeared in the manual (or in which two variants
+of the same command were generated), to put more complex commands
+last; unless both commands must be strictly ordered (see ."
   (let ((a1 (company-coq-get-prop 'anchor str1))
         (a2 (company-coq-get-prop 'anchor str2)))
-    (if (and a1 (equal a1 a2))
+    (if (and a1 a2
+             (equal (car a1) (car a2))
+             (not (company-coq-strictly-ordered-p str1))
+             (not (company-coq-strictly-ordered-p str2)))
         (< (company-coq-get-prop 'num str1) (company-coq-get-prop 'num str2))
       (company-coq-string-lessp-foldcase str1 str2))))
 
