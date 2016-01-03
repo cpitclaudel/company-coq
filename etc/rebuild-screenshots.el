@@ -336,11 +336,11 @@ Qed.")
   "C-c C-/" "C-c C-/ C-c C-/" "C-c C-\\" "C-c C-\\ C-c C-\\");; HACK due to incorrect last-command
 
 (my/with-screencast my/github-width/3 13 "west" 20 8 "Snippets for match branches (Gallina)." "match-function"
-  (:split "Fixpoint sum l :=") "RET"
+  (:split "Fixpoint nsum l :=") "RET"
   (:split "miw") "<C-return>" "<C-return> RET"
   (:split "l") "TAB" "<M-return>"
   (:split "[]") "TAB" (:split "0") "TAB <M-return>"
-  (:split "h :: t") "TAB" (:split "h + sum t") "M->" ".")
+  (:split "h :: t") "TAB" (:split "h + nsum t") "M->" ".")
 
 (my/with-screencast my/github-width/3 13 "center" 20 8 "Snippets for match branches (Ltac)." "match-goal"
   (:split "mgw") "<C-return>" "<C-return> RET"
