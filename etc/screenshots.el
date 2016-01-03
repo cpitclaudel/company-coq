@@ -65,25 +65,28 @@
 (defun my/frame-file-name (name ext frame-id)
   (setq ext (or ext "png"))
   (expand-file-name (if frame-id
-                        (format "%s-%03d.%s" name frame-id ext)
+                        (format "frames/%s-%03d.%s" name frame-id ext)
                       (format "%s.%s" name ext))
                     "img"))
 
 (defun my/save-screenshot (name width-spec gravity &optional ext frame-id)
   (force-window-update)
   (redisplay t)
-  (let ((fname (my/frame-file-name name ext frame-id)))
-    (process-lines "import" "-window" (my/x-window-id) fname)
-    (pcase-let* (((seq frame-h frame-w) (mapcar #'string-to-number (process-lines "identify" "-ping" "-format" "%h\n%w" fname)))
+  (let ((png-fname (my/frame-file-name name "png" frame-id)))
+    (process-lines "import" "-window" (my/x-window-id) png-fname)
+    (pcase-let* (((seq frame-h frame-w) (mapcar #'string-to-number (process-lines "identify" "-ping" "-format" "%h\n%w" png-fname)))
                  (target-width (floor (* (car width-spec) my/real-github-w))))
       (when (> frame-w target-width)
         (error "Frame is too large (%d > %d)" frame-w target-width))
       (process-lines "mogrify" "-strip" "-matte"
                      "-bordercolor" (face-attribute 'fringe :background) "-border" (format "0x%d" my/fringe-width)
                      "-background" "none" "-gravity" gravity "-extent" (format "%dx%d" target-width (+ frame-h (* 2 my/fringe-width)))
-                     fname)
-      (when (member ext '(nil "png"))
-        (process-lines "optipng" "-o3" fname)))))
+                     png-fname)
+      (unless (member ext '(nil "png"))
+        ;; We always produce a PNG copy of the file in addition to the requested
+        ;; one, so if the extension wasn't PNG we need an extra conversion here
+        (process-lines "convert" png-fname (my/frame-file-name name ext frame-id)))
+      (process-lines "optipng" "-o3" png-fname))))
 
 (defun my/save-screencast (name frame-duration frame-ids)
   (apply #'process-lines
