@@ -903,13 +903,15 @@ lest duplicates pop up."
 
 (defun company-coq-init-symbols (&optional force)
   "Load symbols if needed or FORCE'd, by querying the prover."
-  (company-coq-dbg "company-coq-init-symbols: Loading symbols (if never loaded)")
-  (company-coq-reload-db 'company-coq-dynamic-symbols #'company-coq-get-symbols 'company-coq-symbols-reload-needed t force))
+  (when (company-coq-feature-active-p 'dynamic-symbols-backend)
+    (company-coq-dbg "company-coq-init-symbols: Loading symbols (if never loaded)")
+    (company-coq-reload-db 'company-coq-dynamic-symbols #'company-coq-get-symbols 'company-coq-symbols-reload-needed t force)))
 
 (defun company-coq-init-tactics (&optional force)
   "Load tactics if needed of FORCE'd, by querying the prover."
   (interactive '(t))
-  (company-coq-reload-db 'company-coq-dynamic-tactics #'company-coq-get-tactics 'company-coq-tactics-reload-needed t force))
+  (when (company-coq-feature-active-p 'dynamic-tactics-backend)
+    (company-coq-reload-db 'company-coq-dynamic-tactics #'company-coq-get-tactics 'company-coq-tactics-reload-needed t force)))
 
 (defun company-coq-find-all (re beg end)
   "Find all occurences of RE between BEG and END.
@@ -995,8 +997,9 @@ Do not call if the prover process is busy."
 (defun company-coq-init-modules (&optional force)
   "Load modules if needed, by querying the prover."
   (interactive '(t))
-  (company-coq-dbg "company-coq-init-modules: Loading modules (if never loaded)")
-  (company-coq-reload-db 'company-coq-known-path-specs #'company-coq-get-path-specs 'company-coq-modules-reload-needed t force))
+  (when (company-coq-feature-active-p 'modules-backend)
+    (company-coq-dbg "company-coq-init-modules: Loading modules (if never loaded)")
+    (company-coq-reload-db 'company-coq-known-path-specs #'company-coq-get-path-specs 'company-coq-modules-reload-needed t force)))
 
 (defun company-coq-get-pg-abbrevs-db ()
   "Collect abbrevs known by Proof General.
@@ -1910,12 +1913,12 @@ DOM and FONT are as in these functions."
 
 (defun company-coq-candidates-symbols (prefix)
   "Find symbols matching PREFIX."
-  (when (and (company-coq-feature-active-p 'dynamic-symbols-backend) (company-coq-init-symbols))
+  (when (company-coq-init-symbols)
     (company-coq-complete-prefix-substring prefix company-coq-dynamic-symbols)))
 
 (defun company-coq-candidates-tactics (prefix)
   "Find tactics matching PREFIX."
-  (when (and (company-coq-feature-active-p 'dynamic-tactics-backend) (company-coq-init-tactics))
+  (when (company-coq-init-tactics)
     (company-coq-complete-sub-re prefix company-coq-dynamic-tactics)))
 
 (defun company-coq-candidates-local-definitions (prefix)
