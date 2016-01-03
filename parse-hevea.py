@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
 from bs4 import BeautifulSoup
-from glob import glob
 from os import mkdir
 from os.path import join, split
 import errno
 import re
 import sys
+import itertools
 
 def deduplicate(seq, key):
     seen = set()
@@ -24,16 +24,17 @@ class TextPattern:
     ID_PAT = r'@{([^{}]+)}'
     REPLACEMENTS = [(re.compile(x), y) for (x, y) in
                     [(r'[\r\n  ]+', ' '),
-                     (r'([\(\{\[]) +', r'\1'),
-                     (r' +([\)\}\]])', r'\1'),
-                     (r'\.\.\.', '…'),
-                     (ID_PAT + "′", r"@{\1'}"),
-                     ("‘‘", '"'), ("’’", '"')]]
+                     (r'([\(\{\[]) +', r'\1'),      # Spurious spaces after opening brackets
+                     (r' +([\)\}\]])', r'\1'),      # Spurious spaces before closing brackets
+                     (r'\.\.\.', '…'),              # Ellipses
+                     (ID_PAT + "[′’]", r"@{\1'}"),  # Primes in identifiers (two types!)
+                     ("‘‘", '"'), ("’’", '"')]]     # Unicode quotes
 
-    ALT_RE    = re.compile(r'\[\?([^\[\]]+)\?\]')
-    OPTION_RE = re.compile(r'^Set ')
+    ALT_RE    = re.compile(r'\[\?\<\<([^\[\]]+)\>\>\?\]')
+    OPTION_RE = re.compile(r'^(Set|Unset|Test) ')
     ARGCHOICE_RE = re.compile("[a-zA-Z]+(,[a-zA-Z]+)+")
-    DOTS_RE = re.compile(r"([^ ].+[^ ]) *((.*[^ ])?) *… *\2 *\1")
+    # The char_before group avoids pathologic cases like "In environmen(t ... t)he term"
+    DOTS_RE = re.compile(r"(?P<char_before>[^a-z])(?P<repeated_element>[^ ](?:.*[^ ])?) *(?P<separator>(.*[^ ])?) *… *(?P=separator) *(?P=repeated_element)")
     ID_RE = re.compile(ID_PAT)
 
     def __init__(self, source, ind, typ, *variants):
@@ -57,7 +58,7 @@ class TextPattern:
 
     @staticmethod
     def pluralize_re(match):
-        repeated, sep = match.group(1), match.group(2)
+        char_before, repeated, sep = match.group("char_before"), match.group("repeated_element"), match.group("separator")
 
         repeated = TextPattern.replace_dots_re(repeated)
         sep = sep.replace(' ', '')
@@ -65,49 +66,65 @@ class TextPattern:
         nb_ids = len(TextPattern.ID_RE.findall(repeated))
 
         if nb_ids == 0:
-            return None
+            print("Repeated pattern {} in {} does not contain identifiers".format(repeated, match.group(0)))
+            raise Exception
         elif nb_ids == 1:
             indicator = '+'
         else:
             indicator = '&'
 
-        return TextPattern.ID_RE.sub(r'@{\1' + sep + indicator + '}', repeated)
+        return char_before + TextPattern.ID_RE.sub(r'@{\1' + sep + indicator + '}', repeated)
 
     @staticmethod
-    def with_option_variants(variants, already_known):
+    def strip_pattern(pattern):
+        """Remove identifiers, non-ascii characters, and extrac spaces from COMMAND.
+        These replacements are useful for comparing options.  For example, we
+        don't want to guess [Set Default Timeout] from [Unset Default Timeout],
+        given that we already have [Set Default Timeout @{n}].  Same for [Set
+        Default Goal Selector] from [Unset Default Goal Selector] (we already
+        have [Set Default Goal Selector "@{selector}"])"""
+        for regexp in (TextPattern.ID_RE, re.compile(r"[^a-zA-Z]"), re.compile(r" *$")):
+            pattern = regexp.sub("", pattern)
+        return pattern
+
+    @staticmethod
+    def with_option_variants(variants, stripped_already_known):
         for variant in variants:
             yield variant
             # NOTE: We don't generate variants for commands with holes
-            if (TextPattern.OPTION_RE.match(variant) and not TextPattern.ID_RE.search(variant)):
-                for repl in ("Unset ", "Test "):
+            if (TextPattern.OPTION_RE.match(variant) and not TextPattern.ID_RE.search(variant)) and not '"' in variant:
+                # '"' is a special case for [Set Loose Hint Behaviour "Lax"]
+                for repl in ("Set ", "Unset ", "Test "):
                     new_variant = TextPattern.OPTION_RE.sub(repl, variant)
-                    if new_variant not in already_known:
+                    if TextPattern.strip_pattern(new_variant) not in stripped_already_known:
                         yield new_variant
 
     @staticmethod
     def with_alternatives(variants, already_known, typ, may_discard = False):
         for variant in variants:
             if TextPattern.ALT_RE.search(variant):
-                yield from TextPattern.with_alternatives((TextPattern.ALT_RE.sub('',    variant, 1),
-                                                          TextPattern.ALT_RE.sub(r'\1', variant, 1),),
-                                                         already_known, typ, True)
+                yield from TextPattern.with_alternatives(
+                    (TextPattern.ALT_RE.sub('',    variant, 1),
+                     TextPattern.ALT_RE.sub(r'\1', variant, 1)),
+                    already_known, typ, True)
             else:
                 variant = TextPattern.cleanup_single(variant, typ)
                 if not (may_discard and (variant in already_known)):
                     yield variant
 
-    def add_variants(self, already_known):
-        with_opt = TextPattern.with_option_variants(self.variants, already_known)
+    def add_variants(self, already_known, stripped_already_known):
+        with_opt = TextPattern.with_option_variants(self.variants, stripped_already_known)
         with_alt = TextPattern.with_alternatives(with_opt, already_known, self.typ)
         self.variants = list(with_alt)
         already_known.update(self.variants)
+        stripped_already_known.update(map(TextPattern.strip_pattern, self.variants))
 
     @staticmethod
     def cleanup_single(variant, typ):
         for reg, sub in TextPattern.REPLACEMENTS:
             variant = reg.sub(sub, variant)
         variant = variant.strip()
-        if typ == "vernac":
+        if typ == "vernac": # Add final dot
             variant = re.sub(r'[ \.]*$', '.', variant)
         return variant
 
@@ -146,8 +163,9 @@ class TextPattern:
     @staticmethod
     def expand_patterns(patterns):
         known = set(TextPattern.patterns_to_strings(patterns))
+        stripped_known = set(map(TextPattern.strip_pattern, known))
         for pattern in patterns:
-            pattern.add_variants(known)
+            pattern.add_variants(known, stripped_known)
 
         known = set()
         for pattern in patterns:
@@ -214,16 +232,22 @@ class XMLPattern:
                 tag.unwrap()
 
         for o in self.soup.find_all("o"):
+            # '[?<<' and '>>?]' are matched by ALT_RE.  The <o>s are added by
+            # the \zeroorone macro
             if o.string == '[':
-                o.string = '[?'
+                o.string = '[?<<'
                 o.unwrap()
             elif o.string == ']':
-                o.string = '?]'
+                o.string = '>>?]'
                 o.unwrap()
+
+        if any(self.soup.find_all("br")):
+            print("Splitting {} at first <br/> tag".format(self))
+            self.soup.contents = list(itertools.takewhile(lambda tag: tag.name != "br", self.soup.contents))
 
         for tag in self.soup.find_all():
             if tag.name != "o":
-                print(self)
+                print("{} contains unexpected tag {}".format(self.soup.contents, tag))
                 raise Exception
 
     def make_pattern(self):
@@ -309,7 +333,7 @@ class HtmlDocument:
     def read_patterns(self, ind):
         for ind, elem in enumerate(self.soup.find_all("definition"), ind):
             if HtmlDocument.is_toc_link(elem.parent):
-                print("Discarding", elem.parent.get_text())
+                print("Discarding TOC link '{}'".format(elem.parent.get_text().strip()))
                 continue
 
             xml = XMLPattern(elem, self.code, ind)
@@ -370,5 +394,9 @@ def write_patterns(template_path, patterns):
             output.write(string)
             output.write("\n")
 
-pats = process_files(sys.argv[1], sys.argv[3:])
-write_patterns(sys.argv[2], pats)
+def main():
+    pats = process_files(sys.argv[1], sys.argv[3:])
+    write_patterns(sys.argv[2], pats)
+
+if __name__ == '__main__':
+    main()
