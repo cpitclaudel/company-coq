@@ -44,6 +44,7 @@ Proof.
       }
     + idtac.                    (* and this? *)
       apply I.
+      (* Do folded sections automatically unfold when stepping in? *)
 Qed.
 
 (* How are HintResolve candidates ordered? *)

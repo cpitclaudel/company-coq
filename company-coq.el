@@ -3486,6 +3486,38 @@ BOUND is as in `re-search-forward'."
     (when (and bullet (> end-of-bullet (point)))
       (company-coq-features/code-folding-toggle-bullet-at-point bullet))))
 
+(defvar company-coq-features/code-folding--overlays
+  '(outline hs)
+  "Which overlays contribute to code folding in this buffer.
+Only overlays whose invisible property is `eq' to one of these
+values are taken into account (and unfolded by)
+`company-coq-features/code-folding--unfold-at-point' when a
+command places the point in an invisible section.")
+
+(defvar company-coq-features/code-folding--unfolding-commands
+  '(proof-assert-next-command-interactive
+    proof-assert-next-command
+    proof-undo-last-successful-command)
+  "Which commands unfold folded sections after completing.
+This list is used by `company-coq-features/code-folding--unfold-at-point' to
+determine whether to unfold a code section after the point moves
+into it. If the code section isn't unfolded, the command loop
+automatically moves the point out of it.")
+
+(defun company-coq-features/code-folding--folding-overlays-at (pos)
+  "List overlays that contribute to making POS invisible."
+  (-filter (lambda (overlay)
+             (memq (overlay-get overlay 'invisible)
+                   company-coq-features/code-folding--overlays))
+           (overlays-at pos)))
+
+(defun company-coq-features/code-folding--unfold-at-point ()
+  "Delete overlays making the point invisible.
+This must be run as a post-command hook; it is not meant for
+interactive use."
+  (when (memq this-command company-coq-features/code-folding--unfolding-commands)
+    (mapc #'delete-overlay (company-coq-features/code-folding--folding-overlays-at (point)))))
+
 (defconst company-coq-features/code-folding--bullet-fl-spec
   `((,(apply-partially #'company-coq-features/code-folding--search #'re-search-forward company-coq-features/code-folding--brace-regexp)
      0 company-coq-features/code-folding--bullet-fl-face nil)
@@ -3513,8 +3545,7 @@ Suggested values: […] [⤶] [↲] [▶] [⏩] [▸]."
     (setq buffer-display-table (make-display-table)))
   (set-display-table-slot buffer-display-table 4 ;; 4 is the '...' slot
                           (vconcat (mapcar (lambda (c) (make-glyph-code c 'company-coq-features/code-folding-ellipsis-face))
-                                           company-coq-features/code-folding-ellipsis)))
-  (setq buffer-display-table buffer-display-table))
+                                           company-coq-features/code-folding-ellipsis))))
 
 (company-coq-define-feature code-folding (arg)
   "Code folding.
@@ -3534,6 +3565,7 @@ the level of bullets."
        (add-to-list 'font-lock-extra-managed-props 'mouse-face)
        (add-to-list 'font-lock-extra-managed-props 'local-map)
        (font-lock-add-keywords nil company-coq-features/code-folding--bullet-fl-spec 'add)
+       (add-hook 'post-command-hook #'company-coq-features/code-folding--unfold-at-point t t)
        (company-coq-request-refontification)))
     (`off
      (setq hs-special-modes-alist (delete company-coq-features/code-folding--hs-spec hs-special-modes-alist))
@@ -3541,6 +3573,7 @@ the level of bullets."
        (hs-minor-mode -1)
        (kill-local-variable 'buffer-display-table)
        (font-lock-remove-keywords company-coq-features/code-folding--bullet-fl-spec company-coq-deprecated-spec)
+       (remove-hook 'post-command-hook #'company-coq-features/code-folding--unfold-at-point t)
        (company-coq-request-refontification)))))
 
 (company-coq-define-feature company (arg)
