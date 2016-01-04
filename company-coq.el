@@ -3495,9 +3495,15 @@ values are taken into account (and unfolded by)
 command places the point in an invisible section.")
 
 (defvar company-coq-features/code-folding--unfolding-commands
-  '(proof-assert-next-command-interactive
+  '(proof-toolbar-next
     proof-assert-next-command
-    proof-undo-last-successful-command)
+    proof-assert-next-command-interactive
+    proof-toolbar-undo
+    proof-undo-last-successful-command
+    proof-toolbar-use
+    proof-process-buffer
+    proof-toolbar-retract
+    proof-retract-buffer)
   "Which commands unfold folded sections after completing.
 This list is used by `company-coq-features/code-folding--unfold-at-point' to
 determine whether to unfold a code section after the point moves
