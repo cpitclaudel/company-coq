@@ -215,8 +215,7 @@ class XMLPattern:
             elif style in ("font-family:monospace", "font-variant:small-caps"):
                 span.unwrap()
             else:
-                print(style)
-                print(span)
+                print("Unexpected style {} on span {} of {}".format(style, span, self.soup))
                 raise Exception
 
         for alias in ("em", "i"):
