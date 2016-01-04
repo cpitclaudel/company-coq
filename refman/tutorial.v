@@ -8,7 +8,7 @@
 (*!       Here's a demo of a few nice features        !*)
 (*! ************************************************* !*)
 
-(** First of all, let's ensure that company-coq is running. Did you add
+(** First of all, let's ensure that company-coq is running.  Did you add
 
       (package-initialize)
 
@@ -18,16 +18,16 @@
       ;; Load company-coq when opening Coq files
       (add-hook 'coq-mode-hook #'company-coq-initialize)
 
-    to your .emacs? If not, you can try company-coq temporarily; just type
+    to your .emacs?  If not, you can try company-coq temporarily; just type
     `M-x company-coq-initialize'. *)
 
 (******************************************************************************)
 
-(** Let's get started! If you use emacs >= 24.4, the symbols below should be
-    prettified, though they appear as ASCII in the source file. You can disable
-    this feature by typing M-x prettify-symbols-mode. If the symbols show as
+(** Let's get started!  If you use emacs >= 24.4, the symbols below should be
+    prettified, though they appear as ASCII in the source file.  You can disable
+    this feature by typing M-x prettify-symbols-mode.  If the symbols show as
     square boxes instead, you may want to install a good unicode font, such as
-    Symbola (package `ttf-ancient-fonts'; see the github page for more info). *)
+    Symbola (package `ttf-ancient-fonts'; see the GitHub page for more info). *)
 
 Definition PrettySymbols : (nat -> nat -> Prop) :=
   (fun (n m: nat) =>
@@ -42,42 +42,42 @@ Ltac MySimpleTactic :=
 
 (******************************************************************************)
 
-(** company-coq knows most basic Coq tactics. Typing just a few letters is
-    enough to locate a tactic, and pressing RET inserts it. If a tactic contains
-    holes, you can navigate them using TAB *)
+(** Company-coq knows most basic Coq tactics.  Typing just a few letters is
+    enough to locate a tactic, and pressing RET inserts it.  If a tactic contains
+    holes, you can navigate them using TAB. *)
 
 (* Try typing `applin RET' here: *) 
 (* Try typing `SLD RET' here: *) 
 
 (******************************************************************************)
 
-(** Not sure what a tactic does? Type part of its name, and press C-h. *)
+(** Not sure what a tactic does?  Type part of its name, and press C-h. *)
 
 (* Try typing `appl C-h' here: *) 
 
 (******************************************************************************)
 
-(** You can also insert math symbols directly in the source file, using TeX *)
+(** You can also insert math symbols directly in the source file, using TeX. *)
 
 (* Try typing `\gam RET' here: *) 
 
 (******************************************************************************)
 
-(** Now for a few interactive features. You'll want to start the prover *)
+(** Now for a few interactive features.  You'll want to start the prover. *)
 
 (* Start Coq by pressing C-c RET here: *)  
 
 (******************************************************************************)
 
-(** Now that Coq is started, company-coq can auto-complete library modules *)
+(** Now that Coq is started, company-coq can auto-complete library modules. *)
 
 (* Try typing `Require Coq.Z.B' here: *) 
 
 (******************************************************************************)
 
 (** Completion is smart enough to look for theorems and tactics in the current
-    buffer (and with the proper Coq patches, in the whole library). For example,
-    it knows about MySimpleTactic and PrettySymbols *)
+    buffer (and with the proper Coq patches, in the whole library).  For example,
+    it knows about MySimpleTactic and PrettySymbols. *)
 
 (* Try typing `MySimple' here: *) 
 
@@ -94,7 +94,7 @@ Ltac MySimpleTactic :=
     definition, from the source, of any symbol for which sources are
     available. *)
 
-(* Try typing MySimp and pressing C-w here: *) 
+(* Try typing `MySimp' and pressing C-w here: *) 
 
 (******************************************************************************)
 
@@ -123,8 +123,9 @@ Abort.
     faster to just C-click the symbol. *)
 
 (* Try clicking the words "le" and "exfalso" below, while holding the Control
-   key down. Release the mouse button to hide the info box. (This also works
-   without a graphic environment; just enable xterm-mouse-mode) *)
+   key down.  Release the mouse button to hide the info box.  This also works
+   without a graphic environment; just enable xterm-mouse-mode (alternatively,
+   you can use the <menu> key). *)
 Fail le.
 Fail exfalso.
 
@@ -133,7 +134,7 @@ Fail exfalso.
 (** company-coq can show an outline of your proof script; it includes links
     to each definition, theorem, and lemma. *)
 
-(* Try pressing `C-c C-,'. Press q to exit the outline buffer. *) 
+(* Try pressing `C-c C-,'.  Press q to exit the outline buffer. *) 
 
 (******************************************************************************)
 
@@ -150,8 +151,8 @@ Ltac BasicTactic :=
 
 (******************************************************************************)
 
-(** Confused by an error message? company-coq has documentation for (some) of
-    them, auto-extracted from the manual *)
+(** Confused by an error message?  Company-coq has documentation for (some) of
+    them, auto-extracted from the manual. *)
 
 (* Consider the following attempt at using Omega: *)
 
@@ -161,7 +162,7 @@ Proof.
   (* Run the following line and inspect the error message: *)
   Fail omega.
 
-  (* Now press `C-c C-a C-e' (Error). This suggest adding intros: *)
+  (* Now press `C-c C-a C-e' (e for *e*rror).  This suggest adding intros: *)
   intros.
 
   (* Try running omega again: *)
@@ -174,7 +175,7 @@ Qed.
 
 (******************************************************************************)
 
-(** Even if you know what an error means, sometimes it's hard to parse: *)
+(** Even if you know what an error means, sometimes it's hard to parse. *)
 
 (* Evaluate the following block: *)
 
@@ -191,12 +192,12 @@ Lemma LargeGoal : inhabited (Tt (@MkLarge Type 5 unit nat)).
   pose proof (inH unit 5 tt) as pr; simpl in *.
   Set Printing All.
 
-  (* Run up to this point. The next command fails, due to a type error: *)
+  (* Run up to this point.  The next command fails, due to a type error: *)
   Fail exact pr.
 
-  (* This message is not very readable, as the two terms are very similar. It
-     would be much nicer with just a diff of the two types. company-coq supports
-     this: type `M-x company-coq-diff-unification-error'. Type q to exit. *)
+  (* This message is not very readable, as the two terms are very similar.  It
+     would be much nicer with just a diff of the two types.  Company-coq supports
+     this: type `M-x company-coq-diff-unification-error'.  Type q to exit. *)
   
   Unset Printing All.
 Abort.
@@ -204,27 +205,32 @@ Abort.
 (******************************************************************************)
 
 (** In many cases, you'll want to extract part of your current goal (say, the
-    goal plus a few hypotheses) to a separate lemma. Lemma extraction does just
-    that. Let's prove a theorem by induction: *)
+    goal plus a few hypotheses) to a separate lemma.  Lemma extraction does just
+    that.  Let's prove a theorem by induction: *)
 
 Lemma my_plus_comm :
   forall p q r, (p < q /\ q < r) -> (p + q < q + r) ->
            (exists s, p + q + r < s) -> forall n m, n + m = m + n.
 Proof.
   induction m.
-  - auto.
-  - idtac.
-    (* Evaluate everything up to this point. Wouldn't the proof would look nicer
-       if this was a separate lemma? *)
+  - simpl.
+    rewrite plus_0_r.
+    apply eq_refl.
+  - (* Evaluate everything up to 'idtac' below.  Wouldn't the proof would look
+       nicer if this was a separate lemma? *)
     (* Press `C-c C-a C-x` to automatically extract a lemma from your goal. You
        will be prompted for a name, then for hypotheses to keep in your lemma
        (hint: you only need IHm). Try it on the empty line below: *)
+    idtac.
     
 Abort.
 
+(** By the way, did you notice the links on the bullets? Try clicking them! (or
+pressing RET on them) **)
+
 (******************************************************************************)
 
-(**  That's it for the core features; good luck with your proofs! Don't hesitate  
+(**  That's it for the core features; good luck with your proofs!  Don't hesitate
     to submit ideas and patches to https://github.com/cpitclaudel/company-coq/,
     and if you use Coq, Proof-General, and company-coq for your research, please
     consider a citation!
@@ -274,5 +280,5 @@ Abort.
 (******************************************************************************)
 
 (** This tutorial is licensed under the Creative Commons Attribution-ShareAlike
-    4.0 International License. To view a copy of this license, visit
+    4.0 International License.  To view a copy of this license, visit
     http://creativecommons.org/licenses/by-sa/4.0/. *)
