@@ -106,7 +106,7 @@
   (defvar coq-user-tacticals-db)
   (defvar coq-user-tactics-db)
   (defvar coq-hyp-name-in-goal-or-response-regexp)
-  (declare-function proof-shell-invisible-cmd-get-result "ext:proof-shell.el" cmd)
+  (declare-function proof-shell-invisible-command "ext:proof-shell.el" cmd)
   (declare-function proof-shell-available-p "ext:proof-shell.el")
   (declare-function proof-shell-ready-prover "ext:proof-shell.el")
   (declare-function proof-unprocessed-begin "ext:proof-script.el")
@@ -644,7 +644,13 @@ goals and response windows."
               ;; (the fix to PG doesn't prevent it from restoring the window
               ;; configuration)
               (save-window-excursion
-                (proof-shell-invisible-cmd-get-result question))
+                ;; proof-shell-invisible-cmd-get-result does not pass the
+                ;; 'no-goals-display flag, causing the goals buffer to jitter.
+                (proof-shell-invisible-command question 'wait nil
+                                               'no-response-display
+                                               'no-error-display
+                                               'no-goals-display)
+                proof-shell-last-output)
             (setq company-coq-talking-to-prover nil)))
       (company-coq-dbg "Prover not available; [%s] discarded" question)
       nil)))
