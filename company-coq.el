@@ -1152,7 +1152,7 @@ comparison function."
 (defun company-coq-is-lower (str)
   "Check if STR is lowercase."
   (let ((case-fold-search nil))
-    (string-match-p "\\`[[:lower:]]" str)))
+    (not (string-match-p "[[:upper:]]" str))))
 
 (defun company-coq-string-lessp-foldcase (str1 str2)
   "Compare STR1 and STR2, case-independently."

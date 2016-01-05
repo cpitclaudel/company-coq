@@ -368,7 +368,7 @@ Qed.")
 (my/with-screencast my/github-width/3 13 "center" 20 8 "Snippets for match branches (Ltac)." "match-goal"
   (:split "mgw") "<C-return>" "<C-return> RET"
   "<M-S-return>" "TAB" (:split "?a /\\ ?b") "TAB" (:split "?a") "TAB" "RET"
-  (:split "destr") "<C-return>" "<C-return> RET" (:split "H; eas") "<C-return>" "<C-return> RET" "M->" ".")
+  (:split "destr") "<C-return>" "<C-return> RET" (:split "H; ass") "<C-return>" "<C-return> RET" "M->" ".")
 
 (my/with-screencast my/github-width/3 13 "east" 20 8 "Smart intros." "smart-intros"
   (progn
