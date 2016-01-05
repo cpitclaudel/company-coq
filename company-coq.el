@@ -1,8 +1,9 @@
 ;;; company-coq.el --- A collection of extensions for Proof General's Coq mode -*- lexical-binding: t -*-
 
-;; Copyright (C) 2015  Clément Pit--Claudel
+;; Copyright (C) 2015, 2016  Clément Pit--Claudel
 ;; Author: Clément Pit--Claudel <clement.pitclaudel@live.com>
 ;; URL: https://github.com/cpitclaudel/company-coq
+;; Keywords: convenience, languages
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -25,6 +26,8 @@
 ;; See https://github.com/cpitclaudel/company-coq/ for a detailed description,
 ;; including screenshots and documentation.  After installing, you may want to
 ;; use M-x company-coq-tutorial to open the tutorial.
+
+;;; History:
 
 ;;; Code:
 ;;
