@@ -917,6 +917,7 @@ lest duplicates pop up."
 
 (defun company-coq-init-symbols (&optional force)
   "Load symbols if needed or FORCE'd, by querying the prover."
+  (interactive '(t))
   (when (company-coq-feature-active-p 'dynamic-symbols-backend)
     (company-coq-dbg "company-coq-init-symbols: Loading symbols (if never loaded)")
     (company-coq-reload-db 'company-coq-dynamic-symbols #'company-coq-get-symbols 'company-coq-symbols-reload-needed t force)))
@@ -1160,7 +1161,8 @@ comparison function."
 
 (defmacro company-coq-bool-lessp (bindings both-t &optional both-nil)
   "Boolean-compare BINDINGS, falling back to BOTH-T or BOTH-NIL."
-  (declare (indent 1))
+  (declare (indent 1)
+           (debug ((&rest (sexp form)) body body)))
   (let ((var1 (caar bindings))
         (var2 (caadr bindings)))
     `(let ,bindings
