@@ -82,6 +82,29 @@
 
 ;;; Screenshots
 
+;;;;;;;;;;;;;;;;
+;; CoqPL 2016 ;;
+;;;;;;;;;;;;;;;;
+
+;; (set-face-attribute 'default nil :family "Ubuntu Mono" :height 400 :foreground "black" :background "white")
+;; (set-fontset-font t 'unicode "Ubuntu Mono")
+;; (set-fontset-font t 'unicode "Symbola Monospacified for Ubuntu Mono" nil 'append)
+
+;; (my/with-screenshot '(nil . 1280) 10 nil "Context-sensitive autocompletion with holes" "coq-pl-16-autocompletion"
+;;   (insert "appin")
+;;   (my/send-keys "<C-return>"))
+
+;; (my/with-screenshot '(nil . 1280) 17 nil "Offline documentation" "coq-pl-16-documentation"
+;;   (insert "appin")
+;;   (my/send-keys "<C-return> C-h")
+;;   (with-current-buffer company-coq--doc-buffer
+;;     (text-scale-decrease 2)))
+
+;; (my/with-screenshot '(nil . 1280) 13 nil "Point and click documentation" "coq-pl-16-point-and-click"
+;;   (my/start-pg-no-windows)
+;;   (my/insert-with-point "<|>plus\n")
+;;   (my/send-keys "<menu>"))
+
 ;;;;;;;;;;;;;;;;;;;;;;
 ;; Prettify-symbols ;;
 ;;;;;;;;;;;;;;;;;;;;;;
