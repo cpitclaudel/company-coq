@@ -190,7 +190,9 @@ The procedure above will give you auto-completion and documentation for tactics,
 (setq company-coq-dynamic-autocompletion t)
 ```
 
-This feature won't work unless you build and use a patched coq REPL: see [this fork](https://github.com/cpitclaudel/coq/tree/v8.5-with-cc-patches). One of the relevant patches has been merged upstream; the other two are being discussed [here](https://github.com/coq/coq/pull/64) and [here](https://github.com/coq/coq/pull/56). [Here](etc/8.4-additions.patch) is the relevant patch for 8.4.
+This feature won't work unless you build and use a patched coq REPL: see [this fork](https://github.com/cpitclaudel/coq/tree/v8.5-with-cc-patches). Two of the relevant patches has been merged upstream (into Coq trunk, not 8.5); the last one is being discussed [here](https://github.com/coq/coq/pull/64).
+
+You can download these changes as patches for [8.4](etc/8.4-additions.patch) or [trunk](etc/trunk-additions.patch).
 
 ### Disabling company-coq
 
