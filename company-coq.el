@@ -69,6 +69,7 @@
 (require 'shr)          ;; HTML rendering
 (require 'smie)         ;; Move around the source code
 (require 'yasnippet)    ;; Templates
+(require 'alert nil t)  ;; Notifications
 
 (require 'company-coq-abbrev) ;; Tactics from the manual
 (require 'company-coq-tg)     ;; Parsing code for tactic notations
@@ -94,9 +95,13 @@
   (defvar proof-goals-buffer)
   (defvar proof-script-buffer)
   (defvar proof-response-buffer)
+  (defvar proof-action-list)
   (defvar proof-script-fly-past-comments)
-  (defvar proof-shell-last-goals-output)
   (defvar proof-shell-proof-completed)
+  (defvar proof-shell-last-output)
+  (defvar proof-shell-last-output-kind)
+  (defvar proof-shell-last-goals-output)
+  (defvar proof-shell-last-response-output)
   (defvar coq-mode-map)
   (defvar coq-reserved)
   (defvar coq-user-cheat-tactics-db)
@@ -3589,6 +3594,120 @@ the level of bullets."
        (font-lock-remove-keywords company-coq-features/code-folding--bullet-fl-spec company-coq-deprecated-spec)
        (remove-hook 'post-command-hook #'company-coq-features/code-folding--unfold-at-point t)
        (company-coq-request-refontification)))))
+
+(defcustom company-coq-features/alerts-long-running-task-threshold 5
+  "Minimum duration of a long-running sequence of commands.
+
+Notifications are shown after Coq finishes processing all
+commands, for any sequence of commands that took more than this
+many seconds to complete (completion time is counted starting
+after the last user input)."
+  :group 'company-coq)
+
+(defcustom company-coq-features/alerts-title-format "🐓 processing complete in %s"
+  "Format string for the title of notifications."
+  :group 'company-coq)
+
+(defcustom company-coq-features/alerts-body-function #'company-coq-features/alerts--alert-body
+  "Function called to compute the body of notifications."
+  :group 'company-coq)
+
+(defvar company-coq-features/alerts--last-interaction nil
+  "Last time input was sent to the prover.")
+
+(defvar company-coq-features/alerts--has-focus t
+  "Whether Emacs currently has focus.
+If non-nil, alerts are not displayed.")
+
+(defun company-coq-features/alerts--focus-in ()
+  "Register that Emacs got focus."
+  (setq company-coq-features/alerts--has-focus t))
+
+(defun company-coq-features/alerts--focus-out ()
+  "Register that Emacs lost focus."
+  (setq company-coq-features/alerts--has-focus nil))
+
+(defun company-coq-features/alerts--handle-input (&rest _)
+  "Notice that some input was just sent to the prover."
+  (setq company-coq-features/alerts--last-interaction (current-time)))
+
+(defun company-coq-features/alerts--handle-output (&rest _)
+  "Notice that some output just came from the prover."
+  (run-with-timer 0 nil #'company-coq-features/alerts--maybe-alert))
+
+(defun company-coq-features/alerts--time-since-last-interaction ()
+  "Compute the time elapsed since the last interaction."
+  (and company-coq-features/alerts--last-interaction
+       (float-time (time-since company-coq-features/alerts--last-interaction))))
+
+(defun company-coq-features/alerts--maybe-alert ()
+  "Show a notification if the prover is waiting for input."
+  (when (and company-coq-features/alerts--last-interaction
+             (not company-coq-features/alerts--has-focus)
+             (proof-shell-available-p)
+             (cl-every #'null proof-action-list)
+             (> (company-coq-features/alerts--time-since-last-interaction)
+                company-coq-features/alerts-long-running-task-threshold))
+    (company-coq-features/alerts--alert)))
+
+(defun company-coq-features/alerts--truncate (msg)
+  "Truncate MSG, in preparation for alert."
+  (replace-regexp-in-string " *\\(\n\\|\r\\) *" " " ;; " ⏎ "
+                            (if (> (length msg) 80)
+                                (concat (substring msg 0 80) "…")
+                              msg)
+                            t t))
+
+(defun company-coq-features/alerts--alert-body ()
+  "Compute body of notification."
+  (company-coq-features/alerts--truncate
+   (or (and proof-response-buffer
+            (with-current-buffer proof-response-buffer
+              (buffer-substring-no-properties (point-min) (point-max))))
+       (pcase proof-shell-last-output-kind
+         ('error proof-shell-last-output)
+         (_      proof-shell-last-response-output))
+       "")))
+
+(defun company-coq-features/alerts--alert ()
+  "Display and alert with a company-coq-features/alerts-specific message."
+  (let ((elapsed (float-time (time-since company-coq-features/alerts--last-interaction))))
+    (setq company-coq-features/alerts--last-interaction nil)
+    (when (functionp 'alert)
+      (alert (funcall company-coq-features/alerts-body-function)
+             :severity 'normal
+             :title (format company-coq-features/alerts-title-format (seconds-to-string elapsed))
+             :buffer proof-script-buffer))))
+
+(defconst company-coq-features/alerts--input-hooks '(proof-assert-command-hook)
+  "Hooks that denote user input.")
+
+(defconst company-coq-features/alerts--output-hooks '(proof-shell-handle-delayed-output-hook
+                                           proof-shell-handle-error-or-interrupt-hook)
+  "Hooks that denote prover output.")
+
+(company-coq-define-feature alerts (arg)
+  "Notifications for completion of long-running proofs.
+Uses alert.el to display a notification when a proof completes."
+  (pcase arg
+    (`on
+     (add-hook 'focus-in-hook #'company-coq-features/alerts--focus-in)
+     (add-hook 'focus-out-hook #'company-coq-features/alerts--focus-out)
+     (mapc (lambda (hook)
+             (add-hook hook #'company-coq-features/alerts--handle-input))
+           company-coq-features/alerts--input-hooks)
+     (mapc (lambda (hook)
+             (add-hook hook #'company-coq-features/alerts--handle-output))
+           company-coq-features/alerts--output-hooks))
+    (`off
+     (remove-hook 'focus-in-hook #'company-coq-features/alerts--focus-in)
+     (remove-hook 'focus-out-hook #'company-coq-features/alerts--focus-out)
+     (mapc (lambda (hook)
+             (remove-hook hook #'company-coq-features/alerts--handle-input))
+           company-coq-features/alerts--input-hooks)
+     (mapc (lambda (hook)
+             (remove-hook hook #'company-coq-features/alerts--handle-output))
+           company-coq-features/alerts--output-hooks))))
 
 (company-coq-define-feature company (arg)
   "Context-sensitive completion.
