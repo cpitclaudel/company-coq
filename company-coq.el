@@ -2818,17 +2818,16 @@ to show at most MAX-LINES."
       (company-coq-insert-spacer (point-max))
       (buffer-string))))
 
-(defun company-coq--count-lines-under-point (&optional max-lines)
-  "Count number of lines beyond POINT.
-Return MAX-LINES if there are more than that."
-  (setq max-lines (or max-lines (window-body-height)))
+(defun company-coq--count-lines-under-point ()
+  "Count number of lines beyond POINT."
   (save-excursion
     (let ((line-move-visual 1)
-          (win-end (window-end nil t)))
-      (cl-loop for x = 0 then (1+ x)
-               while (and (< x max-lines) (< (point) win-end))
-               do (vertical-motion 1)
-               finally return x))))
+          (win-start (window-start nil))
+          (win-height (window-body-height)))
+      (cl-loop for available = win-height then (1- available)
+               while (and (> (point) win-start))
+               do (vertical-motion -1)
+               finally return available))))
 
 (defun company-coq--show-definition-overlay-at-point ()
   "Show inline definition of symbol at point."
@@ -2841,7 +2840,7 @@ Return MAX-LINES if there are more than that."
                                                    company-coq-tactic-def-cmd
                                                    company-coq-def-cmd)
                                 (list company-coq-type-cmd))))
-         (max-h   (max 4 (min 16 (- (company-coq--count-lines-under-point) 3)))))
+         (max-h   (max 4 (min 16 (- (company-coq--count-lines-under-point) 2)))))
     (cond
      (docs (let* ((offset  (company-coq-text-width (point-at-bol) (cdr sb-pos)))
                   (ins-str (company-coq--prepare-for-definition-overlay docs offset max-h)))

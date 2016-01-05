@@ -29,8 +29,8 @@
 
 (defun my/faces-setup ()
   (set-face-attribute 'default nil :family "Ubuntu Mono" :height 105)
-  (set-face-attribute 'mode-line nil :foreground "gray60" :background "black" :height 105)
-  (set-face-attribute 'mode-line-inactive nil :foreground "gray60" :background "#404045" :height 105)
+  (set-face-attribute 'mode-line nil :foreground "gray60" :background "black")
+  (set-face-attribute 'mode-line-inactive nil :foreground "gray60" :background "#404045")
   (set-face-attribute 'mode-line-buffer-id nil :foreground "#eab700")
   (set-fontset-font t 'unicode "Ubuntu Mono")
   (set-fontset-font t 'unicode "Symbola Monospacified for Ubuntu Mono" nil 'append))
@@ -74,18 +74,24 @@
   (redisplay t)
   (let ((png-fname (my/frame-file-name name "png" frame-id)))
     (process-lines "import" "-window" (my/x-window-id) png-fname)
-    (pcase-let* (((seq frame-h frame-w) (mapcar #'string-to-number (process-lines "identify" "-ping" "-format" "%h\n%w" png-fname)))
-                 (target-width (floor (* (car width-spec) my/real-github-w))))
-      (when (> frame-w target-width)
-        (error "Frame is too large (%d > %d)" frame-w target-width))
-      (process-lines "mogrify" "-strip" "-matte"
-                     "-bordercolor" (face-attribute 'fringe :background) "-border" (format "0x%d" my/fringe-width)
-                     "-background" "none" "-gravity" gravity "-extent" (format "%dx%d" target-width (+ frame-h (* 2 my/fringe-width)))
-                     png-fname)
-      (unless (member ext '(nil "png"))
-        ;; We always produce a PNG copy of the file in addition to the requested
-        ;; one, so if the extension wasn't PNG we need an extra conversion here
-        (process-lines "convert" png-fname (my/frame-file-name name ext frame-id)))
+    (apply #'process-lines
+           "mogrify" "-strip" "-matte"
+           "-bordercolor" (face-attribute 'fringe :background) "-border" (format "0x%d" my/fringe-width)
+           (append (when gravity
+                     (pcase-let* (((seq frame-h frame-w)
+                                   (mapcar #'string-to-number (process-lines "identify" "-ping" "-format" "%h\n%w" png-fname)))
+                                  (target-width
+                                   (floor (* (car width-spec) my/real-github-w))))
+                       (when (> frame-w target-width)
+                         (error "Frame is too large (%d > %d)" frame-w target-width))
+                       (list "-background" "none" "-gravity" gravity
+                             "-extent" (format "%dx%d" target-width (+ frame-h (* 2 my/fringe-width))))))
+                   (list png-fname)))
+    (unless (member ext '(nil "png"))
+      ;; We always produce a PNG copy of the file in addition to the requested
+      ;; one, so if the extension wasn't PNG we need an extra conversion here
+      (process-lines "convert" png-fname (my/frame-file-name name ext frame-id)))
+    (when gravity
       (process-lines "optipng" "-o3" png-fname))))
 
 (defun my/save-screencast (name frame-duration frame-ids)
