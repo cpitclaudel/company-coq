@@ -810,7 +810,7 @@ Returns a cons of what remains"
        (proof-shell-available-p)))
 
 (defun company-coq-reload-db (db init-fun track-symbol needs-prover force)
-  "Initialize DB using INIT-FUN.
+  "Initialize DB using INIT-FUN if needed (or FORCE'd).
 If NEEDS-PROVER is non-nil, ensure that the prover is available
 before reloading.  If TRACK-SYMBOL is non-nil, use it to track
 whether the database is up-to-date."
@@ -998,7 +998,7 @@ Do not call if the prover process is busy."
     path-specs))
 
 (defun company-coq-init-modules (&optional force)
-  "Load modules if needed, by querying the prover."
+  "Load modules if needed or FORCE'd, by querying the prover."
   (interactive '(t))
   (when (company-coq-feature-active-p 'modules-backend)
     (company-coq-dbg "company-coq-init-modules: Loading modules (if never loaded)")
