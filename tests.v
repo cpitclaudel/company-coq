@@ -121,6 +121,11 @@ Proof.
   constructor.
 Qed.
 
+(* (setq alert-default-style 'libnotify) *)
+Goal True.
+  Fail timeout 6 repeat pose 1.
+Abort.
+
 Goal 1 = 1.
   (* Are the two numbers displaying properly? *)
   reflexivity.
