@@ -2777,6 +2777,16 @@ With prefix ARG, let user pick the error message."
       (company-coq-browse-error-messages)
     (company-coq-guess-error-message-from-response)))
 
+(defun company-coq-eval-last-sexp (arg)
+  "Send the last SEXP to Coq as a Compute command."
+  (interactive "P")
+  (let ((standard-output (if arg (current-buffer) t))
+        (question (format "Eval compute in (%s)."
+                          (buffer-substring-no-properties
+                           (save-excursion (backward-sexp) (point))
+                           (point)))))
+    (message (company-coq-ask-prover question))))
+
 (defun company-coq-search-in-coq-buffer (regexp)
   "Search for REGEXP in *coq* buffer.
 Useful for debugging tactics in versions of Coq prior to 8.5: use
