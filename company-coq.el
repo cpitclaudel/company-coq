@@ -2778,7 +2778,8 @@ With prefix ARG, let user pick the error message."
     (company-coq-guess-error-message-from-response)))
 
 (defun company-coq-eval-last-sexp (arg)
-  "Send the last SEXP to Coq as a Compute command."
+  "Send the last SEXP to Coq as a Compute command.
+With prefix ARG, insert output at point."
   (interactive "P")
   (let ((standard-output (if arg (current-buffer) t))
         (question (format "Eval compute in (%s)."
@@ -3530,7 +3531,7 @@ command places the point in an invisible section.")
   "Which commands unfold folded sections after completing.
 This list is used by `company-coq-features/code-folding--unfold-at-point' to
 determine whether to unfold a code section after the point moves
-into it. If the code section isn't unfolded, the command loop
+into it.  If the code section isn't unfolded, the command loop
 automatically moves the point out of it.")
 
 (defun company-coq-features/code-folding--folding-overlays-at (pos)
