@@ -3898,8 +3898,8 @@ company-coq."
                                        :height ,(ceiling (* 0.14 mode-line-height))
                                        ;; Inherit bg explicitly
                                        :background ,mode-line-background)))
-            (list " " (apply #'propertize "🐤" (when (file-exists-p img-path) ;; 🐤 🐣 🐓 🐔
-                                                (list 'display display-spec))))))
+            (list " " (apply #'propertize "company-🐤" (when (file-exists-p img-path) ;; 🐤 🐣 🐓 🐔
+                                                        (list 'display display-spec))))))
   "Lighter var for `company-coq-mode'.
 Must be tagged risky to display properly.")
 
