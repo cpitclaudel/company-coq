@@ -3621,7 +3621,7 @@ the level of bullets."
      (company-coq-do-in-coq-buffers
        (hs-minor-mode -1)
        (kill-local-variable 'buffer-display-table)
-       (font-lock-remove-keywords company-coq-features/code-folding--bullet-fl-spec company-coq-deprecated-spec)
+       (font-lock-remove-keywords nil company-coq-features/code-folding--bullet-fl-spec)
        (remove-hook 'post-command-hook #'company-coq-features/code-folding--unfold-at-point t)
        (company-coq-request-refontification)))))
 
