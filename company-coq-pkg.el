@@ -1,6 +1,6 @@
 (define-package
   "company-coq"
-  "0.4"
+  "1.0"
   "Company-mode backend for Proof General's coq-mode"
   '((company-math "1.0.1")
     (company "0.8.12")
