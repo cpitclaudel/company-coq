@@ -2993,10 +2993,9 @@ subsequent invocations)."
   `(company-coq-with-current-buffer-maybe proof-response-buffer
      ,@body))
 
-(defvar company-coq-mode nil
+(defvar-local company-coq-mode nil
   "Non-nil if company-coq-mode is enabled.
 Use the command `company-coq-mode' to change this variable.")
-(make-variable-buffer-local 'company-coq-mode)
 
 (eval-and-compile
   (defvar company-coq-available-features nil
@@ -3888,6 +3887,11 @@ Must be tagged risky to display properly.")
 
 (put 'company-coq--lighter-var 'risky-local-variable t)
 
+(defun company-coq--hello ()
+  "Show a company-coq–related greeting."
+  (when company-coq-mode
+    (message "%s" (substitute-command-keys "Welcome to company-coq! Use \\[company-coq-tutorial] to get started."))))
+
 ;;;###autoload
 (define-minor-mode company-coq-mode
   "Toggle company-coq-mode on or off.
@@ -3911,7 +3915,8 @@ tutorial.
       (if (company-coq-coq-mode-p)
           (company-coq-toggle-features (company-coq-enabled-features) t)
         (user-error "Company-coq only works with coq-mode"))
-    (company-coq-toggle-features (company-coq-enabled-features) nil)))
+    (company-coq-toggle-features (company-coq-enabled-features) nil))
+  (run-with-idle-timer 0 nil #'company-coq--hello))
 
 ;;;###autoload
 (defun company-coq-initialize () ;; LATER: Deprecate this
