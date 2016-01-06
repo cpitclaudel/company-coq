@@ -2926,19 +2926,33 @@ subsequent invocations)."
     (company-coq-detect-capabilities)
     (company-coq-tactic-initialize-notations-filter)))
 
+(defconst company-coq--tutorial-tty-fonts-message
+  "\n\n    (On TTYs, set `company-coq-features/prettify-symbols-in-terminal' to t to enable prettification.)"
+  "Message inserted in the tutorial on TTY terminals.")
+
+(defconst company-coq--tutorial-buffer-name
+  "*company-coq-tutorial*"
+  "Name given to the company-coq tutorial buffer.")
+
 ;;;###autoload
 (defun company-coq-tutorial ()
   "Open the company-coq tutorial, creating a new buffer if needed."
   (interactive)
-  (let* ((tutorial-name   "*company-coq-tutorial*")
+  (let* ((tutorial-name   company-coq--tutorial-buffer-name)
          (tutorial-buffer (get-buffer tutorial-name))
-         (tutorial-path   (expand-file-name "refman/tutorial.v" (file-name-directory company-coq-script-full-path))))
-    (unless tutorial-buffer
-      (with-current-buffer (setq tutorial-buffer (get-buffer-create tutorial-name))
+         (tutorial-path   (expand-file-name "tutorial.v" company-coq-refman-path)))
+    (with-current-buffer (get-buffer-create tutorial-name)
+      (unless tutorial-buffer
         (insert-file-contents tutorial-path nil nil nil t)
+        (when (search-forward "{% TTY-FONTS-MESSAGE %}" nil t)
+          (replace-match (if (display-graphic-p) ""
+                           company-coq--tutorial-tty-fonts-message)
+                         t t)
+          (fill-paragraph))
+        (goto-char (point-min))
         (company-coq-setup-temp-coq-buffer)
-        (setq-local proof-script-fly-past-comments nil)))
-    (pop-to-buffer-same-window tutorial-buffer)))
+        (setq-local proof-script-fly-past-comments nil))
+      (pop-to-buffer-same-window (current-buffer)))))
 
 (defun company-coq-get-comment-opener (pos)
   "Read comment opener at position POS."
@@ -3207,11 +3221,15 @@ types using <C-click> or <menu>."
   (pcase arg
     (`off (company-coq-do-in-coq-buffers (company-coq-clear-definition-overlay)))))
 
+(defcustom company-coq-features/prettify-symbols-in-terminal nil
+  "If set, set up prettification in TTY frames as well."
+  :group 'company-coq)
+
 (defun company-coq-features/prettify-symbols--enable-1 (buffer)
   "Set up prettify-symbols in the current buffer.
 BUFFER is used to retrieve the buffer-local values of
 `prettify-symbols-alist' etc."
-  (when (and (display-graphic-p)
+  (when (and (or (display-graphic-p) company-coq-features/prettify-symbols-in-terminal)
              (fboundp #'prettify-symbols-mode))
     (setq-local prettify-symbols-alist
                 (with-current-buffer buffer
@@ -3889,7 +3907,7 @@ Must be tagged risky to display properly.")
 
 (defun company-coq--hello ()
   "Show a company-coq–related greeting."
-  (when company-coq-mode
+  (when (and company-coq-mode (not (equal (buffer-name) company-coq--tutorial-buffer-name)))
     (message "%s" (substitute-command-keys "Welcome to company-coq! Use \\[company-coq-tutorial] to get started."))))
 
 ;;;###autoload

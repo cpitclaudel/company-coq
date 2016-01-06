@@ -28,7 +28,7 @@
     this feature by typing `M-x prettify-symbols-mode'.  If the symbols show as
     square boxes instead, you may want to install a good unicode font, such as
     Symbola (see http://git.io/company-coq-fonts for more info, or install
-    `ttf-ancient-fonts' on Debian). *)
+    `ttf-ancient-fonts' on Debian).{% TTY-FONTS-MESSAGE %} *)
 
 Definition PrettySymbols : (nat -> nat -> Prop) :=
   (fun (n m: nat) =>
