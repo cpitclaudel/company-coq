@@ -16,18 +16,19 @@
       (require 'proof-site)
 
       ;; Load company-coq when opening Coq files
-      (add-hook 'coq-mode-hook #'company-coq-initialize)
+      (add-hook 'coq-mode-hook #'company-coq-mode)
 
     to your .emacs?  If not, you can try company-coq temporarily; just type
-    `M-x company-coq-initialize'. *)
+    `M-x company-coq-mode'. *)
 
 (******************************************************************************)
 
 (** Let's get started!  If you use emacs >= 24.4, the symbols below should be
     prettified, though they appear as ASCII in the source file.  You can disable
-    this feature by typing M-x prettify-symbols-mode.  If the symbols show as
+    this feature by typing `M-x prettify-symbols-mode'.  If the symbols show as
     square boxes instead, you may want to install a good unicode font, such as
-    Symbola (package `ttf-ancient-fonts'; see the GitHub page for more info). *)
+    Symbola (see http://git.io/company-coq-fonts for more info, or install
+    `ttf-ancient-fonts' on Debian). *)
 
 Definition PrettySymbols : (nat -> nat -> Prop) :=
   (fun (n m: nat) =>
