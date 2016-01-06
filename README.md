@@ -1,4 +1,7 @@
 # Company-coq
+[![GPL 3](https://img.shields.io/badge/license-GPLv3-blue.svg)](COPYING)
+[![MELPA](http://melpa.org/packages/company-coq-badge.svg)](http://melpa.org/#/company-coq)
+[![DOI](https://zenodo.org/badge/doi/10.5281/zenodo.44331.svg)](http://dx.doi.org/10.5281/zenodo.44331)
 
 A collection of extensions for Proof General's Coq mode.
 
@@ -127,6 +130,22 @@ Technical note: Proof-General [also offers](http://proofgeneral.inf.ed.ac.uk/htm
 
 ## Advanced topics
 
+### Citing
+
+Use `company-coq-cite` to insert the BibTeX entries for Coq, Proof General, and `company-coq` in the current buffer.
+
+```latex
+@InProceedings{CompanyCoq2016,
+  Title     = {Company-Coq: Taking Proof General one step closer to a real IDE},
+  Author    = {Pit-Claudel, Clément and Courtieu, Pierre},
+  Booktitle = {CoqPL'16: The Second International Workshop on Coq for PL},
+  Year      = {2016},
+  Month     = jan,
+  Doi       = {10.5281/zenodo.44331},
+  Url       = {http://dx.doi.org/10.5281/zenodo.44331}
+}
+```
+
 ### Installing a math-enabled font
 
 For font beautification to work properly, you'll need a font with proper symbol support. [Symbola](http://users.teilar.gr/~g1951d/Symbola.zip), FreeMono, STIX Math, Segoe UI Symbol, Latin Modern, and Cambria Math will all work. If Emacs doesn't fallback properly, you can use the following snippet:
@@ -137,7 +156,7 @@ For font beautification to work properly, you'll need a font with proper symbol 
 
 #### Fixing math indentation
 
-Using a variable-width font for symbols will break indentation. See [this other project of mine](https://github.com/cpitclaudel/monospacifier#pre-monospacified-fonts-monospace-fonts-with-good-unicode-coverage) to download a monospace-friendly symbols font. You'll want to add (or replace) the following snippet (adjusting `Symbola` and `DejaVu sans Mono` as appropriate):
+Using a variable-width font for symbols will break indentation. See [this other project of mine](https://github.com/cpitclaudel/monospacifier#pre-monospacified-fonts-monospace-fonts-with-good-unicode-coverage) to download a monospace-friendly symbols font. You'll want to replace the snippet above by following (adjusting `Symbola` and `DejaVu sans Mono` as appropriate):
 
 ```elisp
 (set-fontset-font t 'unicode (font-spec :name "Symbola monospacified for DejaVu Sans Mono") nil 'append)
@@ -145,7 +164,7 @@ Using a variable-width font for symbols will break indentation. See [this other 
 
 ### Registering your own symbols and math operators
 
-Adjust and use the following snippet to register your own keywords. This needs be called before `(company-coq-initialize)`, so the code needs to be added after the code listed above.
+Adjust and use the following snippet to register your own keywords. This needs be called before `(company-coq-mode)`, so the code needs to be added after the code listed above.
 
 ```elisp
 (add-hook 'coq-mode-hook
@@ -194,21 +213,8 @@ This feature won't work unless you build and use a patched coq REPL: see [this f
 
 You can download these changes as patches for [8.4](etc/8.4-additions.patch) or [trunk](etc/trunk-additions.patch).
 
-### Disabling company-coq
-
-`M-x unload-feature RET company-coq RET` should work fine.
-
 ### Installing from source
 
 #### Dependencies
 
-[MELPA](http://melpa.org/#/getting-started)
-
-#### company-coq
-
-```bash
-mkdir -p ~/.emacs.d/lisp/
-git clone https://github.com/cpitclaudel/company-coq.git ~/.emacs.d/lisp/company-coq
-cd ~/.emacs.d/lisp/company-coq
-make package && make install
-```
+`company`, `dash`, and `yasnippet` from [MELPA](http://melpa.org/#/getting-started)
