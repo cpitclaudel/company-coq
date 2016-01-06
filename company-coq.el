@@ -3934,7 +3934,7 @@ tutorial.
           (company-coq-toggle-features (company-coq-enabled-features) t)
         (user-error "Company-coq only works with coq-mode"))
     (company-coq-toggle-features (company-coq-enabled-features) nil))
-  (run-with-idle-timer 0 nil #'company-coq--hello))
+  (run-with-timer 0 nil #'company-coq--hello))
 
 ;;;###autoload
 (defun company-coq-initialize () ;; LATER: Deprecate this
