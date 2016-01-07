@@ -3251,14 +3251,14 @@ types using <C-click> or <menu>."
   "If set, set up prettification in TTY frames as well."
   :group 'company-coq)
 
-(defun company-coq-features/prettify-symbols--enable-1 (buffer)
+(defun company-coq-features/prettify-symbols--enable-1 (ref-buffer)
   "Set up prettify-symbols in the current buffer.
-BUFFER is used to retrieve the buffer-local values of
+REF-BUFFER is used to retrieve the buffer-local values of
 `prettify-symbols-alist' etc."
   (when (and (or (display-graphic-p) company-coq-features/prettify-symbols-in-terminal)
              (fboundp #'prettify-symbols-mode))
     (setq-local prettify-symbols-alist
-                (with-current-buffer buffer
+                (with-current-buffer ref-buffer
                   (-distinct (append prettify-symbols-alist
                                      company-coq-prettify-symbols-alist
                                      company-coq-local-symbols))))
@@ -3277,7 +3277,7 @@ BUFFER is used to retrieve the buffer-local values of
 (defun company-coq-features/prettify-symbols--enable-others ()
   "Enable prettify-symbols in response and goals buffers."
   (company-coq-do-in-goals-buffer (company-coq-features/prettify-symbols--enable-other))
-  (company-coq-do-in-response-buffer(company-coq-features/prettify-symbols--enable-other)))
+  (company-coq-do-in-response-buffer (company-coq-features/prettify-symbols--enable-other)))
 
 (defun company-coq-features/prettify-symbols--enable ()
   "Enable prettify-symbols in all Coq buffers."
@@ -3603,7 +3603,7 @@ The spec uses local-map instead of keymap, because it needs to
 take precedence over PG's own keymaps, introduced by the overlays
 that it adds after processing a buffer section.")
 
-(defcustom company-coq-features/code-folding-ellipsis " […]" ;;
+(defcustom company-coq-features/code-folding-ellipsis " […]"
   "Ellipsis used for code folding.
 Suggested values: […] [⤶] [↲] [▶] [⏩] [▸]."
   :type #'stringp
