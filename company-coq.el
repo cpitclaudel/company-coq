@@ -3221,6 +3221,17 @@ Interactively, prompt for FEATURE."
      (remove-hook 'proof-shell-handle-error-or-interrupt-hook #'company-coq-maybe-reload-context)
      (remove-hook 'yas-after-exit-snippet-hook #'company-coq-forget-choices))))
 
+(defun company-coq--hello ()
+  "Show a company-coq–related greeting."
+  (when (and company-coq-mode (not (equal (buffer-name) company-coq--tutorial-buffer-name)))
+    (message "%s" (substitute-command-keys "Welcome to company-coq! Use \\[company-coq-tutorial] to get started."))))
+
+(company-coq-define-feature hello (arg)
+  "Startup message.
+Shows a greeting when company-coq starts."
+  (pcase arg
+    (`on (run-with-timer 0 nil #'company-coq--hello))))
+
 (company-coq-define-feature keybindings (arg)
   "Company-coq keybindings.
 Activates `company-coq-map', a keymap containing many shortcuts
@@ -3959,8 +3970,7 @@ tutorial.
       (if (company-coq-coq-mode-p)
           (company-coq-toggle-features (company-coq-enabled-features) t)
         (user-error "Company-coq only works with coq-mode"))
-    (company-coq-toggle-features (company-coq-enabled-features) nil))
-  (run-with-timer 0 nil #'company-coq--hello))
+    (company-coq-toggle-features (company-coq-enabled-features) nil)))
 
 ;;;###autoload
 (defun company-coq-initialize () ;; LATER: Deprecate this

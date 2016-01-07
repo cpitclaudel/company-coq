@@ -64,7 +64,7 @@
 (require 'proof-site)
 
 (setq proof-splash-enable nil
-      company-coq-disabled-features nil
+      company-coq-disabled-features '(hello)
       company-coq--prettify-abbrevs t)
 
 (put 'company-coq-fold 'disabled nil)
