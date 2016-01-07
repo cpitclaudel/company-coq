@@ -365,7 +365,7 @@ The result matches any symbol in HEADERS, followed by BODY."
 (defconst company-coq-tactic-def-cmd "Print Ltac %s"
   "Command used to retrieve the documentation of a tactic.")
 
-(defconst company-coq-symbols-meta-cmd "Check %s."
+(defconst company-coq-symbols-meta-cmd "Check @%s."
   "Command used to retrieve a short description of a symbol.")
 
 (defconst company-coq-modules-cmd "Print LoadPath."
