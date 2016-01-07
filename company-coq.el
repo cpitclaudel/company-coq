@@ -630,7 +630,8 @@ infinite loop (they are not cleared by [generalize dependent]).")
 
 (defmacro company-coq-suppress-warnings (&rest body)
   "Run BODY, suppressing compilation warnings in Emacs <= 24.4."
-  (declare (indent 0))
+  (declare (indent 0)
+           (debug t))
   (if (and (= emacs-major-version 24) (< emacs-minor-version 4))
       `(with-no-warnings ,@body)
     `(progn ,@body)))
@@ -940,9 +941,8 @@ Return results as ((MATCH-STRING 2) . POSITION)."
           (push (cons (match-string-no-properties 2) (match-beginning 2)) matches)))
       matches)))
 
-(defvar company-coq-local-definitions nil
+(defvar-local company-coq-local-definitions nil
   "Cache of local function definitions.")
-(make-variable-buffer-local 'company-coq-local-definitions)
 
 (defvar-local company-coq-local-definitions-valid-from 1
   "Point up to which `company-coq-local-definitions' is accurate.")
@@ -2989,7 +2989,7 @@ subsequent invocations)."
 (defmacro company-coq-do-in-coq-buffers (&rest body)
   "Run BODY in all `coq-mode' buffers."
   (declare (indent defun)
-           (debug body))
+           (debug t))
   `(dolist (company-coq-do-in-coq-buffers--buffer (buffer-list))
      (with-current-buffer company-coq-do-in-coq-buffers--buffer
        (when (company-coq-coq-mode-p)
@@ -2997,13 +2997,15 @@ subsequent invocations)."
 
 (defmacro company-coq-do-in-goals-buffer (&rest body)
   "Run BODY in goals buffer, if available."
-  (declare (indent defun))
+  (declare (indent defun)
+           (debug t))
   `(company-coq-with-current-buffer-maybe proof-goals-buffer
      ,@body))
 
 (defmacro company-coq-do-in-response-buffer (&rest body)
   "Run BODY in response buffer, if available."
-  (declare (indent defun))
+  (declare (indent defun)
+           (debug t))
   `(company-coq-with-current-buffer-maybe proof-response-buffer
      ,@body))
 
