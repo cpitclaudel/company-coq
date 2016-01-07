@@ -69,7 +69,8 @@
 (require 'shr)          ;; HTML rendering
 (require 'smie)         ;; Move around the source code
 (require 'yasnippet)    ;; Templates
-(require 'alert nil t)  ;; Notifications
+(unless (require 'alert nil t) ;; Notifications
+  (require 'notifications nil t))
 
 (require 'company-coq-abbrev) ;; Tactics from the manual
 (require 'company-coq-tg)     ;; Parsing code for tactic notations
@@ -3648,7 +3649,7 @@ many seconds to complete (completion time is counted starting
 after the last user input)."
   :group 'company-coq)
 
-(defcustom company-coq-features/alerts-title-format "🐓 processing complete in %s"
+(defcustom company-coq-features/alerts-title-format "Prover ready! (proof took %s)"
   "Format string for the title of notifications."
   :group 'company-coq)
 
@@ -3713,15 +3714,31 @@ If non-nil, alerts are not displayed.")
          (_      proof-shell-last-response-output))
        "")))
 
+(defconst company-coq--icon
+  (let ((path (expand-file-name "rooster.png" company-coq-refman-path)))
+    (and (file-exists-p path) path))
+  "Path to the icon of company-coq.")
+
 (defun company-coq-features/alerts--alert ()
   "Display and alert with a company-coq-features/alerts-specific message."
-  (let ((elapsed (float-time (time-since company-coq-features/alerts--last-interaction))))
+  (let* ((elapsed (float-time (time-since company-coq-features/alerts--last-interaction)))
+         (title (format company-coq-features/alerts-title-format (seconds-to-string elapsed)))
+         (body (funcall company-coq-features/alerts-body-function)))
     (setq company-coq-features/alerts--last-interaction nil)
-    (when (functionp 'alert)
-      (alert (funcall company-coq-features/alerts-body-function)
-             :severity 'normal
-             :title (format company-coq-features/alerts-title-format (seconds-to-string elapsed))
-             :buffer proof-script-buffer))))
+    (cond
+     ((functionp 'alert)
+      (alert
+       body
+       :severity 'normal
+       :icon (or company-coq--icon (bound-and-true-p alert-default-icon))
+       :title (format company-coq-features/alerts-title-format (seconds-to-string elapsed))
+       :buffer proof-script-buffer))
+     ((functionp 'notifications-notify)
+      (notifications-notify
+       :body body
+       :urgency 'normal
+       :title title
+       :app-icon (or company-coq--icon (bound-and-true-p notifications-application-icon)))))))
 
 (defconst company-coq-features/alerts--input-hooks '(proof-assert-command-hook)
   "Hooks that denote user input.")
@@ -3902,27 +3919,22 @@ company-coq."
                 (mapcar #'car company-coq-available-features)))
 
 (defvar company-coq--lighter-var
-  '(:eval (let* ((img-path (expand-file-name "rooster.png" company-coq-refman-path))
-                 (mode-line-background (face-attribute 'mode-line :background nil 'default))
+  '(:eval (let* ((mode-line-background (face-attribute 'mode-line :background nil 'default))
                  (mode-line-height (face-attribute 'mode-line :height nil 'default))
                  (display-spec `(image :type imagemagick ;; Image file from emojione
-                                       :file ,img-path ;; rooster
+                                       :file ,company-coq--icon ;; rooster
                                        :ascent center
                                        :mask heuristic
                                        :height ,(ceiling (* 0.14 mode-line-height))
                                        ;; Inherit bg explicitly
                                        :background ,mode-line-background)))
-            (list " " (apply #'propertize "company-🐤" (when (file-exists-p img-path) ;; 🐤 🐣 🐓 🐔
-                                                        (list 'display display-spec))))))
+            (list " " (apply #'propertize "company-🐤"
+                             (when company-coq--icon ;; 🐤 🐣 🐓 🐔
+                               (list 'display display-spec))))))
   "Lighter var for `company-coq-mode'.
 Must be tagged risky to display properly.")
 
 (put 'company-coq--lighter-var 'risky-local-variable t)
-
-(defun company-coq--hello ()
-  "Show a company-coq–related greeting."
-  (when (and company-coq-mode (not (equal (buffer-name) company-coq--tutorial-buffer-name)))
-    (message "%s" (substitute-command-keys "Welcome to company-coq! Use \\[company-coq-tutorial] to get started."))))
 
 ;;;###autoload
 (define-minor-mode company-coq-mode
