@@ -118,6 +118,7 @@
   (declare-function proof-goto-point "ext:pg-user.el")
   (declare-function coq-mode "ext:coq.el")
   (declare-function coq-insert-match "ext:coq.el")
+  (declare-function coq-last-prompt-info-safe "ext:coq.el")
   (declare-function coq-get-comment-region "ext:coq.el" pt)
   (declare-function coq-looking-at-comment "ext:coq-indent.el" cmd))
 
@@ -2683,17 +2684,19 @@ hypotheses HYPS to add to the lemma.  Depndencies of the goal and
 of these hypotheses are also added to the lemma."
   (interactive (company-coq-lemma-from-goal-interact))
   (proof-shell-ready-prover)
-  (let* ((gen-cmds  (mapcar (lambda (hyp) (concat "generalize dependent " hyp)) hyps))
-         (full-cmd  (mapconcat 'identity (nconc gen-cmds company-coq-lemma-introduction-forms) ";"))
-         (ctx-goal  (company-coq-run-then-parse-context-and-goal full-cmd))
-         (_         (company-coq-ask-prover "Undo 1"))
-         (lemma     (cdr ctx-goal)))
-    (if lemma
-        (company-coq-insert-indented
-         `(,(concat "Lemma " lemma-name ":\n")
-           ,@(mapconcat #'identity lemma "\n")
-           ".\nProof.\n"))
-      (error "Lemma extraction failed"))))
+  (-if-let* ((statenum (car (coq-last-prompt-info-safe))))
+      (unwind-protect
+          (-if-let* ((gen-cmds (mapcar (lambda (hyp) (concat "generalize dependent " hyp)) hyps))
+                     (full-cmd (mapconcat 'identity (nconc gen-cmds company-coq-lemma-introduction-forms) ";"))
+                     (ctx-goal (company-coq-run-then-parse-context-and-goal full-cmd))
+                     (lemma (cdr ctx-goal)))
+              (company-coq-insert-indented
+               `(,(concat "Lemma " lemma-name ":\n")
+                 ,@(mapconcat #'identity lemma "\n")
+                 ".\nProof.\n"))
+            (error "Lemma extraction failed"))
+        (company-coq-ask-prover (format "BackTo %d." statenum)))
+    (user-error "Please start a proof before extracting a lemma")))
 
 (defun company-coq-insert-match-construct (type)
   "Insert a match expression for TYPE.
