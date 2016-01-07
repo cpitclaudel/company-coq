@@ -1601,8 +1601,10 @@ return the starting point as well."
   (company-coq-dbg "company-coq-meta-symbol: Called for name %s" name)
   (-when-let* ((output (company-coq-ask-prover-swallow-errors
                         (format company-coq-symbols-meta-cmd name))))
-    (company-coq-truncate-to-minibuf
-     (replace-regexp-in-string "\\s-+" " " (company-coq-trim output)))))
+    (company-coq--fontify-string
+     (company-coq-truncate-to-minibuf
+      (replace-regexp-in-string "\\s-+" " " (company-coq-trim output)))
+     (or proof-script-buffer (current-buffer)))))
 
 (defun company-coq-meta-refman (name)
   "Compute company's meta for value NAME.
@@ -2810,40 +2812,47 @@ Useful for debugging tactics in versions of Coq prior to 8.5: use
   "Refontify the current buffer."
   (with-no-warnings
     (if (company-coq-emacs-below-25-p)
-        ;; Emacs 25 complains about calls to font-lock-fontify-buffer and claims that
-        ;; -flush and -ensure should be called instead, but they don't behave
-        ;; the same; in particular, composition (via prettify-symbols-mode)
-        ;; isn't applied by either of these functions in the temporary buffer
-        ;; created to fontify the contents of definition overlays
         (font-lock-fontify-buffer)
-      ;; Invalidate fontification (otherwise nothing happens)
       (font-lock-flush)
-      ;; Explicitly ask for refontification (otherwise nothing happens in invisible buffers)
       (font-lock-ensure))))
+
+(defconst company-coq--font-lock-vars '(font-lock-keywords
+                             font-lock-keywords-only
+                             font-lock-keywords-case-fold-search
+                             font-lock-syntax-table
+                             font-lock-syntactic-face-function)
+  "Font-lock variables that influence fontification.")
+
+(defun company-coq--fontify-buffer-with (ref-buffer)
+  "Fontify current buffer according to settings in REF-BUFFER."
+  (cl-loop for var in company-coq--font-lock-vars
+           do (set (make-local-variable var)
+                   (buffer-local-value var ref-buffer)))
+  (font-lock-default-fontify-region (point-min) (point-max) nil))
+
+(defun company-coq--fontify-string (str ref-buffer)
+  "Fontify STR, using font-locking settings of REF-BUFFER."
+  (with-temp-buffer
+    (insert str)
+    (company-coq--fontify-buffer-with ref-buffer)
+    (buffer-string)))
 
 (defun company-coq--prepare-for-definition-overlay (strs offset &optional max-lines)
   "Prepare STRS for display as an inline documentation string.
 Return value is a string that includes properties surrounding it
 with two thin horizontal lines, indented by OFFSET, and truncted
 to show at most MAX-LINES."
-  (let* ((line-width (window-body-width))
-         (max-lines  (or max-lines 8))
-         (strs       (mapcar #'company-coq-get-header strs)))
+  (let* ((max-lines (or max-lines 8))
+         (strs (mapcar #'company-coq-get-header strs))
+         (script-buf (current-buffer)))
     (with-temp-buffer
-      ;; Fix issue mentionned in `company-coq-fontify-buffer'
-      (setq-local font-lock-support-mode nil)
       (cl-loop for str in strs
                do (insert str "\n"))
       (company-coq-truncate-buffer (point-min) max-lines "…")
-      ;; Needed when not using jit-lock
-      (setq-local font-lock-fontified nil)
-      (company-coq-setup-temp-coq-buffer)
-      (let* ((block-width (company-coq-max-line-length))
-             (real-offset (max 0 (min offset (- line-width block-width)))))
-        (company-coq-prefix-all-lines (propertize " " 'display `(space . (:width ,real-offset)))))
-      ;; Prevent text from inheriting properties of neighbouring characters
-      (when (fboundp 'add-face-text-property)
-        (company-coq-suppress-warnings (add-face-text-property (point-min) (point-max) 'default t)))
+      (company-coq--fontify-buffer-with script-buf)
+      (let ((real-offset (max 0 (min offset (- (window-body-width) (company-coq-max-line-length))))))
+        (company-coq-prefix-all-lines (make-string real-offset ?\s)))
+      (font-lock-append-text-property (point-min) (point-max) 'face 'default)
       (company-coq-insert-spacer (point-min))
       (company-coq-insert-spacer (point-max))
       (buffer-string))))
