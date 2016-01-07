@@ -5,21 +5,31 @@
 
 A collection of extensions for Proof General's Coq mode.
 
-See screenshots below, or jump right to [setup instructions](#setup) and try the tutorial with `M-x company-coq-tutorial` after setting up!
+See screenshots below, or jump right to [setup instructions](#setup) and try the tutorial with <kdb>M-x company-coq-tutorial</kbd> after setting up!
 
 ## Setup
 
-### Proof-General
+### Proof General
 
-Preferably for [GitHub](https://github.com/ProofGeneral/PG). Alternatively,
+Download and install Proof General from [GitHub](https://github.com/ProofGeneral/PG):
 
 ```bash
-sudo apt-get install proof-general
+cd ~/.emacs.d/
+git clone https://github.com/ProofGeneral/PG lisp/PG && make -C lisp/PG
 ```
 
-### company-coq
+Then add the following to your `.emacs`:
 
-`company-coq` is on [MELPA](http://melpa.org/#/getting-started). First add the following to your `.emacs` and restart emacs.
+```elisp
+(add-to-list 'load-path "~/.emacs.d/lisp/PG/generic")
+
+;; Open .v files with Proof General's coq-mode
+(require 'proof-site)
+```
+
+### MELPA
+
+Skip this step if you already use MELPA. Otherwise, add the following to your `.emacs` and restart Emacs:
 
 ```elisp
 (require 'package)
@@ -27,25 +37,22 @@ sudo apt-get install proof-general
 (package-initialize)
 ```
 
-Then type `M-x package-refresh-contents RET` followed by `M-x package-install RET company-coq RET` to install and byte-compile `company-coq` and its dependencies. Some of them will produce a few warnings. That's ok.
+### company-coq
+
+This should be easier: `company-coq` is on [MELPA](http://melpa.org/#/getting-started), so just use <kdb>M-x package-refresh-contents RET</kbd> followed by <kdb>M-x package-install RET company-coq RET</kbd> to install and byte-compile `company-coq` and its dependencies. Some of them will produce a few warnings. That's OK.
 
 ## Configuration
 
-Add the following to your `.emacs`
+Add the following to your `.emacs`:
 
 ```elisp
-(package-initialize)
-
-;; Open .v files with Proof-General's coq-mode
-(require 'proof-site)
-
 ;; Load company-coq when opening Coq files
 (add-hook 'coq-mode-hook #'company-coq-mode)
 ```
 
 ## Quick start guide
 
-*You can check out the interactive tutorial by pressing `M-x company-coq-tutorial RET`.*
+*You can check out the interactive tutorial by pressing <kbd>M-x company-coq-tutorial RET</kbd>.*
 
 `company-coq` should be pretty transparent. Completion windows will pop up when `company-coq` has suggestions to make. By default, this would be when you start writing a tactic name or a command. You can also launch manual completion by using <kbd>C-RET</kbd> (or whatever was originally assigned to `proof-script-complete` in Coq mode).
 
@@ -53,9 +60,9 @@ Once auto-completion has started, the following key bindings are available:
 
 * <kbd>RET</kbd> selects a completion
 * <kbd>C-g</kbd> interrupts completion.
-* <kbd>C-h</kbd> and <kbd>&lt;f1></kbd> display documentation for the currently highlighted keyword or identifier.
+* <kbd>C-h</kbd> and <kbd>&lt;f1></kbd> display documentation for the currently highlighted keyword, identifier, or tactic.
 * <kbd>C-M-v</kbd> scrolls down in the documentation window.
-* <kbd>C-w</kbd> opens the full documentation, scrolled to the current keyword. For symbols, <kbd>C-w</kbd> opens source view.
+* <kbd>C-w</kbd> opens source view when available.
 
 Selecting a completion often inserts a snippet with holes at the current point (`company-coq` uses `yasnippet` as the snippet backend). You can move between holes by using <kbd>&lt;tab></kbd> and <kbd>S-&lt;tab></kbd>. Some snippets (like Print Instances) include multiple choices.
 
@@ -77,7 +84,7 @@ Loading `company-coq` also binds the following keys:
 * Most completion engines support fuzzy matching: you can type `Require Import C.N..Ab.ZPa` and press <kbd>RET</kbd> to insert `Coq.Numbers.Integer.Abstract.ZParity`, and typing `setrewin` is enough to insert <code>setoid_rewrite <i>term</i> in <i>ident</i></code>. You can (and must) omit spaces: `SLD` will insert `Set Ltac Debug` (of course `SetLtDeb` will also work), and `ULD` will insert `Unset Ltac Debug`.
 * Using <kdb>M-S-RET</kbd> to insert new cases in a `match goal` saves a lot of time (and finger contortions).
 * The point-and-click feature (quick help) also works in non-graphic mode, if you enable `xterm-mouse-mode`.
-* `company-coq` improves on some of Proof-General's features. Try <kbd>C-c C-a RET nat RET</kbd>.
+* `company-coq` improves on some of Proof General's features. Try <kbd>C-c C-a RET nat RET</kbd>.
 
 `company-coq` is implemented as a collection of small modules implementing independent features; check out `M-x customize-variable RET company-coq-disabled-features RET` and `M-x customize-group RET company-coq RET` for more info!
 
@@ -126,7 +133,7 @@ If you see blank squares appear where there should be math symbols (`forall`, `e
 (setq company-coq-prettify-symbols nil)
 ```
 
-Technical note: Proof-General [also offers](http://proofgeneral.inf.ed.ac.uk/htmlshow.php?title=Proof+General+user+manual+%28latest+release%29&file=releases%2FProofGeneral-latest%2Fdoc%2FProofGeneral%2FProofGeneral_5.html#Unicode-Tokens-mode) a Unicode keywords facility. `company-coq`'s implementation is based on the `prettify-symbols-mode` facility found in Emacs 24.4+, yielding a more compact (and faster?) implementation.
+Technical note: Proof General [also offers](http://proofgeneral.inf.ed.ac.uk/htmlshow.php?title=Proof+General+user+manual+%28latest+release%29&file=releases%2FProofGeneral-latest%2Fdoc%2FProofGeneral%2FProofGeneral_5.html#Unicode-Tokens-mode) a Unicode keywords facility. `company-coq`'s implementation is based on the `prettify-symbols-mode` facility found in Emacs 24.4+, yielding a more compact (and faster?) implementation.
 
 ## Advanced topics
 
