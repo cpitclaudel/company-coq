@@ -52,7 +52,7 @@ Add the following to your `.emacs`:
 
 ## Quick start guide
 
-*You can check out the interactive tutorial by pressing <kbd>M-x company-coq-tutorial RET</kbd>.*
+**You can check out the interactive tutorial by pressing <kbd>M-x company-coq-tutorial RET</kbd>.** See also the **[screenshots](#screenshots)** below!
 
 `company-coq` should be pretty transparent. Completion windows will pop up when `company-coq` has suggestions to make. By default, this would be when you start writing a tactic name or a command. You can also launch manual completion by using <kbd>C-RET</kbd> (or whatever was originally assigned to `proof-script-complete` in Coq mode).
 
