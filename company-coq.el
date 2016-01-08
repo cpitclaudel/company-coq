@@ -77,6 +77,35 @@
 (require 'company-coq-abbrev) ;; Tactics from the manual
 (require 'company-coq-tg)     ;; Parsing code for tactic notations
 
+;;; Shims for old emacsen
+
+(eval-and-compile
+  (unless (boundp 'seconds-to-string)
+    (defvar seconds-to-string
+      (list (list 1 "ms" 0.001)
+            (list 100 "s" 1)
+            (list (* 60 100) "m" 60.0)
+            (list (* 3600 30) "h" 3600.0)
+            (list (* 3600 24 400) "d" (* 3600.0 24.0))
+            (list nil "y" (* 365.25 24 3600)))
+      "Formatting used by the function `seconds-to-string'."))
+
+  (unless (fboundp 'seconds-to-string)
+    (defun seconds-to-string (delay)
+      "Convert the time interval in seconds to a short string."
+      (cond ((> 0 delay) (concat "-" (seconds-to-string (- delay))))
+            ((= 0 delay) "0s")
+            (t (let ((sts seconds-to-string) here)
+                 (while (and (car (setq here (pop sts)))
+                             (<= (car here) delay)))
+                 (concat (format "%.2f" (/ delay (car (cddr here)))) (cadr here)))))))
+
+  ;; Silence the byte-compiler in Emacs < 24.4
+  (defvar shr-width)
+  (defvar shr-internal-width)
+  (defvar shr-target-id)
+  (defvar shr-external-rendering-functions))
+
 (eval-and-compile
   ;; Compatibility shims for PG
   ;; Explicitly loading PG is a huge mess, so instead of trying that just expect
@@ -3280,14 +3309,15 @@ types using <C-click> or <menu>."
   "Set up prettify-symbols in the current buffer.
 REF-BUFFER is used to retrieve the buffer-local values of
 `prettify-symbols-alist' etc."
-  (when (and (or (display-graphic-p) company-coq-features/prettify-symbols-in-terminal)
-             (fboundp #'prettify-symbols-mode))
+  (when (boundp 'prettify-symbols-alist)
     (setq-local prettify-symbols-alist
                 (with-current-buffer ref-buffer
                   (-distinct (append prettify-symbols-alist
                                      company-coq-prettify-symbols-alist
-                                     company-coq-local-symbols))))
-    (prettify-symbols-mode)))
+                                     company-coq-local-symbols)))))
+  (when (and (or (display-graphic-p) company-coq-features/prettify-symbols-in-terminal)
+             (fboundp #'prettify-symbols-mode))
+    (company-coq-suppress-warnings (prettify-symbols-mode))))
 
 (defun company-coq-features/prettify-symbols--enable-script ()
   "Set up prettify-symbols in the current (scripting) buffer."
@@ -3311,9 +3341,11 @@ REF-BUFFER is used to retrieve the buffer-local values of
 
 (defun company-coq-features/prettify-symbols--disable ()
   "Disable prettify-symbols in all Coq buffers."
-  (company-coq-do-in-coq-buffers (prettify-symbols-mode -1))
-  (company-coq-do-in-goals-buffer (prettify-symbols-mode -1))
-  (company-coq-do-in-response-buffer (prettify-symbols-mode -1)))
+  (when (fboundp #'prettify-symbols-mode)
+    (company-coq-suppress-warnings
+      (company-coq-do-in-coq-buffers (prettify-symbols-mode -1))
+      (company-coq-do-in-goals-buffer (prettify-symbols-mode -1))
+      (company-coq-do-in-response-buffer (prettify-symbols-mode -1)))))
 
 (defun company-coq-features/prettify-symbols--update-table ()
   "Update table of prettification symbols from file-local vars."
@@ -3763,18 +3795,20 @@ If non-nil, alerts are not displayed.")
     (setq company-coq-features/alerts--last-interaction nil)
     (cond
      ((functionp 'alert)
-      (alert
-       body
-       :severity 'normal
-       :icon (or company-coq--icon (bound-and-true-p alert-default-icon))
-       :title (format company-coq-features/alerts-title-format (seconds-to-string elapsed))
-       :buffer proof-script-buffer))
+      (company-coq-suppress-warnings
+        (alert
+         body
+         :severity 'normal
+         :icon (or company-coq--icon (bound-and-true-p alert-default-icon))
+         :title (format company-coq-features/alerts-title-format (seconds-to-string elapsed))
+         :buffer proof-script-buffer)))
      ((functionp 'notifications-notify)
-      (notifications-notify
-       :body body
-       :urgency 'normal
-       :title title
-       :app-icon (or company-coq--icon (bound-and-true-p notifications-application-icon)))))))
+      (company-coq-suppress-warnings
+        (notifications-notify
+         :body body
+         :urgency 'normal
+         :title title
+         :app-icon (or company-coq--icon (bound-and-true-p notifications-application-icon))))))))
 
 (defconst company-coq-features/alerts--input-hooks '(proof-assert-command-hook)
   "Hooks that denote user input.")
