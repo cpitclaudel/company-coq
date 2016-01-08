@@ -557,7 +557,10 @@ infinite loop (they are not cleared by [generalize dependent]).")
 (defconst company-coq--doc-buffer "*company-coq: documentation*"
   "Name to give to company-coq documentation buffers.")
 
-(defconst company-coq-script-full-path load-file-name
+(defconst company-coq-script-full-path
+  (or (and load-in-progress load-file-name)
+      (bound-and-true-p byte-compile-current-file)
+      (buffer-file-name))
   "Full path of this script.")
 
 (defconst company-coq-refman-path
