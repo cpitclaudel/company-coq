@@ -230,7 +230,7 @@ myR")
   (ignore)
   "<menu>")
 
-(my/with-screenshot my/github-width/3 13 "center" "Special comments for titles." "titles" ;; FIXME sizes
+(my/with-screenshot my/github-width/3 13 "center" "Special comments for titles." "titles"
   (insert "(***    H1 title    ***)
 
 (*+     H2 title in a     +*)
