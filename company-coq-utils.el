@@ -75,7 +75,8 @@
 (defun company-coq-cite ()
   "Insert BibTeX entries for Coq, PG, and company-coq."
   (interactive)
-  (insert (mapconcat #'identity company-coq--citations "\n\n")))
+  (save-excursion
+    (insert (mapconcat #'identity company-coq--citations "\n\n"))))
 
 (provide 'company-coq-utils)
 ;;; company-coq-utils.el ends here
