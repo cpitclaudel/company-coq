@@ -78,16 +78,16 @@ Ltac MySimpleTactic :=
 
 (** Completion is smart enough to look for theorems and tactics in the current
     buffer (and with the proper Coq patches, in the whole library).  For example,
-    it knows about MySimpleTactic and PrettySymbols. *)
+    it knows about PrettySymbols and MySimpleTactic. *)
 
-(* Try typing `MySimple' here: *) 
+(* Try typing `Pretty' here: *) 
 
 (******************************************************************************)
 
 (** Not only does it know about them; it can print their types and
     definitions. *)
 
-(* Try typing `PrettySymb' here, and press C-h *) 
+(* Try typing `MySimple' here, and press C-h *) 
 
 (******************************************************************************)
 
@@ -95,7 +95,7 @@ Ltac MySimpleTactic :=
     definition, from the source, of any symbol for which sources are
     available. *)
 
-(* Try typing `MySimp' and pressing C-w here: *) 
+(* Try typing `Pretty' and pressing C-w here: *) 
 
 (******************************************************************************)
 
@@ -146,7 +146,8 @@ Ltac BasicTactic :=
   match goal with
   | [ H: ?a /\ ?b |- _ ] => destruct H
   (* Place the point on the empty line before `end', and press `M-S-RET'. *)
-  (* You can press C-d to remove the contents of a field and move to the next *)
+  (* You can press C-d to remove the contents of a field and move to the next.
+     Try to reproduce the line above with as few keystrokes as possible! *)
   
   end.
 
@@ -211,7 +212,7 @@ Abort.
 
 Lemma my_plus_comm :
   forall p q r, (p < q /\ q < r) -> (p + q < q + r) ->
-           (exists s, p + q + r < s) -> forall n m, n + m = m + n.
+           (exists s, p + q + r < s) -> forall m n, n + m = m + n.
 Proof.
   induction m.
   - simpl.
@@ -237,8 +238,6 @@ pressing RET on them) **)
     consider a citation!
 
     (* Try using M-x company-coq-cite on the line below: *)
-
-
 
 *)
 
