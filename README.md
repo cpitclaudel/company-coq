@@ -92,7 +92,7 @@ Loading `company-coq` also binds the following keys:
 
 #### Prettification of operators and types
 
-<img src="img/prettify.png" alt="Prettification of math symbols (enabled)" /> <img src="img/prettify-disabled.png" alt="Prettification of math symbols (disabled)" />
+<img src="img/prettify-disabled.png" alt="Prettification of math symbols (disabled)" /> <img src="img/prettify.png" alt="Prettification of math symbols (enabled)" />
 
 #### Auto-completion
 

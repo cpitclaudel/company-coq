@@ -106,7 +106,7 @@
 ;; Prettify-symbols ;;
 ;;;;;;;;;;;;;;;;;;;;;;
 
-;; With | Without
+;; Without | With
 
 (my/with-screenshot my/github-width/2 6 "west" "Prettification of math symbols (enabled)." "prettify"
   (insert "Definition PrettySymbols : (nat -> nat -> Prop) :=
