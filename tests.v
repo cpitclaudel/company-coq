@@ -295,7 +295,7 @@ Admitted.
 Fail Require Import NonExistentModule.
 
 Goal True -> True -> True.
-  Fail intros a a a.
+  Fail intros a a a.               (* C-c C-a C-e *)
   Fail intros; intro.
   Fail intro before NonExistent. (* Far at the bottom of the page *)
   Fail exists 1.

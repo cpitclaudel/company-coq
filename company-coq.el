@@ -1914,8 +1914,14 @@ DOM and FONT are as in these functions."
     (shr-insert-document doc) ;; This sets the 'shr-target-id property upon finding the shr-target-id anchor
     (company-coq-doc-refman-prettify-title (next-single-property-change (point-min) 'shr-target-id))))
 
-(defun company-coq-doc-buffer-refman (name-or-anchor)
-  "Prepare company's doc buffer for keyword NAME-OR-ANCHOR."
+(defun company-coq--help-hide-docs ()
+  "Help the user hide the documentation window."
+  (message (substitute-command-keys "Use \\<coq-mode-map>\\[coq-Show] to hide the documentation.")))
+
+(defun company-coq-doc-buffer-refman (name-or-anchor &optional center)
+  "Prepare company's doc buffer for element NAME-OR-ANCHOR.
+If NAME, read \\='anchor from it.  Otherwise use as anchor directly.
+With CENTER, center relevant point in window instead of aligning at top."
   (interactive)
   (company-coq-dbg "company-coq-doc-buffer-refman: Called for %s" name-or-anchor)
   (when (fboundp 'libxml-parse-html-region)
@@ -1926,6 +1932,9 @@ DOM and FONT are as in these functions."
       (when doc-full-path
         (company-coq-with-clean-doc-buffer
           (company-coq-doc-refman-put-html doc-full-path)
+          (if center (recenter)
+            (set-window-start (selected-window) (point)))
+          (company-coq--help-hide-docs)
           (cons (current-buffer) (point)))))))
 
 (defun company-coq-candidates-symbols (prefix)
@@ -2761,19 +2770,22 @@ Scores are computed by `company-coq-find-errors-overlap'.")
                        (lambda (x y) (company-coq-string-lessp-foldcase (car x) (car y)))))
          (msg    (completing-read "Error message: " db nil t))
          (anchor (cdr-safe (assoc msg company-coq-errors))))
-    (when anchor (company-coq-doc-buffer-refman anchor))))
+    (when anchor (company-coq-doc-buffer-refman anchor t))))
 
 (defun company-coq-guess-error-message-from-response ()
   "Show documentation for error message in Coq's response, if available."
   (interactive)
   (let* ((err (company-coq-with-current-buffer-maybe "*response*" (buffer-string)))
          (hit (and err (car-safe (company-coq-find-closest-errors err)))))
-    (when hit
-      (company-coq-dbg "Top reference [%s] has score [%s]" (cadr hit) (car hit))
-      (if (< (caar hit) company-coq-error-doc-min-score)
-          (error "No documentation found for this error")
-        (message "Found error reference [%s]" (cadr hit))
-        (company-coq-doc-buffer-refman (cddr hit))))))
+    (company-coq-dbg "Top reference [%s] has score [%s]" (cadr hit) (car hit))
+    (cond
+     ((null hit)
+      (user-error (substitute-command-keys "No error found.  Use C-u \\[company-coq-document-error] to browse errors")))
+     ((< (caar hit) company-coq-error-doc-min-score)
+      (error "No documentation found for this error"))
+     (t
+      (message "Found error reference [%s]" (cadr hit))
+      (company-coq-doc-buffer-refman (cddr hit) t)))))
 
 (defun company-coq-document-error (&optional arg)
   "Show documentation for error message in Coq's response, if available.
