@@ -1907,12 +1907,34 @@ DOM and FONT are as in these functions."
   (company-coq-call-compat 'shr-fontize-cont 'shr-fontize-dom dom font))
 
 (defun company-coq-shr-tag-tt (cont)
-  "Fromat a tt tag CONT."
+  "Format a tt tag CONT."
   (company-coq-shr-fontize cont 'company-coq-doc-tt-face))
 
 (defun company-coq-shr-tag-i (cont)
-  "Fromat an i tag CONT."
+  "Format an i tag CONT."
   (company-coq-shr-fontize cont 'company-coq-doc-i-face))
+
+(defun company-coq--reasonable-shr-width ()
+  "Return a good `shr-width' for rendering <table>s and <hr>s.
+In Emacs 24 we set `shr-width' to `most-positive-fixnum' before
+rendering to disable wrapping.  This works well for everything
+except tables and horizontal rules, which we special-case in
+`company-coq-shr-tag-table' and `company-coq-shr-tag-hr' lest shr
+cause an OOM exception."
+  (* (- (window-body-width) 2)
+     (if (bound-and-true-p shr-use-fonts)
+         1 (frame-char-width))))
+
+(defun company-coq-shr-tag-hr (_cont)
+  "Format an hr tag CONT.
+Don't even try to call shr; draw the line ourselves."
+  (shr-ensure-newline)
+  (insert (make-string (window-body-width) shr-hr-line) "\n"))
+
+(defun company-coq-shr-tag-table (cont)
+  "Format a table tag CONT."
+  (let ((shr-internal-width (company-coq--reasonable-shr-width)))
+    (shr-tag-table cont)))
 
 (defun company-coq-doc-refman-prettify-title (target-point)
   "Make a pretty title at TARGET-POINT, optionally TRUNCATE -ing everything before."
@@ -1931,15 +1953,14 @@ DOM and FONT are as in these functions."
   (let ((doc (with-temp-buffer
                (insert-file-contents html-full-path)
                (libxml-parse-html-region (point-min) (point-max))))
-        ;; Disable line filling for emacs >= 25
-        ;; NOTE: Using 0 is undocumented behaviour (and new in 25.0) Using
-        ;; most-positive-fixnum instead of 0 causes an OOM exception when shr
-        ;; tries to render an <hr> or a <table>, so all <hr>s and <table>s are
-        ;; removed from the source manual.
+        ;; Disable wrapping in webpages
+        ;; NOTE: Using 0 is undocumented behaviour (and new in 25.0).
         (shr-width (if (company-coq-emacs-below-25-p) most-positive-fixnum 0))
         (after-change-functions nil)
         (shr-external-rendering-functions '((tt . company-coq-shr-tag-tt)
-                                            (i  . company-coq-shr-tag-i))))
+                                            (i . company-coq-shr-tag-i)
+                                            (hr . company-coq-shr-tag-hr)
+                                            (table . company-coq-shr-tag-table))))
     (shr-insert-document doc) ;; This sets the 'shr-target-id property upon finding the shr-target-id anchor
     (company-coq-doc-refman-prettify-title (next-single-property-change (point-min) 'shr-target-id))))
 
