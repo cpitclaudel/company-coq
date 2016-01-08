@@ -10,4 +10,5 @@
  (depends-on "company-math")
  (depends-on "dash")
  (depends-on "noflet")
+ (depends-on "alert")
  (depends-on "yasnippet"))

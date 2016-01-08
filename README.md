@@ -169,6 +169,15 @@ Using a variable-width font for symbols will break indentation. See [this other 
 (set-fontset-font t 'unicode (font-spec :name "Symbola monospacified for DejaVu Sans Mono") nil 'append)
 ```
 
+### Showing alerts for long-running proofs
+
+If possible, `company-coq` will use the [`alert`](https://github.com/jwiegley/alert) library to display notifications when long-running proofs complete.  `alert` is only needed on Windows and OSX; on Linux systems with DBus this should work out of the box. You can try it out by running the snippet below and opening another application while the proof runs; after 10 seconds company-coq will show a notification.
+
+``` coq
+Goal True.
+  Fail timeout 10 repeat pose 1.
+```
+
 ### Registering your own symbols and math operators
 
 Adjust and use the following snippet to register your own keywords. This needs be called before `(company-coq-mode)`, so the code needs to be added after the code listed above.
@@ -210,10 +219,10 @@ in which case you may want to use a custom font for Greek characters:
 
 ### Autocompleting symbols and tactics defined externally
 
-The procedure above will give you auto-completion and documentation for tactics, commands, and theorems that you define locally, but not for theorem names and symbols defined in the libraries you load. To get the latter, add the following to your `.emacs`, before `(company-coq-initialize)`:
+The procedure above will give you auto-completion and documentation for tactics, commands, and theorems that you define locally, but not for theorem names and symbols defined in the libraries you load. To get the latter, add the following to your `.emacs`, before `(company-coq-mode)`:
 
 ```elisp
-(setq company-coq-dynamic-autocompletion t)
+(setq company-coq-disabled-features nil)
 ```
 
 This feature won't work unless you build and use a patched coq REPL: see [this fork](https://github.com/cpitclaudel/coq/tree/v8.5-with-cc-patches). Two of the relevant patches has been merged upstream (into Coq trunk, not 8.5); the last one is being discussed [here](https://github.com/coq/coq/pull/64).
@@ -222,6 +231,4 @@ You can download these changes as patches for [8.4](etc/8.4-additions.patch) or 
 
 ### Installing from source
 
-#### Dependencies
-
-`company`, `company-math`, `dash`, and `yasnippet` from [MELPA](http://melpa.org/#/getting-started)
+See dependencies in `Cask` file.
