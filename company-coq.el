@@ -4,6 +4,8 @@
 ;; Author: Clément Pit--Claudel <clement.pitclaudel@live.com>
 ;; URL: https://github.com/cpitclaudel/company-coq
 ;; Keywords: convenience, languages
+;; Package-Requires: ((cl-lib "0.5") (dash "2.10.0") (yasnippet "0.9.0.1") (company "0.8.12") (company-math "1.0.1"))
+;; Version: 1.0
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -20,8 +22,8 @@
 
 ;;; Commentary:
 ;;
-;; This package includes a company backend for Proof-General's Coq mode, and
-;; many useful extensions to Proof-General.
+;; This package includes a collection of company-mode backends for
+;; Proof-General's Coq mode, and many useful extensions to Proof-General.
 ;;
 ;; See https://github.com/cpitclaudel/company-coq/ for a detailed description,
 ;; including screenshots and documentation.  After installing, you may want to

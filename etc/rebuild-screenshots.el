@@ -3,12 +3,9 @@
 (eval-and-compile
   (add-to-list 'load-path "~/.emacs.d/lisp/ProofGeneral/generic")
   (add-to-list 'load-path "~/.emacs.d/lisp/company-coq/etc/")
-  (add-to-list 'load-path "~/.emacs.d/lisp/company-coq")
-  (add-to-list 'load-path "~/.emacs.d/lisp/company-mode"))
+  (add-to-list 'load-path "~/.emacs.d/lisp/company-coq"))
 
 (require 'company)
-
-(package-initialize)
 (require 'dash)
 (require 'noflet)
 (require 'screenshots)

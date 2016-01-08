@@ -5,7 +5,7 @@
 .cask
 /tactics
 /experiments/
-/build/
+/dist/
 /sandbox/
 /TODO.org
 /img/coq-pl-16-*.png
