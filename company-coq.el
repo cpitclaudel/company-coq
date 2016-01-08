@@ -3729,7 +3729,7 @@ If non-nil, alerts are not displayed.")
             (with-current-buffer proof-response-buffer
               (buffer-substring-no-properties (point-min) (point-max))))
        (pcase proof-shell-last-output-kind
-         ('error proof-shell-last-output)
+         (`error proof-shell-last-output)
          (_      proof-shell-last-response-output))
        "")))
 
