@@ -3782,10 +3782,13 @@ If non-nil, alerts are not displayed.")
          (_      proof-shell-last-response-output))
        "")))
 
-(defconst company-coq--icon
-  (let ((path (expand-file-name "rooster.png" company-coq-refman-path)))
-    (and (file-exists-p path) path))
-  "Path to the icon of company-coq.")
+(defun company-coq--icon ()
+  "Return the path to the icon of company-coq."
+  (let ((path (expand-file-name
+               (if (eq frame-background-mode 'dark)
+                   "rooster.png" "rooster-shadow.png")
+               company-coq-refman-path)))
+    (and (file-exists-p path) path)))
 
 (defun company-coq-features/alerts--alert ()
   "Display and alert with a company-coq-features/alerts-specific message."
@@ -3799,7 +3802,7 @@ If non-nil, alerts are not displayed.")
         (alert
          body
          :severity 'normal
-         :icon (or company-coq--icon (bound-and-true-p alert-default-icon))
+         :icon (or (company-coq--icon) (bound-and-true-p alert-default-icon))
          :title (format company-coq-features/alerts-title-format (seconds-to-string elapsed))
          :buffer proof-script-buffer)))
      ((functionp 'notifications-notify)
@@ -3808,7 +3811,7 @@ If non-nil, alerts are not displayed.")
          :body body
          :urgency 'normal
          :title title
-         :app-icon (or company-coq--icon (bound-and-true-p notifications-application-icon))))))))
+         :app-icon (or (company-coq--icon) (bound-and-true-p notifications-application-icon))))))))
 
 (defconst company-coq-features/alerts--input-hooks '(proof-assert-command-hook)
   "Hooks that denote user input.")
@@ -3992,14 +3995,14 @@ company-coq."
   '(:eval (let* ((mode-line-background (face-attribute 'mode-line :background nil 'default))
                  (mode-line-height (face-attribute 'mode-line :height nil 'default))
                  (display-spec `(image :type imagemagick ;; Image file from emojione
-                                       :file ,company-coq--icon ;; rooster
+                                       :file ,(company-coq--icon) ;; rooster
                                        :ascent center
                                        :mask heuristic
                                        :height ,(ceiling (* 0.14 mode-line-height))
                                        ;; Inherit bg explicitly
                                        :background ,mode-line-background)))
             (list " " (apply #'propertize "company-🐤"
-                             (when company-coq--icon ;; 🐤 🐣 🐓 🐔
+                             (when (company-coq--icon) ;; 🐤 🐣 🐓 🐔
                                (list 'display display-spec))))))
   "Lighter var for `company-coq-mode'.
 Must be tagged risky to display properly.")

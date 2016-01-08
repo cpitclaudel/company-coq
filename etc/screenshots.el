@@ -28,6 +28,7 @@
   (redisplay t))
 
 (defun my/faces-setup ()
+  (setq-default frame-background-mode 'dark)
   (set-face-attribute 'default nil :family "Ubuntu Mono" :height 105)
   (set-face-attribute 'mode-line nil :foreground "gray60" :background "black")
   (set-face-attribute 'mode-line-inactive nil :foreground "gray60" :background "#404045")
