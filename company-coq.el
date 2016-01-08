@@ -75,21 +75,7 @@
 (require 'company-coq-abbrev) ;; Tactics from the manual
 (require 'company-coq-tg)     ;; Parsing code for tactic notations
 
-;; This doesn't run at compile time
-(if (require 'proof-site nil t)
-    (progn
-      (with-no-warnings (proof-ready-for-assistant 'coq)) ;; Required by proof-shell
-      (require 'pg-vars)      ;; `proof-shell-proof-completed'
-      (require 'pg-user)      ;; `proof-goto-point'
-      (require 'proof-shell)  ;; `proof-shell-available-p'
-      (require 'proof-config) ;; `proof-fly-past-comments'
-      (require 'proof-script) ;; `proof-unprocessed-begin'
-      (require 'coq-syntax)   ;; `coq-tactics-db'
-      (require 'coq-indent)   ;; `coq-looking-at-comment'
-      (require 'coq))         ;; `coq-insert-match'
-  (error "Company-coq: Unable to load proof-site.  Is Proof General installed properly?"))
-
-(eval-when-compile
+(eval-and-compile
   ;; Compatibility shims for PG
   ;; Explicitly loading PG is a huge mess, so instead of trying that just expect
   ;; hope that the user will have loaded it independently of this package.
@@ -122,6 +108,12 @@
   (declare-function coq-last-prompt-info-safe "ext:coq.el")
   (declare-function coq-get-comment-region "ext:coq.el" pt)
   (declare-function coq-looking-at-comment "ext:coq-indent.el" cmd))
+
+;; This doesn't run at compile time
+(unless (require 'proof-site nil t)
+  ;; No others `require's at this point: we don't want to start PG's machinery
+  ;; just because a user `require'd company-coq.
+  (error "Company-coq: Unable to load proof-site.  Is Proof General installed properly?"))
 
 (defgroup company-coq nil
   "Extensions for Proof General's Coq mode."
@@ -3201,11 +3193,26 @@ Interactively, prompt for FEATURE."
   "Remove BACKEND from `company-coq-enabled-backends'."
   (company-coq-set-backends (remove backend company-coq-enabled-backends)))
 
+(defun company-coq--init-pg ()
+  "Require the right PG modules.
+Since PG displays a welcome screen when `require'd, we must delay
+loading as much as possible."
+  (with-no-warnings (proof-ready-for-assistant 'coq)) ;; Required by proof-shell
+  (require 'pg-vars)      ;; `proof-shell-proof-completed'
+  (require 'pg-user)      ;; `proof-goto-point'
+  (require 'proof-shell)  ;; `proof-shell-available-p'
+  (require 'proof-config) ;; `proof-fly-past-comments'
+  (require 'proof-script) ;; `proof-unprocessed-begin'
+  (require 'coq-syntax)   ;; `coq-tactics-db'
+  (require 'coq-indent)   ;; `coq-looking-at-comment'
+  (require 'coq))         ;; `coq-insert-match'
+
 (company-coq-define-feature core (arg)
   "Core components.
 (do not disable this feature)"
   (pcase arg
     (`on
+     (company-coq--init-pg)
      (yas-minor-mode)
      (add-hook 'proof-shell-init-hook #'company-coq-prover-init)
      (add-hook 'proof-state-change-hook #'company-coq-state-change)
