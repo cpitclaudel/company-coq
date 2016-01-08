@@ -5,7 +5,7 @@
 
 A collection of extensions for Proof General's Coq mode.
 
-See screenshots below, or jump right to [setup instructions](#setup) and try the tutorial with <kdb>M-x company-coq-tutorial</kbd> after setting up!
+See screenshots below, or jump right to [setup instructions](#setup) and try the tutorial with <kbd>M-x company-coq-tutorial</kbd> after setting up!
 
 ## Setup
 
@@ -29,7 +29,7 @@ Then add the following to your `.emacs`:
 
 ### MELPA
 
-Skip this step if you already use MELPA. Otherwise, add the following to your `.emacs` and restart Emacs:
+Skip this step if you already use [MELPA](http://melpa.org/#/getting-started). Otherwise, add the following to your `.emacs` and restart Emacs:
 
 ```elisp
 (require 'package)
@@ -39,7 +39,7 @@ Skip this step if you already use MELPA. Otherwise, add the following to your `.
 
 ### company-coq
 
-This should be easier: `company-coq` is on [MELPA](http://melpa.org/#/getting-started), so just use <kdb>M-x package-refresh-contents RET</kbd> followed by <kdb>M-x package-install RET company-coq RET</kbd> to install and byte-compile `company-coq` and its dependencies. Some of them will produce a few warnings. That's OK.
+This should be easier: `company-coq` is on [MELPA](http://melpa.org/#/getting-started). Just use <kbd>M-x package-refresh-contents RET</kbd> followed by <kbd>M-x package-install RET company-coq RET</kbd> to install and byte-compile `company-coq` and its dependencies. Some of them will produce a few warnings; that's OK.
 
 ## Configuration
 
@@ -82,7 +82,7 @@ Loading `company-coq` also binds the following keys:
 ## Tips
 
 * Most completion engines support fuzzy matching: you can type `Require Import C.N..Ab.ZPa` and press <kbd>RET</kbd> to insert `Coq.Numbers.Integer.Abstract.ZParity`, and typing `setrewin` is enough to insert <code>setoid_rewrite <i>term</i> in <i>ident</i></code>. You can (and must) omit spaces: `SLD` will insert `Set Ltac Debug` (of course `SetLtDeb` will also work), and `ULD` will insert `Unset Ltac Debug`.
-* Using <kdb>M-S-RET</kbd> to insert new cases in a `match goal` saves a lot of time (and finger contortions).
+* Using <kbd>M-S-RET</kbd> to insert new cases in a `match goal` saves a lot of time (and finger contortions).
 * The point-and-click feature (quick help) also works in non-graphic mode, if you enable `xterm-mouse-mode`.
 * `company-coq` improves on some of Proof General's features. Try <kbd>C-c C-a RET nat RET</kbd>.
 
@@ -224,4 +224,4 @@ You can download these changes as patches for [8.4](etc/8.4-additions.patch) or 
 
 #### Dependencies
 
-`company`, `dash`, and `yasnippet` from [MELPA](http://melpa.org/#/getting-started)
+`company`, `company-math`, `dash`, and `yasnippet` from [MELPA](http://melpa.org/#/getting-started)
