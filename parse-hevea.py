@@ -3,6 +3,7 @@
 from bs4 import BeautifulSoup
 from os import mkdir
 from os.path import join, split
+from collections import defaultdict, OrderedDict
 import errno
 import re
 import sys
@@ -17,7 +18,7 @@ def deduplicate(seq, key):
             deduped.append(elem)
             seen.add(k)
         else:
-            print("Duplicate: {}".format(elem))
+            print("Duplicate: {} (with key {})".format(elem, k))
     return deduped
 
 class TextPattern:
@@ -36,12 +37,14 @@ class TextPattern:
     # The char_before group avoids pathologic cases like "In environmen(t ... t)he term"
     DOTS_RE = re.compile(r"(?P<char_before>[^a-z])(?P<repeated_element>[^ ](?:.*[^ ])?) *(?P<separator>(.*[^ ])?) *… *(?P=separator) *(?P=repeated_element)")
     ID_RE = re.compile(ID_PAT)
+    PRIORITIES = ("ltac", "tactic", "vernac", "scope", "error")
 
-    def __init__(self, source, ind, typ, *variants):
+    def __init__(self, source, ind, typ, pattern):
         self.source = source
         self.ind = ind
         self.typ = typ
-        self.variants = [self.preprocess_one(variant) for variant in variants]
+        self.variants = [self.preprocess_one(pattern)]
+        self.unique_variants = None # Populated upon cleanup
 
     def preprocess_one(self, variant):
         variant = TextPattern.cleanup_single(variant, self.typ)
@@ -49,6 +52,28 @@ class TextPattern:
         if self.typ == "error":
             variant = variant.replace("…", "@{hole}")
         return variant
+
+    @staticmethod
+    def count_holes(pattern):
+        return len(TextPattern.ID_RE.findall(pattern))
+
+    @staticmethod
+    def key(pattern):
+        main_variant = pattern.variants[0]
+        priority = TextPattern.PRIORITIES.index(pattern.typ)
+        if pattern.typ == "tactic":
+            # Roughly preserve original order of tactics, moving argumentless
+            # ones at the beginning of each section.
+            return (priority, pattern.source, TextPattern.count_holes(main_variant) > 0, pattern.ind)
+        elif pattern.typ in ("vernac", "ltac"):
+            # Sort vernacs alphabetically by stripped abbrev (no holes nor
+            # punctuation), then by chapter; inside a single chapter, for
+            # vernacs that strip to the same string, sort by increasing number
+            # of holes; finally, disambiguate by order in the refman.
+            key = re.sub("[^A-Z]", "", re.sub(TextPattern.ID_RE, "", main_variant).upper())
+            return (priority, key, pattern.source, TextPattern.count_holes(main_variant), pattern.ind)
+        else:
+            return (priority, main_variant.upper(), pattern.ind)
 
     @staticmethod
     def replace_dots_re(variant):
@@ -90,14 +115,16 @@ class TextPattern:
     @staticmethod
     def with_option_variants(variants, stripped_already_known):
         for variant in variants:
-            yield variant
             # NOTE: We don't generate variants for commands with holes
             if (TextPattern.OPTION_RE.match(variant) and not TextPattern.ID_RE.search(variant)) and not '"' in variant:
                 # '"' is a special case for [Set Loose Hint Behaviour "Lax"]
-                for repl in ("Set ", "Unset ", "Test "):
+                for rid, repl in enumerate(("Set ", "Unset ", "Test ")):
                     new_variant = TextPattern.OPTION_RE.sub(repl, variant)
-                    if TextPattern.strip_pattern(new_variant) not in stripped_already_known:
+                    # rid == 0: always keep at least one variant
+                    if rid == 0 or TextPattern.strip_pattern(new_variant) not in stripped_already_known:
                         yield new_variant
+            else:
+                yield variant
 
     @staticmethod
     def with_alternatives(variants, already_known, typ, may_discard = False):
@@ -115,7 +142,7 @@ class TextPattern:
     def add_variants(self, already_known, stripped_already_known):
         with_opt = TextPattern.with_option_variants(self.variants, stripped_already_known)
         with_alt = TextPattern.with_alternatives(with_opt, already_known, self.typ)
-        self.variants = list(with_alt)
+        self.variants = [TextPattern.replace_argchoice(variant) for variant in with_alt]
         already_known.update(self.variants)
         stripped_already_known.update(map(TextPattern.strip_pattern, self.variants))
 
@@ -129,11 +156,12 @@ class TextPattern:
         return variant
 
     def cleanup(self, known):
-        self.variants = [TextPattern.cleanup_single(variant, self.typ)
-                         for variant in self.variants]
-        self.variants = [variant for variant in self.variants
-                         if variant not in known]
-        known.update(self.variants)
+        self.variants = [TextPattern.cleanup_single(variant, self.typ) for variant in self.variants]
+        self.unique_variants = [variant for variant in self.variants if variant not in known]
+        known.update(self.unique_variants)
+        if any(variant == "" or "…" in variant or "..." in variant for variant in self.unique_variants):
+            print(self)
+            raise Exception
 
     @staticmethod
     def choicify(match):
@@ -143,18 +171,11 @@ class TextPattern:
     def replace_argchoice(variant):
         return TextPattern.ARGCHOICE_RE.sub(TextPattern.choicify, variant)
 
-    def finalize(self):
-        if any(variant == "" or "…" in variant or "..." in variant for variant in self.variants):
-            print(self.variants)
-            print(self.typ)
-            raise Exception
-
-        self.variants = [TextPattern.replace_argchoice(variant) for variant in self.variants]
-
     @staticmethod
     def patterns_to_strings(patterns, with_info = False):
         for pattern in patterns:
-            for variant in pattern.variants:
+            # unique_variants may not be available yet
+            for variant in (pattern.unique_variants or pattern.variants):
                 if with_info:
                     yield variant, pattern.source, pattern.ind
                 else:
@@ -162,8 +183,8 @@ class TextPattern:
 
     @staticmethod
     def expand_patterns(patterns):
-        known = set(TextPattern.patterns_to_strings(patterns))
-        stripped_known = set(map(TextPattern.strip_pattern, known))
+        known = set()
+        stripped_known = set()
         for pattern in patterns:
             pattern.add_variants(known, stripped_known)
 
@@ -174,27 +195,28 @@ class TextPattern:
         return patterns
 
     @staticmethod
-    def format_defconst_body(strings):
-        return "\n    ".join('\'("{}" . ("{}" . {}))'.format(*string)
-                             for string in strings)
-
-    @staticmethod
-    def make_defconst(patterns, name):
-        DEFCONST = '(defconst {}\n  (list\n    {}))'
-
-        for pattern in patterns:
-            pattern.finalize()
-
+    def collect_sorted_strings(patterns):
+        patterns.sort(key=TextPattern.key)
         strings = TextPattern.patterns_to_strings(patterns, with_info=True)
         strings = deduplicate(strings, key=lambda x: x[0].replace(" ", "").lower().rstrip('.'))
         strings = [(string.replace('"', r'\"'), source, index) for
                    (string, source, index) in strings]
 
+        return strings
+
+    @staticmethod
+    def format_defconst_body(strings):
+        return "\n    ".join('\'("{}" . ("{}" . {}))'.format(*string)
+                             for string in strings)
+
+    @staticmethod
+    def format_defconst(strings, name):
+        DEFCONST = '(defconst company-coq--refman-{}-abbrevs\n  (list\n    {}))'
         lisp = TextPattern.format_defconst_body(strings)
-        return strings, DEFCONST.format(name, lisp)
+        return DEFCONST.format(name, lisp)
 
     def __repr__(self):
-        return repr((self.source, self.ind, self.variants))
+        return repr((self.source, self.ind, self.typ, self.original_pattern, self.variants))
 
 class XMLPattern:
     def __init__(self, soup, source, ind):
@@ -377,22 +399,27 @@ def process_files(outdir, paths):
     return patterns
 
 def write_patterns(template_path, patterns):
-    errors = [p for p in patterns if p.typ == "error"]
-    abbrevs = [p for p in patterns if p.typ != "error"]
+    patterns_by_typ = defaultdict(list)
+    for p in patterns:
+        patterns_by_typ[p.typ].append(p)
 
-    errors,  e_defconst = TextPattern.make_defconst(errors, "company-coq-errors")
-    abbrevs, a_defconst = TextPattern.make_defconst(abbrevs, "company-coq-abbrevs")
+    strings_by_typ = OrderedDict()
+    for typ in TextPattern.PRIORITIES:
+        strings_by_typ[typ] = TextPattern.collect_sorted_strings(patterns_by_typ[typ])
 
     with open(template_path) as template_f:
         template = template_f.read()
 
     with open(template_path.replace(".template", ""), mode='w') as output:
-        output.write(template.replace('$ABBREVS$', a_defconst + "\n\n" + e_defconst))
+        abbrevs = "\n\n".join(TextPattern.format_defconst(strings, typ)
+                              for (typ, strings) in strings_by_typ.items())
+        output.write(template.replace('$ABBREVS$', abbrevs))
 
     with open("tactics", mode = "w") as output:
-        for string, _, _ in abbrevs:
-            output.write(string)
-            output.write("\n")
+        for strings in strings_by_typ.values():
+            for string, _, _ in strings:
+                output.write(string)
+                output.write("\n")
 
 def main():
     pats = process_files(sys.argv[1], sys.argv[3:])

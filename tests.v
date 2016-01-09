@@ -29,11 +29,18 @@ with BBBCCC :=
      | BBB1
      | BBB2 : AAABBB -> BBBCCC.
 
+Goal (nat + bool).
+  constructor (apply true).     (* Is constructor @{tactic} documented? *)
+Qed.
+
 (* Are symbols correctly prettified? *)
 
 Definition PrettySymbols : (nat -> nat -> Prop) :=
   (fun (n m: nat) =>
      forall p, p <> n -> p >= m -> True \/ False).
+
+(* Does constructor sort before constructor @{num}? What about intuition? *)
+
 
 Definition bullets: True \/ (True \/ True) -> True.
 Proof.

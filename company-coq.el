@@ -247,7 +247,11 @@ customize `company-coq-disabled-features'.")
                               company-coq-block-end-backend
                               company-coq-modules-backend
                               company-coq-context-backend
-                              company-coq-refman-backend
+                              company-coq-refman-ltac-abbrevs-backend
+                              company-coq-refman-tactic-abbrevs-backend
+                              company-coq-refman-vernac-abbrevs-backend
+                              company-coq-refman-scope-abbrevs-backend
+                              company-coq-pg-backend
                               company-coq-local-definitions-backend
                               company-coq-search-results-backend
                               company-coq-dynamic-tactics-backend
@@ -286,9 +290,6 @@ impossible, for example in `proof-shell-insert-hook'")
 
 (defvar company-coq-known-path-specs nil
   "Cache tracking paths specs in Coq's load path.")
-
-(defvar company-coq-known-static-abbrevs nil
-  "List of predefined Coq syntax forms.")
 
 (defvar company-coq-last-goals-output nil
   "Cache tracking `proof-shell-last-goals-output'.")
@@ -1040,20 +1041,30 @@ Do not call if the prover process is busy."
     (company-coq-dbg "company-coq-init-modules: Loading modules (if never loaded)")
     (company-coq-reload-db 'company-coq-known-path-specs #'company-coq-get-path-specs 'company-coq-modules-reload-needed t force)))
 
-(defun company-coq-get-pg-abbrevs-db ()
-  "Collect abbrevs known by Proof General.
+(defun company-coq-collect-pg-abbrevs ()
+  "Collect and parse abbrevs known by Proof General.
 This used to load all tactics known by PG, but many of them did
 not lend themselves well to autocompletion, and deduplication was
 not fast."
-  (append '(("Module! (interactive)" nil "Module # : #.\n#\nEnd #." nil nil coq-insert-section-or-module)
-            ("match! (from type)" nil "" nil "match" coq-insert-match)
-            ("intros! (guess names)" nil "intros #" nil nil coq-insert-intros))
-          coq-user-cheat-tactics-db
-          coq-user-commands-db
-          coq-user-reserved-db
-          coq-user-solve-tactics-db
-          coq-user-tacticals-db
-          coq-user-tactics-db))
+  (let ((abbrevs (append '(("Module! (interactive)" nil "Module # : #.\n#\nEnd #." nil nil coq-insert-section-or-module)
+                           ("match! (from type)" nil "" nil "match" coq-insert-match)
+                           ("intros! (guess names)" nil "intros #" nil nil coq-insert-intros))
+                         coq-user-cheat-tactics-db
+                         coq-user-commands-db
+                         coq-user-reserved-db
+                         coq-user-solve-tactics-db
+                         coq-user-tacticals-db
+                         coq-user-tactics-db)))
+    (-keep #'company-coq-parse-abbrevs-pg-entry abbrevs)))
+
+(defvar company-coq--pg-abbrevs-cache nil
+  "Cache of parsed PG abbrevs.")
+
+(defun company-coq-init-pg-abbrevs (&optional force)
+  "Load pg abbrevs if needed or FORCE'd."
+  (interactive '(t))
+  (company-coq-dbg "company-coq-init-pg-abbrevs: Loading abbrevs (if never loaded)")
+  (company-coq-reload-db 'company-coq--pg-abbrevs-cache 'company-coq-collect-pg-abbrevs nil nil force))
 
 (defface company-coq-snippet-hole-face
   '((t :slant italic :weight bold))
@@ -1217,72 +1228,9 @@ Falls back to `company-coq-string-lessp-foldcase'."
                 (m2 (eq 0 (company-coq-get-prop 'match-beginning str2))))
     (company-coq-string-lessp-foldcase str1 str2)))
 
-(defsubst company-coq-string-lessp-tactics (str1 str2)
-  "Compare two tactics STR1 and STR2.
-Sort by order of appearance in the manual.  If one of the
-tactics is not in the manual, sort it after the other.  If both
-are not in the manual (inherited from PG) sort them
-alphabetically."
-  (company-coq-bool-lessp ((n1 (company-coq-get-prop 'num str1))
-                (n2 (company-coq-get-prop 'num str2)))
-    (< n1 n2)
-    (string-lessp str1 str2)))
-
-(defun company-coq-strictly-ordered-p (command)
-  "Decide whether COMMAND should always sort alphabetically."
-  (string-match-p "\\`\\(?:\\(?:Se\\|Tes\\|Unse\\)t\\) " command))
-
-(defsubst company-coq-string-lessp-commands (str1 str2)
-  "Compare two command (vernacs) STR1 and STR2.
-Sort alphabetically, case insensitive, unless STR1 and STR2 are
-from the same chapter.  In that case, sort in the order in which
-these commands appeared in the manual (or in which two variants
-of the same command were generated), to put more complex commands
-last; unless both commands must be strictly ordered (see ."
-  (let ((a1 (company-coq-get-prop 'anchor str1))
-        (a2 (company-coq-get-prop 'anchor str2)))
-    (if (and a1 a2
-             (equal (car a1) (car a2))
-             (not (company-coq-strictly-ordered-p str1))
-             (not (company-coq-strictly-ordered-p str2)))
-        (< (company-coq-get-prop 'num str1) (company-coq-get-prop 'num str2))
-      (company-coq-string-lessp-foldcase str1 str2))))
-
-(defun company-coq-string-lessp-static-abbrevs (str1 str2)
-  "Compare statically-known abbrevs STR1 and STR2.
-Sort tactics first, followed by commands, and defer to
-`company-coq-string-lessp-tactics' and `company-coq-string-lessp-commands'."
-  (company-coq-bool-lessp ((l1 (company-coq-is-lower str1))
-                (l2 (company-coq-is-lower str2)))
-    (company-coq-string-lessp-tactics str1 str2)
-    (company-coq-string-lessp-commands str1 str2)))
-
-(defun company-coq-parsed-man-abbrevs ()
-  "Cache of abbrevs defined in the manual."
-  (cl-stable-sort (company-coq-number (mapcar #'company-coq-parse-man-db-entry company-coq-abbrevs))
-                  #'company-coq-string-lessp-static-abbrevs))
-
-(defun company-coq-parsed-pg-abbrevs ()
-  "Cache of abbrevs defined in the manual."
-  (cl-stable-sort (-keep #'company-coq-parse-abbrevs-pg-entry (company-coq-get-pg-abbrevs-db))
-                  #'company-coq-string-lessp-static-abbrevs))
-
 (defun company-coq-collect-user-snippets ()
   "Collect and propertize user snippets."
   (mapcar #'company-coq-parse-custom-db-entry company-coq-custom-snippets))
-
-(defun company-coq-get-static-abbrevs ()
-  "Reload abbrevs (tactics, vernacs, …)."
-  (company-coq-dbg "company-coq-recompute-static-abbrevs: Called")
-  (let ((pg-abbrevs (company-coq-parsed-pg-abbrevs))
-        (man-abbrevs (company-coq-parsed-man-abbrevs)))
-    (company-coq--merge-sorted man-abbrevs pg-abbrevs #'company-coq-string-lessp-static-abbrevs)))
-
-(defun company-coq-init-static-abbrevs (&optional force)
-  "Load static abbrevs if needed or FORCE'd."
-  (interactive '(t))
-  (company-coq-dbg "company-coq-init-static-abbrevs: Loading abbrevs (if never loaded)")
-  (company-coq-reload-db 'company-coq-known-static-abbrevs 'company-coq-get-static-abbrevs nil nil force))
 
 (defun company-coq-propertize-match (match beginning end)
   "Annotate completion candidate MATCH with BEGINNING and END."
@@ -2324,35 +2272,45 @@ backend.  COMMAND, ARG and IGNORED: see `company-backends'."
     (`pre-render arg)
     (`require-match 'never)))
 
-(defun company-coq-refman-backend (command &optional arg &rest ignored)
-  "`company-mode' backend for documented Coq tactics and vernacs.
-COMMAND, ARG and IGNORED: see `company-backends'.
-
-In practice, this backend also includes hardcoded forms from
-Proof General itself."
-  (interactive (list 'interactive))
-  (company-coq-dbg "refman backend: called with command %s" command)
-  (pcase command
-    (`meta (company-coq-meta-refman arg))
-    (`doc-buffer (company-coq-doc-buffer-refman arg))
-    (`location (company-coq-doc-buffer-refman arg))
-    (`comparison-fun #'company-coq-string-lessp-static-abbrevs)
-    (`annotation (company-coq-annotation-snippet "ref" arg))
-    (`sorted t) ;; The static abbrevs cache is kept sorted
-    (_ (apply #'company-coq-generic-snippets-backend #'company-coq-init-static-abbrevs
-              #'company-coq-refman-backend command arg ignored))))
-
 (defun company-coq-user-snippets-backend (command &optional arg &rest ignored)
   "`company-mode' backend for user snippets.
 COMMAND, ARG and IGNORED: see `company-backends'."
   (interactive (list 'interactive))
   (company-coq-dbg "user snippets backend: called with command %s" command)
   (pcase command
-    (`comparison-fun #'company-coq-string-lessp-foldcase)
     (`annotation (company-coq-annotation-snippet "usr" arg))
-    (`sorted t)
+    (`sorted t) ;; User ordering is preserved
     (_ (apply #'company-coq-generic-snippets-backend #'company-coq-collect-user-snippets
               #'company-coq-user-snippets-backend command arg ignored))))
+
+(defun company-coq-pg-backend (command &optional arg &rest ignored)
+  "`company-mode' backend for user snippets.
+COMMAND, ARG and IGNORED: see `company-backends'."
+  (interactive (list 'interactive))
+  (company-coq-dbg "pg backend: called with command %s" command)
+  (pcase command
+    (`annotation (company-coq-annotation-snippet "pg" arg))
+    (`sorted t) ;; Ordering of PG forms is preserved
+    (_ (apply #'company-coq-generic-snippets-backend #'company-coq-init-pg-abbrevs
+              #'company-coq-pg-backend command arg ignored))))
+
+(defun company-coq-generic-refman-backend (db-init-fun backend command &optional arg &rest ignored)
+  "Generic `company-mode' backend for documented abbrevs.
+DB-INIT-FUNCTION is a function initializing and returning a
+database of snippets.  BACKEND is the name of the calling
+backend.  COMMAND, ARG and IGNORED: see `company-backends'."
+  (interactive (list 'interactive))
+  (pcase command
+    (`meta (company-coq-meta-refman arg))
+    (`doc-buffer (company-coq-doc-buffer-refman arg))
+    (`location (company-coq-doc-buffer-refman arg))
+    (`annotation (company-coq-annotation-snippet "ref" arg))
+    (`sorted t) ;; The static abbrevs cache is kept sorted
+    (_ (apply #'company-coq-generic-snippets-backend db-init-fun
+              backend command arg ignored))))
+
+;; The specific refman backends are defined alongwith their corresponding
+;; features below, using the `company-coq--define-refman-abbrevs-feature' macro.
 
 (defun company-coq-context-backend (command &optional arg &rest ignored)
   "`company-mode' backend for hypotheses of the current proof.
@@ -2810,7 +2768,7 @@ MSG must already be normalized."
 (defun company-coq-find-closest-errors (msg)
   "Return know errors, sorted by proximity to MSG."
   (let* ((normalized    (company-coq-normalize-error msg))
-         (intersections (cl-loop for reference in company-coq-errors
+         (intersections (cl-loop for reference in company-coq--refman-error-abbrevs
                                  collect (company-coq-find-errors-overlap reference normalized))))
     (sort intersections (lambda (x y) (company-coq->> (car x) (car y)))))) ;; LATER get maximum instead?
 
@@ -2821,10 +2779,8 @@ Scores are computed by `company-coq-find-errors-overlap'.")
 (defun company-coq-browse-error-messages ()
   "Browse list of all error messages."
   (interactive)
-  (let* ((db     (sort (copy-sequence company-coq-errors)
-                       (lambda (x y) (company-coq-string-lessp-foldcase (car x) (car y)))))
-         (msg    (completing-read "Error message: " db nil t))
-         (anchor (cdr-safe (assoc msg company-coq-errors))))
+  (let* ((msg (completing-read "Error message: " company-coq--refman-error-abbrevs nil t))
+         (anchor (cdr-safe (assoc msg company-coq--refman-error-abbrevs))))
     (when anchor (company-coq-doc-buffer-refman anchor t))))
 
 (defun company-coq-guess-error-message-from-response ()
@@ -3937,12 +3893,50 @@ Autocompletes `fix', `with', `let', etc."
     (`on (company-coq-add-backend #'company-coq-reserved-keywords-backend))
     (`off (company-coq-remove-backend #'company-coq-reserved-keywords-backend))))
 
-(company-coq-define-feature refman-backend (arg)
-  "Completion of tactics and commands documented in the manual.
-Autcompletes 'applin' into 'apply … in …'."
+(defmacro company-coq--define-refman-abbrevs-feature (source from to)
+  "Create a completion feature for refman source SOURCE.
+Complete FROM into TO."
+  (let* ((name (symbol-name source))
+         (repo-sym (intern (format "company-coq--refman-%s-abbrevs" name)))
+         (cache-sym (intern (format "company-coq--refman-%s-abbrevs-cache" name)))
+         (init-sym (intern (format "company-coq--init-refman-%s-abbrevs-cache" name)))
+         (backend-sym (intern (format "company-coq-refman-%s-abbrevs-backend" name)))
+         (feature-sym (intern (format "refman-%s-abbrevs" name))))
+    `(progn
+       (defvar ,cache-sym nil
+         ,(format "Cache of parsed Coq %s abbrevs taken from the RefMan." name))
+
+       (defun ,init-sym (&optional force)
+         (interactive '(t))
+         ,(format "Load %s abbrevs from refman if needed or FORCE'd." name)
+         (company-coq-dbg "%s: Loading abbrevs (if never loaded)" ,(symbol-name init-sym))
+         (company-coq-reload-db ',cache-sym (lambda () (mapcar #'company-coq-parse-man-db-entry ,repo-sym)) nil nil force))
+
+       (defun ,backend-sym (command &optional arg &rest ignored)
+         ,(format "`company-mode' backend for documented Coq %ss.
+COMMAND, ARG and IGNORED: see `company-backends'." name)
+         (interactive (list 'interactive))
+         (company-coq-dbg "refman %s backend: called with command %s" ,name command)
+         (company-coq-generic-refman-backend #',init-sym #',backend-sym command arg ignored))
+
+       (company-coq-define-feature ,feature-sym (arg)
+         ,(format "Completion of %ss documented in the manual.
+Autocompletes `%s' into `%s'." name from to)
+         (pcase arg
+           (`on (company-coq-add-backend #',backend-sym))
+           (`off (company-coq-remove-backend #',backend-sym)))))))
+
+(company-coq--define-refman-abbrevs-feature ltac "tte" "tryif … then … else …")
+(company-coq--define-refman-abbrevs-feature tactic "applin" "apply … in …")
+(company-coq--define-refman-abbrevs-feature vernac "SLD" "Set Ltac Debug.")
+(company-coq--define-refman-abbrevs-feature scope "nat_" "nat_scope")
+
+(company-coq-define-feature pg-backend (arg)
+  "Completion of PG abbrevs.
+Includes smart completions, such as `intros!'."
   (pcase arg
-    (`on (company-coq-add-backend #'company-coq-refman-backend))
-    (`off (company-coq-remove-backend #'company-coq-refman-backend))))
+    (`on (company-coq-add-backend #'company-coq-pg-backend))
+    (`off (company-coq-remove-backend #'company-coq-pg-backend))))
 
 (company-coq-define-feature context-backend (arg)
   "Completion of hypotheses.
