@@ -288,7 +288,7 @@ impossible, for example in `proof-shell-insert-hook'")
 (defvar company-coq-current-context nil
   "Cache tracking the context while proofs are ongoing.")
 
-(defvar company-coq-known-path-specs nil
+(defvar company-coq-path-specs-cache nil
   "Cache tracking paths specs in Coq's load path.")
 
 (defvar company-coq-last-goals-output nil
@@ -1039,7 +1039,7 @@ Do not call if the prover process is busy."
   (interactive '(t))
   (when (company-coq-feature-active-p 'modules-backend)
     (company-coq-dbg "company-coq-init-modules: Loading modules (if never loaded)")
-    (company-coq-reload-db 'company-coq-known-path-specs #'company-coq-get-path-specs 'company-coq-modules-reload-needed t force)))
+    (company-coq-reload-db 'company-coq-path-specs-cache #'company-coq-get-path-specs 'company-coq-modules-reload-needed t force)))
 
 (defun company-coq-collect-pg-abbrevs ()
   "Collect and parse abbrevs known by Proof General.
@@ -1377,7 +1377,7 @@ search term and a qualifier."
               (push (company-coq-complete-module-from-path-spec
                      module-atoms path-spec)
                     completions))
-            company-coq-known-path-specs)
+            company-coq-path-specs-cache)
       (apply #'company-coq-union-sort
              #'string-equal #'string-lessp completions))))
 
@@ -1685,7 +1685,7 @@ INTERACTIVE, fail loudly if no location is found."
   "Find the longest logical name matching QNAME.
 Returns the corresponding (logical name . real name) pair."
   (cl-loop for     (logical . real)
-           in      company-coq-known-path-specs
+           in      company-coq-path-specs-cache
            with    longest = nil
            when    (string-match-p (concat "\\`" (regexp-quote logical) "\\.") qname)
            do      (when (> (length logical) (length (car longest)))
