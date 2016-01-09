@@ -391,6 +391,10 @@ class HtmlDocument:
         with open(outpath, mode='w') as html_output:
             html_output.write(str(self.soup))
 
+        # Reset times, since they are recorded in gzip archive
+        jan01_2015 = 1420070400
+        os.utime(outpath, (jan01_2015, jan01_2015))
+
 def process_files(outdir, paths):
     try:
         mkdir(outdir)
