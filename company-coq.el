@@ -2830,7 +2830,7 @@ Scores are computed by `company-coq-find-errors-overlap'.")
 (defun company-coq-guess-error-message-from-response ()
   "Show documentation for error message in Coq's response, if available."
   (interactive)
-  (let* ((err (company-coq-with-current-buffer-maybe "*response*" (buffer-string)))
+  (let* ((err (company-coq-with-current-buffer-maybe proof-response-buffer (buffer-string)))
          (hit (and err (car-safe (company-coq-find-closest-errors err)))))
     (company-coq-dbg "Top reference [%s] has score [%s]" (cadr hit) (car hit))
     (cond
@@ -3925,14 +3925,14 @@ Inserts ⊕ when you type \oplus."
 
 (company-coq-define-feature block-end-backend (arg)
   "Completion of Section and Module names.
-Autocompletes names after 'End '."
+Autocompletes names after `End '."
   (pcase arg
     (`on (company-coq-add-backend #'company-coq-block-end-backend))
     (`off (company-coq-remove-backend #'company-coq-block-end-backend))))
 
 (company-coq-define-feature reserved-keywords-backend (arg)
   "Completion of Coq reserved keywords.
-Autocompletes 'fix', 'with', 'let', etc."
+Autocompletes `fix', `with', `let', etc."
   (pcase arg
     (`on (company-coq-add-backend #'company-coq-reserved-keywords-backend))
     (`off (company-coq-remove-backend #'company-coq-reserved-keywords-backend))))
@@ -3953,7 +3953,7 @@ Autocompletes hypothesis names from the current proof context."
 
 (company-coq-define-feature modules-backend (arg)
   "Completion of module names.
-Autocompletes after 'Require '."
+Autocompletes after `Require '."
   (pcase arg
     (`on (company-coq-add-backend #'company-coq-modules-backend))
     (`off (company-coq-remove-backend #'company-coq-modules-backend))))
