@@ -1064,7 +1064,10 @@ definitions in the unprocessed part of the buffer."
                         should-be-valid-up-to)))
       (setq company-coq-local-definitions-valid-from should-be-valid-from
             company-coq-local-definitions-valid-up-to should-be-valid-up-to))
-    (mapcar #'car company-coq-local-definitions)))
+    (mapcar (lambda (pair) (propertize (car pair)
+                                       'location (current-buffer)
+                                       'target (cdr pair)))
+            company-coq-local-definitions)))
 
 (defun company-coq-line-is-import-p ()
   "Return non-nil if current line is part of an Import statement."
@@ -1710,22 +1713,29 @@ If NAME has an 'anchor text property, returns a help message."
   (set-buffer-modified-p nil)
   (setq-local buffer-offer-save nil))
 
+(defun company-coq-highlight-and-scroll-above-definition-at-pt ()
+  "Highlight the current line and scroll up to for context."
+  (company-coq-make-title-line 'company-coq-doc-header-face-docs-and-sources t)
+  (forward-line -2)
+  (or (and (coq-looking-at-comment)
+           (car (company-coq--get-comment-region)))
+      (point)))
+
 (defun company-coq-search-then-scroll-up (target)
   "Find the definition of TARGET, then return a good point to scroll to.
-Target point is before that definition.  It can be a few lines
+Returns a point before that definition: it can be a few lines
 higher or, if that's inside a comment, at the beginning of the
 comment."
   (save-excursion
-    (or (and target
-             (goto-char (point-min))
-             (re-search-forward target nil t)
-             (progn
-               (company-coq-make-title-line 'company-coq-doc-header-face-docs-and-sources t)
-               (forward-line -2)
-               (or (and (coq-looking-at-comment)
-                        (car (company-coq--get-comment-region)))
-                   (point))))
-        0)))
+    (cond
+     ((number-or-marker-p target)
+      (goto-char target)
+      (company-coq-highlight-and-scroll-above-definition-at-pt))
+     ((and (stringp target)
+           (goto-char (point-min))
+           (re-search-forward target nil t))
+      (company-coq-highlight-and-scroll-above-definition-at-pt))
+     (t 1))))
 
 (defun company-coq-location-simple (name &optional target interactive)
   "Show context of NAME based on its location property.
@@ -1833,12 +1843,14 @@ found."
 
 (defun company-coq-location-definition (name &optional interactive)
   "Prompt for a tactic or symbol NAME, and display its definition in context.
-With INTERACTIVE, complain loundly if the definition can't be
+With INTERACTIVE, complain loudly if the definition can't be
 found."
   (interactive (company-coq-location-interact (list company-coq-dynamic-symbols company-coq-dynamic-tactics)))
-  (company-coq-location-source name (list company-coq-locate-symbol-cmd
-                               company-coq-locate-tactic-cmd)
-                    interactive))
+  (-if-let* ((target (company-coq-get-prop 'target name)))
+      (company-coq-location-simple name target)
+    (company-coq-location-source name (list company-coq-locate-symbol-cmd
+                                 company-coq-locate-tactic-cmd)
+                      interactive)))
 
 (defun company-coq-make-title-line (face &optional skip-space)
   "Format the current line as a title, applying FACE.
