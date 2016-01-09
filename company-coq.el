@@ -616,17 +616,37 @@ infinite loop (they are not cleared by [generalize dependent]).")
 
 (defface company-coq-comment-h1-face
   '((t :inherit font-lock-doc-face :height 2.5))
-  "Face used to *** comments."
+  "Face used to highlight *** comments."
   :group 'company-coq-faces)
 
 (defface company-coq-comment-h2-face
   '((t :inherit font-lock-doc-face :height 1.8))
-  "Face used to *** comments."
+  "Face used to highlight *+ comments."
   :group 'company-coq-faces)
 
 (defface company-coq-comment-h3-face
   '((t :inherit font-lock-doc-face :height 1.2))
-  "Face used to *** comments."
+  "Face used to highlight *! comments."
+  :group 'company-coq-faces)
+
+(defface company-coq-coqdoc-h1-face
+  '((t :inherit font-lock-doc-face :inverse-video t :weight black))
+  "Face used to highlight coqdoc's * comments."
+  :group 'company-coq-faces)
+
+(defface company-coq-coqdoc-h2-face
+  '((t :inherit font-lock-doc-face :weight bold))
+  "Face used to highlight coqdoc's ** comments."
+  :group 'company-coq-faces)
+
+(defface company-coq-coqdoc-h3-face
+  '((t :inherit font-lock-doc-face :slant italic))
+  "Face used to highlight coqdoc's *** comments."
+  :group 'company-coq-faces)
+
+(defface company-coq-coqdoc-h4-face
+  '((t :inherit font-lock-doc-face))
+  "Face used to highlight coqdoc's **** comments."
   :group 'company-coq-faces)
 
 (defface company-coq-subscript-face
@@ -3184,7 +3204,13 @@ Defining a feature adds it to `company-coq-available-features'."
 
 (defun company-coq-request-refontification ()
   "Request a refontification of the buffer."
-  (setq company-coq--refontification-requested t))
+  (setq-local company-coq--refontification-requested t))
+
+(defun company-coq--perform-requested-refontification ()
+  "Refontify the buffer, if requested."
+  (when company-coq--refontification-requested
+    (setq-local company-coq--refontification-requested nil)
+    (company-coq-fontify-buffer)))
 
 (defun company-coq-toggle-features (enabled-or-disabled-features status)
   "Enable or disable ENABLED-OR-DISABLED-FEATURES.
@@ -3194,9 +3220,9 @@ ENABLED-OR-DISABLED-FEATURES.  Otherwise, disable them."
     (let ((toggle-func (company-coq-feature-toggle-function feature)))
       (funcall toggle-func (if status 1 -1))))
   ;; Only do one pass of refontification
-  (when company-coq--refontification-requested
-    (setq company-coq--refontification-requested nil)
-    (company-coq-fontify-buffer)))
+  (company-coq-do-in-coq-buffers (company-coq--perform-requested-refontification))
+  (company-coq-do-in-goals-buffer (company-coq--perform-requested-refontification))
+  (company-coq-do-in-response-buffer (company-coq--perform-requested-refontification)))
 
 (defun company-coq-read-feature ()
   "Read a feature name from the user."
@@ -3427,26 +3453,41 @@ patterns, etc."
   "Special comments [(***, (*+, and (*!].
 Handles comments beginning with (***, (*+, and (*! as title
 markers of decreasing importance."
-  (pcase arg
-    (`on (company-coq-do-in-coq-buffers
-           (setq-local font-lock-syntactic-face-function #'company-coq-syntactic-face-function)
-           (company-coq-request-refontification)))
-    (`off (company-coq-do-in-coq-buffers
-            (kill-local-variable 'font-lock-syntactic-face-function)
-            (company-coq-request-refontification)))))
+  (company-coq-do-in-coq-buffers
+    (pcase arg
+      (`on (setq-local font-lock-syntactic-face-function #'company-coq-syntactic-face-function))
+      (`off (kill-local-variable 'font-lock-syntactic-face-function)))
+    (company-coq-request-refontification)))
+
+(defconst company-coq-features/coqdoc--spec
+  '(("^\\s-*\\(?1:(\\*\\*\\s-\\)\\s-*\\(?2:\\*+\\)\\s-*\\(?3:.*?\\)\\(?:\\s-*\\**)\\)?$"
+     (3 (let ((depth (length (match-string 2))))
+          (pcase depth
+            (1 'company-coq-coqdoc-h1-face)
+            (2 'company-coq-coqdoc-h2-face)
+            (3 'company-coq-coqdoc-h3-face)
+            (4 'company-coq-coqdoc-h4-face)
+            (_ 'font-lock-doc-face)))
+        append))))
+
+(company-coq-define-feature coqdoc (arg)
+  "CoqDoc comments [(** *, (** **, (** ***, etc.].
+Handles comments beginning with (** followed by multiple `*' as
+title markers of decreasing importance."
+  (company-coq-do-in-coq-buffers
+    (pcase arg
+      (`on (font-lock-add-keywords nil company-coq-features/coqdoc--spec 'add))
+      (`off (font-lock-remove-keywords nil company-coq-features/coqdoc--spec)))
+    (company-coq-request-refontification)))
 
 (company-coq-define-feature obsolete-warnings (arg)
   "Code style warnings [experimental].
 Highlights uses of obsolete Coq constructs."
-  (pcase arg
-    (`on
-     (company-coq-do-in-coq-buffers
-       (font-lock-add-keywords nil company-coq-deprecated-spec 'add)
-       (company-coq-request-refontification)))
-    (`off
-     (company-coq-do-in-coq-buffers
-       (font-lock-remove-keywords nil company-coq-deprecated-spec)
-       (company-coq-request-refontification)))))
+  (company-coq-do-in-coq-buffers
+    (pcase arg
+      (`on (font-lock-add-keywords nil company-coq-deprecated-spec 'add))
+      (`off (font-lock-remove-keywords nil company-coq-deprecated-spec)))
+    (company-coq-request-refontification)))
 
 (company-coq-define-feature outline (arg)
   "Proof outlines.

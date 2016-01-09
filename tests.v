@@ -15,7 +15,6 @@ Goal True = False -> False.
   (* Are contents of goal buffer prettified? *)
   apply I.
 Qed.
-
 (* This should be underlined. *)
 Unset Undo. (* Putting cursor or point on error should show help-echo *)
 
@@ -76,7 +75,7 @@ Proof.
     { apply I. }
   }
 Qed.
-
+Require Import BinPos.
 (* Run this:
     (setq company-coq-completion-predicate 'company-coq-not-in-comment-p)
    does completion still happen in comments? plus *)
@@ -89,6 +88,11 @@ Qed.
 (*++++++++++++++++++++++++*)
 (*** And this one? **)
 (******** but not this one? *)
+
+(** *    CoqDoc's H1 is nice too *)
+(** **   CoqDoc's H2 is nice too *)
+(** ***  CoqDoc's H3 is nice too *)
+
 (* Does disabling company-coq restore the comments to a small font? *)
 
 (* AAABBB and BBBCCC should autocomplete without starting the prover, and appear in the outline (C-c C-,) *)

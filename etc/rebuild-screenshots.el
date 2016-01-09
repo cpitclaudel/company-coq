@@ -239,8 +239,16 @@ myR")
 
 (*!  H3 title for remarks !*)
 
+(** *  Coqdoc title       **)
+(** ** Coqdoc subtitle    **)
 (** Documentation comment **)
+
 (* Regular comment *)")
+  (my/send-keys "M-<")
+  (while (re-search-forward "\n\n" nil t)
+    (let ((ov (make-overlay (match-beginning 0) (match-end 0))))
+      (overlay-put ov 'face '(:height 0.30))))
+  (set-window-start nil 1)
   (setq cursor-type nil))
 
 (my/with-screenshot my/github-width/3 13 "east" "Highlighting of deprecated forms." "deprecated"
