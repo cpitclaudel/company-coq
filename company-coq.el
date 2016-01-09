@@ -2542,12 +2542,12 @@ because it makes it easier to enable or disable backends."
 (defun company-coq-choose-value (values)
   "Set company up so that a completion list will popup with values VALUES.
 This is a bit tricky, because it's not sufficient to just call
-`company-begin-backend'; the reason is that company doesn't
-support-backend recursive calls to itself, and this function may be
-called as the result of expanding a snippet, and thus as a
-descendant of a company function.  Instead of calling it
-directly, we set the idle delay to 0, and we override
-`this-command' to allow completion to proceed."
+`company-begin-backend'; the reason is that company doesn't let
+backends recursively calling it, and this function may be called
+as the result of expanding a snippet, and thus as a descendant of
+a company function.  Instead of calling it directly, we set the
+idle delay to 0, and we override `this-command' to allow
+completion to proceed."
   (unless company-coq-saved-idle-delay
     (setq company-coq-saved-idle-delay company-idle-delay))
   ;; (yas-verify-value values)
@@ -2594,7 +2594,8 @@ COMMAND, ARG and IGNORED: see `company-backends'."
     (`interactive (company-begin-backend 'company-coq-choices-backend))
     (`prefix (company-coq-choices-prefix))
     (`candidates (company-coq-complete-prefix-substring arg company-coq-choices-list t))
-    (`post-completion (company-coq-choices-post-completion))))
+    (`post-completion (company-coq-choices-post-completion))
+    (`sorted t)))
 
 (defconst company-coq--core-map
   (let ((cc-map (make-sparse-keymap)))
