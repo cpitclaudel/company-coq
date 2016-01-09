@@ -2105,18 +2105,23 @@ Which conversion function to use is determined from SOURCE."
          (snippet (and abbrev (company-coq-abbrev-to-yas abbrev source))))
     snippet))
 
+(defun company-coq-call-insert-fun (insert-fun beg end)
+  "Check if prover is available and call INSERT-FUN.
+Before calling INSERT-FUN, delete BEG .. END."
+  (delete-region beg end)
+  (if (company-coq-prover-available)
+      (funcall insert-fun)
+    (message "Please ensure that the prover is started and idle before using smart completions")))
+
 (defun company-coq-post-completion-snippet (candidate)
   "Run post-action for CANDIDATE (most often, insert YAS snippet)."
-  (-when-let* ((found   (search-backward candidate))
-               (start   (match-beginning 0))
-               (end     (match-end 0))
-               (snippet (company-coq-get-snippet candidate)))
-    (let ((insert-fun (company-coq-get-prop 'insert-fun candidate)))
-      (if insert-fun
-          (progn
-            (delete-region start end)
-            (funcall insert-fun))
-        (yas-expand-snippet snippet start end)))))
+  (-when-let* ((found (search-backward candidate))
+               (beg (match-beginning 0))
+               (end (match-end 0)))
+    (-if-let* ((insert-fun (company-coq-get-prop 'insert-fun candidate)))
+        (company-coq-call-insert-fun insert-fun beg end)
+      (-when-let* ((snippet (company-coq-get-snippet candidate)))
+        (yas-expand-snippet snippet beg end)))))
 
 (defun company-coq-goto-occurence (&optional _event)
   "Close occur buffer and go to position at point."
