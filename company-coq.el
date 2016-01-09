@@ -454,10 +454,6 @@ Useful in particular to prevent reloading the modules list after a failed import
 (defconst company-coq-yasnippet-choice-regexp "${\\([a-z]+\\(|[a-z]+\\)+\\)}"
   "Regexp matching alternatives in abbrevs.")
 
-(defconst company-coq-placeholder-regexp (concat company-coq-dabbrev-to-yas-regexp
-                                      "\\|\\${\\([^}]+\\)}\\|\\$[[:digit:]]")
-  "Regexp matching placeholders in abbrevs.")
-
 (defconst company-coq-section-kwds '("Chapter" "Module" "Module Type" "Section")
   "Keywords opening a new section.")
 
@@ -1064,25 +1060,40 @@ not fast."
   "Face used to highlight holes in snippets."
   :group 'company-coq-faces)
 
-(defun company-coq-cleanup-abbrev-1 (abbrev regexp rep)
-  "Cleanup ABBREV for display using REGEXP and REP."
-  (replace-regexp-in-string
-   regexp (lambda (match)
-            (propertize (replace-match rep t nil match)
-                        'face '(company-coq-snippet-hole-face)))
-   abbrev))
+(defun company-coq-cleanup-abbrev-2 (match)
+  "Replace MATCH with a propertized replacement."
+  (propertize (or (match-string 1 match) "#")
+              'face '(company-coq-snippet-hole-face)))
+
+(defconst company-coq--placeholder-regexps
+  '("#" "$[0-9]" "@{\\(?1:[^}]+\\)}"
+    "${\\(?:[0-9]+:\\)?\\(?1:[^}]+\\)}")
+  "List of regular expressions matching holes in abbrevs.")
+
+(defconst company-coq--all-placeholders-regexp
+  (concat "\\(?:" (mapconcat #'identity company-coq--placeholder-regexps "\\|") "\\)")
+  "Regular expression matching holes in abbrevs.
+The content of the hole are bound to \\1.")
+
+(defun company-coq-cleanup-abbrev-1 (abbrev)
+  "Cleanup ABBREV for display, counting matches.
+The return value is a cons of the cleaned-up string and the
+number of matches."
+  (let ((counter 0))
+    (cons (replace-regexp-in-string company-coq--all-placeholders-regexp
+                                    (lambda (match)
+                                      (cl-incf counter)
+                                      (company-coq-cleanup-abbrev-2 match))
+                                    abbrev)
+          counter)))
 
 (defun company-coq-cleanup-abbrev (abbrev)
   "Cleanup ABBREV for display.
-This doesn't move `match-beginning' and `match-end', so it's a bit
-risky to call it after computing company's `match', at it will
-change the length of the candidate."
-  (pcase-dolist (`(,regexp . ,rep) '(("@{\\(?1:[^}]+\\)}" . "\\1")
-                                     ("${\\(?:[0-9]+:\\)?\\(?1:[^}]+\\)}" . "\\1")
-                                     ("$[0-9]" . "#")
-                                     ("#" . "#")))
-    (setq abbrev (company-coq-cleanup-abbrev-1 abbrev regexp rep)))
-  abbrev)
+This doesn't move `match-beginning' and `match-end', so it's a
+bit risky to call it after computing company's `match', at it
+will change the length of the candidate."
+  (pcase-let ((`(,abbrev . ,num-holes) (company-coq-cleanup-abbrev-1 abbrev)))
+    (propertize abbrev 'num-holes num-holes)))
 
 (defun company-coq-parse-abbrevs-pg-entry-1 (menuname _abbrev insert &optional _statech _kwreg insert-fun _hide)
   "Convert PG abbrev to internal company-coq format.
@@ -1827,18 +1838,10 @@ With SKIP-SPACE, do not format leading spaces."
          (overlay (make-overlay start end)))
     (overlay-put overlay 'face face)))
 
-(defun company-coq-count-holes (snippet)
-  "Cound placeholders in SNIPPET."
-  (let* ((count   0)
-         (counter (lambda (_) (setq count (+ 1 count)) ""))
-         (_       (replace-regexp-in-string company-coq-placeholder-regexp counter snippet)))
-    count))
-
 (defun company-coq-annotation-snippet (source candidate)
   "Compute company's annotation for snippet CANDIDATE.
 SOURCE identified the backend that produced CANDIDATE."
-  (let* ((snippet   (company-coq-get-snippet candidate))
-         (num-holes (and snippet (company-coq-count-holes snippet)))
+  (let* ((num-holes (company-coq-get-prop 'num-holes candidate))
          (prefix    (if (company-coq-get-prop 'anchor candidate) "..." ""))) ;; 🕮 📓 …
     (if (and (numberp num-holes) (> num-holes 0))
         (format "%s<%s[%d]>" prefix source num-holes)
