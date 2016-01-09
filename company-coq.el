@@ -3187,7 +3187,7 @@ Defining a feature adds it to `company-coq-available-features'."
          (interactive (or current-prefix-arg '(toggle)))
          (cond
           ((eq ,arg 'toggle)
-           (,toggle-function (not (company-coq-feature-active-p ',symbol))))
+           (,toggle-function (if (company-coq-feature-active-p ',symbol) 'off 'on)))
           ((or (eq ,arg 'on) (and (numberp arg) (> ,arg 0)))
            (setq ,arg 'on)
            (unless (company-coq-value-or-nil 'company-coq-mode)
@@ -3197,7 +3197,8 @@ Defining a feature adds it to `company-coq-available-features'."
            (setq ,arg 'off)
            (put ',toggle-function 'company-coq-feature-active nil)))
          (prog1 (progn ,@body)
-           (message "%s %s" ,(symbol-name symbol) (if (company-coq-feature-active-p ',symbol) "enabled" "disabled")))))))
+           (when (called-interactively-p 'interactive)
+             (message "Feature %s %s" ,(symbol-name symbol) (if (company-coq-feature-active-p ',symbol) "enabled" "disabled"))))))))
 
 (defvar company-coq--refontification-requested nil
   "Whether a refontification is needed, due to feature changes.")
