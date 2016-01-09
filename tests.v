@@ -182,6 +182,8 @@ with TestCo l :=
   | cons h t => cons h (TestFixpoint t)
   end.
 
+(* Try inserting Proof.\nmatch and presing TAB to indent. *)
+
 (* Try typing miw and mgw *)
 
 (* TestFixpoin and TestCo should autocomplete here. C-h should show their

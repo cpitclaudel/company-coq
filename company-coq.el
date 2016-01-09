@@ -3884,6 +3884,10 @@ Configures `company-mode' for use with Coq."
        (company-mode -1)
        (kill-local-variable 'company-backends)))))
 
+(defun company-coq-features/company-defaults--indent-or-complete-common (&rest args)
+  "Forward ARGS to company-indent-or-complete-common."
+  (apply #'company-indent-or-complete-common args))
+
 (company-coq-define-feature company-defaults (arg)
   "Convenient defaults for `company-mode'.
 Tweaks company-mode settings for smoother use with Coq."
@@ -3892,12 +3896,19 @@ Tweaks company-mode settings for smoother use with Coq."
      (company-coq-do-in-coq-buffers
        (setq-local company-idle-delay 0)
        (setq-local company-tooltip-align-annotations t)
-       (setq-local company-abort-manual-when-too-short t)))
+       (setq-local company-abort-manual-when-too-short t)
+       ;; See https://github.com/cpitclaudel/company-coq/issues/42
+       (unless (command-remapping #'company-complete-common nil company-active-map)
+         (define-key company-active-map [remap company-complete-common]
+           #'company-coq-features/company-defaults--indent-or-complete-common))))
     (`off
      (company-coq-do-in-coq-buffers
        (kill-local-variable 'company-idle-delay)
        (kill-local-variable 'company-tooltip-align-annotations)
-       (kill-local-variable 'company-abort-manual-when-too-short)))))
+       (kill-local-variable 'company-abort-manual-when-too-short)
+       (when (eq (command-remapping #'company-complete-common nil company-active-map)
+                 #'company-coq-features/company-defaults--indent-or-complete-common)
+         (define-key company-active-map [remap company-complete-common] nil))))))
 
 (company-coq-define-feature unicode-math-backend (arg)
   "Completion of LaTeX macros.
