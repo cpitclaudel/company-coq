@@ -496,7 +496,7 @@ Useful in particular to prevent reloading the modules list after a failed import
 (defconst company-coq-dabbrev-to-yas-regexp "#\\|@{\\([^}]+\\)}"
   "Regexp matching holes in abbrevs.")
 
-(defconst company-coq-yasnippet-choice-regexp "${\\([a-z]+\\(|[a-z]+\\)+\\)}"
+(defconst company-coq-yasnippet-choice-regexp "${\\([a-z]+\\( | [a-z]+\\)+\\)}"
   "Regexp matching alternatives in abbrevs.")
 
 (defconst company-coq-section-kwds '("Chapter" "Module" "Module Type" "Section")
@@ -2084,7 +2084,7 @@ in `company-coq-last-search-scan-size'."
 
 (defun company-coq-yasnippet-choicify-one (match)
   "Convert dabbrev choice in MATCH to yasnippet format."
-  (let ((choices (save-match-data (split-string (match-string 1 match) "|"))))
+  (let ((choices (save-match-data (split-string (match-string 1 match) " | "))))
     (concat "${$$" (prin1-to-string `(company-coq-choose-value (list ,@choices))) "}")))
 
 (defun company-coq-dabbrev-to-yas (abbrev)

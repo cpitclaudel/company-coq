@@ -8,6 +8,7 @@ import errno
 import re
 import sys
 import itertools
+import os
 
 def deduplicate(seq, key):
     seen = set()
@@ -21,6 +22,61 @@ def deduplicate(seq, key):
             print("Duplicate: {} (with key {})".format(elem, k))
     return deduped
 
+class Abbrev:
+    "A single variant, extracted from a pattern."
+
+    PRIORITIES = ("ltac", "tactic", "vernac", "scope", "error")
+    ARGCHOICE_TRANSLATED_RE = re.compile(r"@{[^{}]+ | [^{}]+}")
+
+    def __init__(self, variant, pattern):
+        self.abbrev = variant
+        self.pattern = pattern
+
+    @staticmethod
+    def count_holes(pattern):
+        return len(TextPattern.ID_RE.findall(pattern))
+
+    @staticmethod
+    def key(abbrev):
+        abbr, pat = abbrev.abbrev, abbrev.pattern
+        priority = Abbrev.PRIORITIES.index(pat.typ)
+        has_choices = Abbrev.ARGCHOICE_TRANSLATED_RE.search(abbr) is not None
+        if pat.typ == "tactic":
+            # Roughly preserve original order of tactics, moving argumentless
+            # ones at the beginning of each section and choice ones at the bottom.
+            return (priority, pat.source, has_choices, Abbrev.count_holes(abbr) > 0, pat.ind)
+        elif pat.typ in ("vernac", "ltac"):
+            # Sort vernacs alphabetically by stripped abbrev (no holes nor
+            # punctuation), then by chapter; inside a single chapter, for
+            # vernacs that strip to the same string, sort by increasing number
+            # of holes (putting the ones with choices at the bottom; finally,
+            # disambiguate by order in the refman. By doing the sorting on
+            # individual abbrevs, we ensure that abbrevs that have choices do
+            # not penalize their variants.
+            # Note that we use abbr to generate the key; using pat.variants[0]
+            # would group variants their original entry.
+            key = re.sub("[^A-Z]", "", re.sub(TextPattern.ID_RE, "", abbr).upper())
+            return (priority, has_choices, key, pat.source, Abbrev.count_holes(abbr), pat.ind)
+        else:
+            return (priority, abbr.upper(), pat.ind)
+
+    @staticmethod
+    def abbrevs_to_strings(abbrevs, with_info=False):
+        for abbrev in abbrevs:
+            if with_info:
+                yield abbrev.abbrev, abbrev.pattern.source, abbrev.pattern.ind
+            else:
+                yield abbrev.abbrev
+
+    @staticmethod
+    def collect_sorted_strings(patterns):
+        abbrevs = sorted(TextPattern.patterns_to_abbrevs(patterns), key=Abbrev.key)
+        strings = Abbrev.abbrevs_to_strings(abbrevs, with_info=True)
+        strings = deduplicate(strings, key=lambda x: re.sub("[+&]}", "+}", re.sub(" ", "", x[0].lower().rstrip('.'))))
+        strings = [(string.replace('"', r'\"'), source, index) for
+                   (string, source, index) in strings]
+        return strings
+
 class TextPattern:
     ID_PAT = r'@{([^{}]+)}'
     REPLACEMENTS = [(re.compile(x), y) for (x, y) in
@@ -33,11 +89,10 @@ class TextPattern:
 
     ALT_RE    = re.compile(r'\[\?\<\<([^\[\]]+)\>\>\?\]')
     OPTION_RE = re.compile(r'^(Set|Unset|Test) ')
-    ARGCHOICE_RE = re.compile("[a-zA-Z]+(,[a-zA-Z]+)+")
+    ARGCHOICE_RE = re.compile(r"[a-zA-Z]+(,[a-zA-Z]+)+")
     # The char_before group avoids pathologic cases like "In environmen(t ... t)he term"
     DOTS_RE = re.compile(r"(?P<char_before>[^a-z])(?P<repeated_element>[^ ](?:.*[^ ])?) *(?P<separator>(.*[^ ])?) *… *(?P=separator) *(?P=repeated_element)")
     ID_RE = re.compile(ID_PAT)
-    PRIORITIES = ("ltac", "tactic", "vernac", "scope", "error")
 
     def __init__(self, source, ind, typ, pattern):
         self.source = source
@@ -52,28 +107,6 @@ class TextPattern:
         if self.typ == "error":
             variant = variant.replace("…", "@{hole}")
         return variant
-
-    @staticmethod
-    def count_holes(pattern):
-        return len(TextPattern.ID_RE.findall(pattern))
-
-    @staticmethod
-    def key(pattern):
-        main_variant = pattern.variants[0]
-        priority = TextPattern.PRIORITIES.index(pattern.typ)
-        if pattern.typ == "tactic":
-            # Roughly preserve original order of tactics, moving argumentless
-            # ones at the beginning of each section.
-            return (priority, pattern.source, TextPattern.count_holes(main_variant) > 0, pattern.ind)
-        elif pattern.typ in ("vernac", "ltac"):
-            # Sort vernacs alphabetically by stripped abbrev (no holes nor
-            # punctuation), then by chapter; inside a single chapter, for
-            # vernacs that strip to the same string, sort by increasing number
-            # of holes; finally, disambiguate by order in the refman.
-            key = re.sub("[^A-Z]", "", re.sub(TextPattern.ID_RE, "", main_variant).upper())
-            return (priority, key, pattern.source, TextPattern.count_holes(main_variant), pattern.ind)
-        else:
-            return (priority, main_variant.upper(), pattern.ind)
 
     @staticmethod
     def replace_dots_re(variant):
@@ -165,21 +198,17 @@ class TextPattern:
 
     @staticmethod
     def choicify(match):
-        return "@{" + "|".join(match.group(0).split(",")) + "}"
+        return "@{" + " | ".join(match.group(0).split(",")) + "}"
 
     @staticmethod
     def replace_argchoice(variant):
         return TextPattern.ARGCHOICE_RE.sub(TextPattern.choicify, variant)
 
     @staticmethod
-    def patterns_to_strings(patterns, with_info = False):
+    def patterns_to_abbrevs(patterns):
         for pattern in patterns:
-            # unique_variants may not be available yet
-            for variant in (pattern.unique_variants or pattern.variants):
-                if with_info:
-                    yield variant, pattern.source, pattern.ind
-                else:
-                    yield variant
+            for variant in pattern.unique_variants:
+                yield Abbrev(variant, pattern)
 
     @staticmethod
     def expand_patterns(patterns):
@@ -195,16 +224,6 @@ class TextPattern:
         return patterns
 
     @staticmethod
-    def collect_sorted_strings(patterns):
-        patterns.sort(key=TextPattern.key)
-        strings = TextPattern.patterns_to_strings(patterns, with_info=True)
-        strings = deduplicate(strings, key=lambda x: x[0].replace(" ", "").lower().rstrip('.'))
-        strings = [(string.replace('"', r'\"'), source, index) for
-                   (string, source, index) in strings]
-
-        return strings
-
-    @staticmethod
     def format_defconst_body(strings):
         return "\n    ".join('\'("{}" . ("{}" . {}))'.format(*string)
                              for string in strings)
@@ -216,7 +235,7 @@ class TextPattern:
         return DEFCONST.format(name, lisp)
 
     def __repr__(self):
-        return repr((self.source, self.ind, self.typ, self.original_pattern, self.variants))
+        return repr((self.source, self.ind, self.typ, self.variants, self.unique_variants))
 
 class XMLPattern:
     def __init__(self, soup, source, ind):
@@ -404,8 +423,8 @@ def write_patterns(template_path, patterns):
         patterns_by_typ[p.typ].append(p)
 
     strings_by_typ = OrderedDict()
-    for typ in TextPattern.PRIORITIES:
-        strings_by_typ[typ] = TextPattern.collect_sorted_strings(patterns_by_typ[typ])
+    for typ in Abbrev.PRIORITIES:
+        strings_by_typ[typ] = Abbrev.collect_sorted_strings(patterns_by_typ[typ])
 
     with open(template_path) as template_f:
         template = template_f.read()
