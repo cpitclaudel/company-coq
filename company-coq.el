@@ -106,39 +106,83 @@
   (defvar shr-target-id)
   (defvar shr-external-rendering-functions))
 
+;; Shims for PG
+
 (eval-and-compile
-  ;; Compatibility shims for PG
-  ;; Explicitly loading PG is a huge mess, so instead of trying that just expect
-  ;; hope that the user will have loaded it independently of this package.
-  (defvar proof-goals-buffer)
-  (defvar proof-script-buffer)
-  (defvar proof-response-buffer)
-  (defvar proof-action-list)
-  (defvar proof-script-fly-past-comments)
-  (defvar proof-shell-proof-completed)
-  (defvar proof-shell-last-output)
-  (defvar proof-shell-last-output-kind)
-  (defvar proof-shell-last-goals-output)
-  (defvar proof-shell-last-response-output)
-  (defvar coq-mode-map)
-  (defvar coq-reserved)
-  (defvar coq-user-cheat-tactics-db)
-  (defvar coq-user-commands-db)
-  (defvar coq-user-reserved-db)
-  (defvar coq-user-solve-tactics-db)
-  (defvar coq-user-tacticals-db)
-  (defvar coq-user-tactics-db)
-  (defvar coq-hyp-name-in-goal-or-response-regexp)
-  (declare-function proof-shell-invisible-command "ext:proof-shell.el" cmd)
-  (declare-function proof-shell-available-p "ext:proof-shell.el")
-  (declare-function proof-shell-ready-prover "ext:proof-shell.el")
-  (declare-function proof-unprocessed-begin "ext:proof-script.el")
-  (declare-function proof-goto-point "ext:pg-user.el")
-  (declare-function coq-mode "ext:coq.el")
-  (declare-function coq-insert-match "ext:coq.el")
-  (declare-function coq-last-prompt-info-safe "ext:coq.el")
-  (declare-function coq-get-comment-region "ext:coq.el" pt)
-  (declare-function coq-looking-at-comment "ext:coq-indent.el" cmd))
+  (defvar company-coq--check-forward-declarations nil
+    "Whether incorrect `company-coq--forward-declare' forms should throw errors.
+This is useful for debugging, mostly."))
+
+(defmacro company-coq-forward-declare-var (var &optional value)
+  "Forward-declare VAR.
+If `company-coq--check-forward-declarations' is set, do not
+forward-declare; instead, check that the declaration is valid.
+If VALUE is non-nil, assign it to the variable if it isn't
+declared, and (when `company-coq--check-forward-declarations' is
+set) throw if it is declared and set to a different value."
+  (declare (indent defun))
+  `(progn
+     (when company-coq--check-forward-declarations
+       (unless (or (boundp ',var) ,value)
+         (error "Variable %S isn't declared" ',var))
+       (when (and (boundp ',var) ,value (not (equal (symbol-value ',var) ,value)))
+         (error "Variable %S is declared to %S, but fallback is set to %S" ',var (symbol-value ',var) ,value)))
+     (when (and (not (boundp ',var)) ,value)
+       (defvar ,var ,value))
+     (defvar ,var)))
+
+(defmacro company-coq-forward-declare-fun (fun &rest args)
+  "Forward-declare FUN with ARGS.
+If `company-coq--check-forward-declarations' is set, do not
+forward-declare; instead, check that the declaration is valid."
+  (declare (indent defun))
+  `(progn
+     (when (and company-coq--check-forward-declarations (not (fboundp ',fun)))
+       (error "Function %S isn't declared" ',fun))
+     (declare-function ,fun ,@args)))
+
+;; Compatibility shims for PG
+;; Explicitly loading PG is a huge mess, so instead of trying that just expect
+;; hope that the user will have loaded it independently of this package.
+(eval-and-compile
+  (company-coq-forward-declare-var proof-goals-buffer)
+  (company-coq-forward-declare-var proof-script-buffer)
+  (company-coq-forward-declare-var proof-response-buffer)
+  (company-coq-forward-declare-var proof-action-list)
+  (company-coq-forward-declare-var proof-script-fly-past-comments)
+  (company-coq-forward-declare-var proof-shell-proof-completed)
+  (company-coq-forward-declare-var proof-shell-last-output)
+  (company-coq-forward-declare-var proof-shell-last-output-kind)
+  (company-coq-forward-declare-var proof-shell-last-goals-output)
+  (company-coq-forward-declare-var proof-shell-last-response-output)
+  (company-coq-forward-declare-var coq-mode-map)
+  (company-coq-forward-declare-var coq-reserved)
+  (company-coq-forward-declare-var coq-user-cheat-tactics-db)
+  (company-coq-forward-declare-var coq-user-commands-db)
+  (company-coq-forward-declare-var coq-user-reserved-db)
+  (company-coq-forward-declare-var coq-user-solve-tactics-db)
+  (company-coq-forward-declare-var coq-user-tacticals-db)
+  (company-coq-forward-declare-var coq-user-tactics-db)
+  (company-coq-forward-declare-var coq-hyp-name-in-goal-or-response-regexp
+    "\\(^\\|^  \\|^    \\|[^^ ] ?  \\)\\(\\(?:[^\n :(),=]\\|, \\)+ *\\(?::[ \n]\\|,$\\)\\)")
+  (company-coq-forward-declare-fun proof-shell-invisible-command "ext:proof-shell.el" cmd)
+  (company-coq-forward-declare-fun proof-shell-available-p "ext:proof-shell.el")
+  (company-coq-forward-declare-fun proof-shell-ready-prover "ext:proof-shell.el")
+  (company-coq-forward-declare-fun proof-unprocessed-begin "ext:proof-script.el")
+  (company-coq-forward-declare-fun proof-goto-point "ext:pg-user.el")
+  (company-coq-forward-declare-fun coq-mode "ext:coq.el")
+  (company-coq-forward-declare-fun coq-insert-match "ext:coq.el")
+  (company-coq-forward-declare-fun coq-last-prompt-info-safe "ext:coq.el")
+  (company-coq-forward-declare-fun coq-find-comment-start "ext:coq.el")
+  (company-coq-forward-declare-fun coq-find-comment-end "ext:coq.el")
+  (company-coq-forward-declare-fun coq-looking-at-comment "ext:coq-indent.el" cmd))
+
+(defun company-coq--get-comment-region ()
+  "Local copy of `coq-get-comment-region'.
+It isn't available in old versions of PG."
+  (save-excursion
+    (cons (save-excursion (coq-find-comment-start))
+          (save-excursion (coq-find-comment-end)))))
 
 ;; This doesn't run at compile time
 (unless (require 'proof-site nil t)
@@ -1679,7 +1723,7 @@ comment."
                (company-coq-make-title-line 'company-coq-doc-header-face-docs-and-sources t)
                (forward-line -2)
                (or (and (coq-looking-at-comment)
-                        (car (coq-get-comment-region (point))))
+                        (car (company-coq--get-comment-region)))
                    (point))))
         0)))
 

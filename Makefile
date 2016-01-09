@@ -1,8 +1,10 @@
 SANDBOX := ./sandbox
 TAGGED_REFMAN_ROOT := /build/coq-8.5-tagged-refman/
 PG_GENERIC_ROOT := ~/.emacs.d/lisp/ProofGeneral/generic/
+OLD_PG_GENERIC_ROOT := ~/.emacs.d/lisp/ProofGeneral-4.2/generic/
 CASK := env --unset INSIDE_EMACS cask
 EMACS ?= emacs
+COMPANY_COQ_ARGS := --eval "(progn (setq-default company-coq--check-forward-declarations t) (add-hook 'coq-mode-hook (lambda () (require 'company-coq) (company-coq-mode))))"
 
 .PHONY: pkg-def
 
@@ -12,6 +14,14 @@ clean: clean-elc clean-package clean-sandbox
 
 test: elc
 	$(EMACS) --debug-init -L . -l company-coq tests.v
+
+baretest: clean-sandbox package
+	$(CASK) exec $(EMACS) -Q \
+		-L $(PG_GENERIC_ROOT) -l proof-site -L . $(COMPANY_COQ_ARGS) tests.v
+
+baretest-old: elc
+	$(CASK) exec $(EMACS) -Q \
+		-L $(OLD_PG_GENERIC_ROOT) -l proof-site -L . $(COMPANY_COQ_ARGS) tests.v
 
 elc:
 	$(CASK) build
@@ -33,13 +43,6 @@ screenshots: elc
 
 install: package
 	$(EMACS) --eval "(package-install-file $(PKG))"
-
-sandbox: clean-sandbox package
-	mkdir -p $(SANDBOX)
-
-	$(CASK) exec $(EMACS) -Q \
-		--eval '(setq user-emacs-directory "$(SANDBOX)")' \
-		-L $(PG_GENERIC_ROOT) -l proof-site -L . -l company-coq
 
 clean-sandbox:
 	rm -rf $(SANDBOX)
