@@ -749,7 +749,7 @@ Optionally adds an ELLIPSIS at the end."
       (delete-region (point) (point-max))
       (forward-line -1)
       (goto-char (point-at-eol))
-      (insert (or ellipsis "…")))))
+      (insert (or ellipsis " …")))))
 
 (defun company-coq-prefix-all-lines (prefix)
   "Add a PREFIX to all lines of the current buffer."
@@ -1615,23 +1615,20 @@ return the starting point as well."
   (replace-regexp-in-string "\\` *" "" (replace-regexp-in-string " *\\'" "" str)))
 
 (defun company-coq-truncate-to-minibuf (str)
-  "Runcate STR for display in minibuffer."
+  "Truncate STR for display in minibuffer."
   (when str
-    ;; Add some padding to compensate for wide characters
-    (let* ((minibuf-w  (max 10 (- (window-body-width (minibuffer-window)) 5))))
-      (if (> (length str) minibuf-w)
-          (concat (substring str 0 (- minibuf-w 3)) "…")
-        str))))
+    ;; (- … 5) adds some padding to compensate for wide characters
+    (truncate-string-to-width str (- (window-body-width (minibuffer-window)) 5) 0 nil "…")))
 
 (defun company-coq-meta-symbol (name)
   "Compute company's meta for symbol NAME."
   (company-coq-dbg "company-coq-meta-symbol: Called for name %s" name)
   (-when-let* ((output (company-coq-ask-prover-swallow-errors
                         (format company-coq-symbols-meta-cmd name))))
-    (company-coq--fontify-string
-     (company-coq-truncate-to-minibuf
-      (replace-regexp-in-string "\\s-+" " " (company-coq-trim output)))
-     (or proof-script-buffer (current-buffer)))))
+    (company-coq-truncate-to-minibuf
+     (company-coq--fontify-string
+      (replace-regexp-in-string "\\s-+" " " (company-coq-trim output))
+      (or proof-script-buffer (current-buffer))))))
 
 (defun company-coq-meta-refman (name)
   "Compute company's meta for value NAME.

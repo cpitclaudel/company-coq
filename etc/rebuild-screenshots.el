@@ -117,7 +117,8 @@
   (company-coq-features/prettify-symbols -1)
   (insert "Definition PrettySymbols : (nat -> nat -> Prop) :=
   (fun (n m: nat) =>
-     forall p, p <> n -> p >= m -> True \\/ False)."))
+     forall p, p <> n -> p >= m -> True \\/ False).")
+  (message nil))
 
 ;;;;;;;;;;;;;;;;;;;;;
 ;; Auto completion ;;
