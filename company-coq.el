@@ -1438,15 +1438,11 @@ search term and a qualifier."
 (defun company-coq-complete-modules (module)
   "Find completion candidates for MODULE."
   (when module
-    (let ((module-atoms (company-coq-split-logical-path module))
-          (completions nil))
-      (mapc (lambda (path-spec)
-              (push (company-coq-complete-module-from-path-spec
-                     module-atoms path-spec)
-                    completions))
-            company-coq-path-specs-cache)
-      (apply #'company-coq-union-sort
-             #'string-equal #'string-lessp completions))))
+    (let* ((module-atoms (company-coq-split-logical-path module)))
+      (apply #'company-coq-union-sort #'string-equal #'string-lessp
+             (mapcar (apply-partially #'company-coq-complete-module-from-path-spec
+                                      module-atoms)
+                     company-coq-path-specs-cache)))))
 
 (defun company-coq-shell-output-is-end-of-def ()
   "Check output of the last command against `company-coq-end-of-def-regexp'."
