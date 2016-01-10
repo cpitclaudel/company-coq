@@ -1356,7 +1356,7 @@ extension."
   (cl-loop for i = 0 then (+ 1 i)
            for l = ls then (cdr l)
            while (< i count)
-           sum (length (car-safe l))))
+           sum (length (car l))))
 
 (defun company-coq-qualify-module-names (mod-names qualid-atoms fully-matched-count part-matched-len physical-path)
   "Qualify each name in MOD-NAMES using QUALID-ATOMS.
@@ -1384,7 +1384,7 @@ QUALID-ATOMS are the atoms corresponding to PHYSICAL-PATH.
 See `company-coq-complete-module-from-atoms' for documentation of
 FULLY-MATCHED-COUNT and PART-MATCHED-LEN."
   ;; (message "> [%s] [%s] [%s]" (prin1-to-string qualid-atoms) (prin1-to-string search-atoms) physical-path)
-  (let* ((kwd           (car-safe (last search-atoms)))
+  (let* ((kwd           (car (last search-atoms)))
          (nil-kwd       (or (not kwd) (equal kwd "")))
          (ext-path      (company-coq-extend-path physical-path search-atoms))
          (search-path   (if nil-kwd (file-name-as-directory ext-path)
@@ -1407,7 +1407,7 @@ MODULE-ATOMS, PATH-ATOMS, PHYSICAL-PATH are as in that function."
                                      (- (length path-atoms) (length pth) 1)
                                    (length qualid)))
             ;; Part matched len is always the length of the last search term
-            (part-matched-len    (length (car-safe (last module-atoms)))))
+            (part-matched-len    (length (car (last module-atoms)))))
        (company-coq-complete-module-qualified qualid search physical-path fully-matched-count part-matched-len)))))
 
 (defun company-coq-complete-module-from-path-spec (module-atoms path-spec)
@@ -1707,7 +1707,7 @@ If NAME has an 'anchor text property, returns a help message."
              (company-coq--temp-buffer-minor-mode)
              (visual-line-mode 1)
              (setq-local show-trailing-whitespace nil)
-             (setq-local cursor-type nil)
+             (setq-local cursor-in-non-selected-windows nil)
              ,@body))))))
 
 (defun company-coq-setup-temp-coq-buffer ()
@@ -2079,8 +2079,7 @@ Don't even try to call shr; draw the line ourselves."
 
 (defun company-coq--help-hide-docs ()
   "Help the user hide the documentation window."
-  (when (company-coq-prover-available)
-    (message (substitute-command-keys "Use \\<coq-mode-map>\\[coq-Show] to hide the documentation and show the current goal."))))
+  (message (substitute-command-keys "Type \"\\<company-coq--temp-buffer-minor-mode-map>\\[quit-window]\" in help window to restore previous buffer.")))
 
 (defun company-coq-doc-buffer-refman (name-or-anchor &optional center)
   "Prepare a doc buffer for element NAME-OR-ANCHOR.
@@ -2861,7 +2860,7 @@ With prefix ARG, insert an inductive constructor with arguments."
   "Interactively collect a lemma name and hypothesis names."
   (let ((hyps       nil)
         (lemma-name "")
-        (candidates (cons "" (car-safe (company-coq-run-then-parse-context-and-goal "Show")))))
+        (candidates (cons "" (car (company-coq-run-then-parse-context-and-goal "Show")))))
     (while (string-equal lemma-name "")
       (setq lemma-name (read-string "Lemma name? ")))
     (while candidates
@@ -2939,10 +2938,11 @@ MSG must already be normalized."
 
 (defun company-coq-find-closest-errors (msg)
   "Return know errors, sorted by proximity to MSG."
-  (let* ((normalized    (company-coq-normalize-error msg))
-         (intersections (cl-loop for reference in company-coq--refman-error-abbrevs
-                                 collect (company-coq-find-errors-overlap reference normalized))))
-    (sort intersections (lambda (x y) (company-coq->> (car x) (car y)))))) ;; LATER get maximum instead?
+  (when (company-coq-error-message-p msg)
+    (let* ((normalized    (company-coq-normalize-error msg))
+           (intersections (cl-loop for reference in company-coq--refman-error-abbrevs
+                                   collect (company-coq-find-errors-overlap reference normalized))))
+      (sort intersections (lambda (x y) (company-coq->> (car x) (car y))))))) ;; LATER get maximum instead?
 
 (defconst company-coq-error-doc-min-score 0.5
   "Minimum score for two errors to match.
@@ -2961,7 +2961,7 @@ Scores are computed by `company-coq-find-errors-overlap'.")
   "Show documentation for error message in Coq's response, if available."
   (interactive)
   (let* ((err (company-coq-with-current-buffer-maybe proof-response-buffer (buffer-string)))
-         (hit (and err (car-safe (company-coq-find-closest-errors err)))))
+         (hit (and err (car (company-coq-find-closest-errors err)))))
     (company-coq-dbg "Top reference [%s] has score [%s]" (cadr hit) (car hit))
     (cond
      ((null hit)
