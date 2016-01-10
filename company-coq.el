@@ -2038,7 +2038,7 @@ Don't even try to call shr; draw the line ourselves."
     (shr-tag-table cont)))
 
 (defun company-coq-doc-refman-prettify-title (target-point)
-  "Make a pretty title at TARGET-POINT, optionally TRUNCATE -ing everything before."
+  "Make a pretty title at TARGET-POINT."
   (goto-char (or target-point (point-min)))
   (when target-point
     (company-coq-make-title-line 'company-coq-doc-header-face-docs-and-sources nil)
@@ -2067,12 +2067,14 @@ Don't even try to call shr; draw the line ourselves."
 
 (defun company-coq--help-hide-docs ()
   "Help the user hide the documentation window."
-  (message (substitute-command-keys "Use \\<coq-mode-map>\\[coq-Show] to hide the documentation.")))
+  (when (company-coq-prover-available)
+    (message (substitute-command-keys "Use \\<coq-mode-map>\\[coq-Show] to hide the documentation and show the current goal."))))
 
 (defun company-coq-doc-buffer-refman (name-or-anchor &optional center)
-  "Prepare company's doc buffer for element NAME-OR-ANCHOR.
-If NAME, read \\='anchor from it.  Otherwise use as anchor directly.
-With CENTER, center relevant point in window instead of aligning at top."
+  "Prepare a doc buffer for element NAME-OR-ANCHOR.
+If NAME, read \\='anchor from it.  Otherwise use as anchor
+directly.  With CENTER, center relevant point in window instead
+of aligning at top."
   (interactive)
   (company-coq-dbg "company-coq-doc-buffer-refman: Called for %s" name-or-anchor)
   (when (fboundp 'libxml-parse-html-region)
@@ -2085,7 +2087,6 @@ With CENTER, center relevant point in window instead of aligning at top."
           (company-coq-doc-refman-put-html doc-full-path)
           (if center (recenter)
             (set-window-start (selected-window) (point)))
-          (company-coq--help-hide-docs)
           (cons (current-buffer) (point)))))))
 
 (defun company-coq-candidates-symbols (prefix)
@@ -2936,7 +2937,9 @@ Scores are computed by `company-coq-find-errors-overlap'.")
   (interactive)
   (let* ((msg (completing-read "Error message: " company-coq--refman-error-abbrevs nil t))
          (anchor (cdr-safe (assoc msg company-coq--refman-error-abbrevs))))
-    (when anchor (company-coq-doc-buffer-refman anchor t))))
+    (when anchor
+      (company-coq-doc-buffer-refman anchor t)
+      (company-coq--help-hide-docs))))
 
 (defun company-coq-guess-error-message-from-response ()
   "Show documentation for error message in Coq's response, if available."
@@ -2950,8 +2953,8 @@ Scores are computed by `company-coq-find-errors-overlap'.")
      ((< (caar hit) company-coq-error-doc-min-score)
       (error "No documentation found for this error"))
      (t
-      (message "Found error reference [%s]" (cadr hit))
-      (company-coq-doc-buffer-refman (cddr hit) t)))))
+      (company-coq-doc-buffer-refman (cddr hit) t)
+      (company-coq--help-hide-docs)))))
 
 (defun company-coq-document-error (&optional arg)
   "Show documentation for error message in Coq's response, if available.
@@ -3422,7 +3425,7 @@ loading as much as possible."
 
 (defun company-coq--hello ()
   "Show a company-coq–related greeting."
-  (when (and company-coq-mode (not (equal (buffer-name) company-coq--tutorial-buffer-name)))
+  (when (and company-coq-mode (buffer-name) (not (string-match-p "\\` ?\\*" (buffer-name))))
     (message "%s" (substitute-command-keys "Welcome to company-coq! Use \\[company-coq-tutorial] to get started."))))
 
 (company-coq-define-feature hello (arg)
