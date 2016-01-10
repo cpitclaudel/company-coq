@@ -172,6 +172,7 @@ forward-declare; instead, check that the declaration is valid."
   (company-coq-forward-declare-fun proof-unprocessed-begin "ext:proof-script.el")
   (company-coq-forward-declare-fun proof-goto-point "ext:pg-user.el")
   (company-coq-forward-declare-fun coq-mode "ext:coq.el")
+  (company-coq-forward-declare-fun coq-response-mode "ext:coq.el")
   (company-coq-forward-declare-fun coq-insert-match "ext:coq.el")
   (company-coq-forward-declare-fun coq-last-prompt-info-safe "ext:coq.el")
   (company-coq-forward-declare-fun coq-find-comment-start "ext:coq.el")
@@ -1629,6 +1630,12 @@ return the starting point as well."
   "Return symbol at point."
   (car (company-coq-symbol-at-point-with-pos)))
 
+(defun company-coq-symbol-at-point-with-error ()
+  "Return symbol at point, throwing an error if none is found."
+  (-if-let* ((symbol (company-coq-symbol-at-point)))
+      symbol
+    (user-error "No identifier found at point")))
+
 (defun company-coq-trim (str)
   "Trim STR."
   (replace-regexp-in-string "\\` *" "" (replace-regexp-in-string " *\\'" "" str)))
@@ -1680,9 +1687,17 @@ If NAME has an 'anchor text property, returns a help message."
              pg-window)
     (display-buffer buffer)))
 
+(defun company-coq-quit-window (kill)
+  "Call `quit-window' and jump to the proof script buffer.
+KILL: See `quit-window'."
+  (interactive "P")
+  (quit-window kill)
+  (-when-let* ((win (and proof-script-buffer (get-buffer-window proof-script-buffer))))
+    (select-window win)))
+
 (defvar company-coq--temp-buffer-minor-mode-map
   (let ((cc-map (make-sparse-keymap)))
-    (define-key cc-map (kbd "q") #'quit-window)
+    (define-key cc-map (kbd "q") #'company-coq-quit-window)
     cc-map)
   "Keymap for company-coq's temp buffers.")
 
@@ -1710,10 +1725,11 @@ If NAME has an 'anchor text property, returns a help message."
              (setq-local cursor-in-non-selected-windows nil)
              ,@body))))))
 
-(defun company-coq-setup-temp-coq-buffer ()
-  "Change current buffer to Coq mode, and prepare it."
-  (coq-mode)
-  (company-coq-mode)
+(defun company-coq--setup-temp-coq-buffer (mode company-coq-p)
+  "Change current buffer to MODE, and prepare it.
+With COMPANY-COQ-P, enable company-coq-mode."
+  (funcall mode)
+  (when company-coq-p (company-coq-mode))
   (company-coq--temp-buffer-minor-mode)
   (set-buffer-modified-p nil)
   (setq-local buffer-offer-save nil))
@@ -1769,7 +1785,7 @@ Once location of NAME is found look for TARGET in it."
         (company-coq-with-clean-doc-buffer
           (cond (is-buffer (insert-buffer-substring fname-or-buffer))
                 (is-fname  (insert-file-contents fname-or-buffer nil nil nil t)))
-          (company-coq-setup-temp-coq-buffer)
+          (company-coq--setup-temp-coq-buffer #'coq-mode t)
           (cons (current-buffer)
                 (company-coq-align-to (company-coq-search-then-scroll-up target t)))))))
 
@@ -1860,6 +1876,13 @@ FIXME more docs"
              when (string= module candidate)
              thereis (cons (company-coq-get-prop 'location candidate) nil))))
 
+(defun company-coq--maybe-complain-docs-not-found (interactive-p doc-type name)
+  "If INTERACTIVE-P, complain that do DOC-TYPE was found for NAME."
+  (when interactive-p
+    (user-error "No %s found for %s.%s" doc-type name
+                (if (company-coq-prover-available) ""
+                  " Try starting Coq, or waiting for processing to complete."))))
+
 (defun company-coq-locate-internal (name fqn-functions display-fun &optional interactive)
   "Show the definition of NAME in source context.
 Use FQN-FUNCTIONS to guess the fully qualified name of NAME
@@ -1870,10 +1893,7 @@ determined."
   (pcase (company-coq--locate-name name fqn-functions)
     (`(,fname . ,target)
      (funcall display-fun target fname))
-    (_ (when interactive
-         (user-error "No location found for %s.%s"
-                     name (if (company-coq-prover-available) ""
-                            " Try starting Coq, or waiting for processing to complete."))))))
+    (_ (company-coq--maybe-complain-docs-not-found interactive "location" name))))
 
 (defun company-coq-location-source-1 (target location)
   "Show TARGET in LOCATION."
@@ -1931,12 +1951,11 @@ FQN-FUNCTIONS: see `company-coq-locate-internal'."
   (pulse-momentary-highlight-one-line (point) 'next-error))
 
 (defun company-coq-jump-to-definition (name &optional fqn-functions)
-  "Jump to the definition of NAME, using FQN-FUNCTIONS to find it."
-  (interactive (list (company-coq-symbol-at-point) nil))
+  "Jump to the definition of NAME, using FQN-FUNCTIONS to find it.
+Interactively, use the identifier at point."
+  (interactive (list (company-coq-symbol-at-point-with-error) nil))
   (company-coq-error-unless-feature-active 'cross-ref)
-  (unless name
-    (user-error "No identifier found at point"))
-  (unless fqn-functions ;; TODO show a tip about M-.; but where?
+  (unless fqn-functions
     (setq fqn-functions (list #'company-coq--loc-module #'company-coq--loc-tactic
                               #'company-coq--loc-symbol #'company-coq--loc-constructor)))
   (company-coq-locate-internal name fqn-functions #'company-coq-jump-to-definition-1 t))
@@ -1977,21 +1996,22 @@ If no command succeed, do the same with FALLBACKS as TEMPLATES."
                when output collect output)
       (and fallbacks (company-coq-doc-buffer-collect-outputs name fallbacks))))
 
-(defun company-coq-doc-buffer-generic (name cmds)
-  "Prepare a doc buffer for NAME, using CMDS to collect information."
+(defun company-coq-doc-buffer-generic (name cmds &optional interactive)
+  "Prepare a doc buffer for NAME, using CMDS to collect information.
+If INTERACTIVE is non-nil and no help is found, complain loudly."
   (company-coq-dbg "company-coq-doc-buffer-generic: Called for name %s" name)
-  (-when-let* ((chapters (company-coq-doc-buffer-collect-outputs name cmds)))
-    (let* ((fontized-name (propertize name 'font-lock-face 'company-coq-doc-i-face))
-           (doc-tagline   (format company-coq-doc-tagline fontized-name))
-           (doc-body      (mapconcat #'identity chapters company-coq-doc-def-sep))
-           (doc-full      (concat doc-tagline "\n\n" doc-body)))
-      (company-coq-with-clean-doc-buffer
-        (insert doc-full)
-        (when (fboundp 'coq-response-mode)
-          (coq-response-mode))
-        (goto-char (point-min))
-        (company-coq-make-title-line 'company-coq-doc-header-face-about)
-        (current-buffer)))))
+  (-if-let* ((chapters (company-coq-doc-buffer-collect-outputs name cmds)))
+      (let* ((fontized-name (propertize name 'font-lock-face 'company-coq-doc-i-face))
+             (doc-tagline   (format company-coq-doc-tagline fontized-name))
+             (doc-body      (mapconcat #'identity chapters company-coq-doc-def-sep))
+             (doc-full      (concat doc-tagline "\n\n" doc-body)))
+        (company-coq-with-clean-doc-buffer
+          (insert doc-full)
+          (company-coq--setup-temp-coq-buffer #'coq-response-mode nil)
+          (goto-char (point-min))
+          (company-coq-make-title-line 'company-coq-doc-header-face-about)
+          (current-buffer)))
+    (company-coq--maybe-complain-docs-not-found interactive "documentation" name)))
 
 (defun company-coq-doc-buffer-symbol (name)
   "Prepare a company doc buffer for symbol NAME."
@@ -2008,6 +2028,14 @@ If no command succeed, do the same with FALLBACKS as TEMPLATES."
   "Prepare a company doc buffer for tactic NAME."
   (setq name (replace-regexp-in-string " .*" "" name))
   (company-coq-doc-buffer-generic name (list company-coq-tactic-def-cmd)))
+
+(defun company-coq-doc (name cmds)
+  "Show documentation for NAME, using CMDS to build docs.
+Interactively, use the identifier at point."
+  (interactive (list (company-coq-symbol-at-point-with-error)
+                     (list company-coq-doc-cmd company-coq-def-cmd company-coq-tactic-def-cmd)))
+  (when (company-coq-doc-buffer-generic name cmds t)
+    (company-coq--help-hide-docs)))
 
 (defun company-coq-call-compat (func fallback &rest args)
   "Call FUNC, or FALLBACK if FUNC is undefined, on ARGS.
@@ -2079,7 +2107,7 @@ Don't even try to call shr; draw the line ourselves."
 
 (defun company-coq--help-hide-docs ()
   "Help the user hide the documentation window."
-  (message (substitute-command-keys "Type \"\\<company-coq--temp-buffer-minor-mode-map>\\[quit-window]\" in help window to restore previous buffer.")))
+  (message (substitute-command-keys "Type \"\\<company-coq--temp-buffer-minor-mode-map>\\[company-coq-quit-window]\" in help window to restore previous buffer.")))
 
 (defun company-coq-doc-buffer-refman (name-or-anchor &optional center)
   "Prepare a doc buffer for element NAME-OR-ANCHOR.
@@ -2715,6 +2743,7 @@ Do not edit this keymap: instead, edit `company-coq-map'.")
     (define-key cc-map (kbd "C-c C-\\")          #'company-coq-unfold)
     (define-key cc-map (kbd "C-c C-,")          #'company-coq-occur)
     (define-key cc-map (kbd "C-c C-&")          #'company-coq-grep-symbol)
+    (define-key cc-map (kbd "C-c C-d")          #'company-coq-doc)
     (define-key cc-map (kbd "C-<return>")       #'company-manual-begin)
     (define-key cc-map (kbd "C-c C-a C-e")      #'company-coq-document-error)
     (define-key cc-map (kbd "C-c C-a C-x")      #'company-coq-lemma-from-goal)
@@ -2954,8 +2983,8 @@ Scores are computed by `company-coq-find-errors-overlap'.")
   (let* ((msg (completing-read "Error message: " company-coq--refman-error-abbrevs nil t))
          (anchor (cdr-safe (assoc msg company-coq--refman-error-abbrevs))))
     (when anchor
-      (company-coq-doc-buffer-refman anchor t)
-      (company-coq--help-hide-docs))))
+      (when (company-coq-doc-buffer-refman anchor t)
+        (company-coq--help-hide-docs)))))
 
 (defun company-coq-guess-error-message-from-response ()
   "Show documentation for error message in Coq's response, if available."
@@ -2969,8 +2998,8 @@ Scores are computed by `company-coq-find-errors-overlap'.")
      ((< (caar hit) company-coq-error-doc-min-score)
       (error "No documentation found for this error"))
      (t
-      (company-coq-doc-buffer-refman (cddr hit) t)
-      (company-coq--help-hide-docs)))))
+      (when (company-coq-doc-buffer-refman (cddr hit) t)
+        (company-coq--help-hide-docs))))))
 
 (defun company-coq-document-error (&optional arg)
   "Show documentation for error message in Coq's response, if available.
@@ -3158,7 +3187,7 @@ subsequent invocations)."
                          t t)
           (fill-paragraph))
         (goto-char (point-min))
-        (company-coq-setup-temp-coq-buffer)
+        (company-coq--setup-temp-coq-buffer #'coq-mode t)
         (setq-local proof-script-fly-past-comments nil))
       (pop-to-buffer-same-window (current-buffer)))))
 
