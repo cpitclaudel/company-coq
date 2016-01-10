@@ -54,9 +54,14 @@ Proof.
 Qed.
 
 (* How are HintResolve candidates ordered? *)
-
+(* Does jumping to these work?
+plus
+bool
+true
+Require Import NArith.
+ *)
 Require Import String
-        NArith ZArith.                     (* Does multiline completion work? *)
+        NArith ZArith.                     (* Does multiline completion or imports work? *)
 
 (* But not here *)
 
@@ -75,7 +80,9 @@ Proof.
     { apply I. }
   }
 Qed.
+
 Require Import BinPos.
+
 (* Run this:
     (setq company-coq-completion-predicate 'company-coq-not-in-comment-p)
    does completion still happen in comments? plus *)

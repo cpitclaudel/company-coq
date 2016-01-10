@@ -71,6 +71,7 @@
 (require 'shr)          ;; HTML rendering
 (require 'smie)         ;; Move around the source code
 (require 'yasnippet)    ;; Templates
+(require 'pulse)        ;; Pulsing after jumping to definitions
 (unless (require 'alert nil t) ;; Notifications
   (require 'notifications nil t))
 
@@ -441,19 +442,8 @@ The result matches any symbol in HEADERS, followed by BODY."
 (defconst company-coq-modules-cmd "Print LoadPath."
   "Command used to retrieve module path specs (for module name completion).")
 
-(defconst company-coq-locate-symbol-cmd "Locate %s."
-  "Command used to retrieve the qualified name of a symbol (to locate the corresponding source file).")
-
-(defconst company-coq-locate-tactic-cmd "Locate Ltac %s."
-  "Command used to retrieve the qualified name of an Ltac.
-Needed in 8.4, not in 8.5.")
-
-(defconst company-coq-locate-output-format (concat "\\`" (regexp-opt (cons "Constant" company-coq-definitions-kwds)) "\\_> +"
-                                        "\\(" company-coq-symbol-regexp "\\)")
-  "Regexp matching the output of `company-coq-locate-tactic-cmd' and `company-coq-locate-symbol-cmd'.")
-
 (defconst company-coq-locate-lib-cmd "Locate Library %s."
-  "Command used to retrieve the qualified name of a symbol (to locate the corresponding source file).")
+  "Command used to retrieve the qualified name of a library (to locate the corresponding source file).")
 
 (defconst company-coq-locate-lib-output-format "\\`\\(.*\\)\\s-*has\\s-*been\\s-*loaded\\s-*from\\s-*file\\s-*\\(.*\\.vi?o\\)"
   "Regexp matching the output of `company-coq-locate-lib-cmd'.")
@@ -1425,7 +1415,7 @@ MODULE-ATOMS, PATH-ATOMS, PHYSICAL-PATH are as in that function."
 This essentially attempts to match MODULE-ATOMS to the logical
 path in PATH-SPEC, and for each matching position computes a
 search term and a qualifier."
-  (cl-destructuring-bind (logical-path . physical-path) path-spec
+  (pcase-let ((`(,logical-path . ,physical-path) path-spec))
     (let* ((path-atoms   (company-coq-split-logical-path logical-path))
            (completions  (list (company-coq-complete-module-from-atoms module-atoms nil physical-path))))
       (while path-atoms
@@ -1440,9 +1430,9 @@ search term and a qualifier."
   (when module
     (let* ((module-atoms (company-coq-split-logical-path module)))
       (apply #'company-coq-union-sort #'string-equal #'string-lessp
-             (mapcar (apply-partially #'company-coq-complete-module-from-path-spec
-                                      module-atoms)
-                     company-coq-path-specs-cache)))))
+             (-keep (apply-partially #'company-coq-complete-module-from-path-spec
+                                     module-atoms)
+                    company-coq-path-specs-cache)))))
 
 (defun company-coq-shell-output-is-end-of-def ()
   "Check output of the last command against `company-coq-end-of-def-regexp'."
@@ -1626,6 +1616,8 @@ return the starting point as well."
                               (goto-char start)
                               (when (looking-at company-coq-symbol-regexp)
                                 (match-string-no-properties 0))))))
+    ;; Trim dots
+    (setq symbol (replace-regexp-in-string "\\`\\.+\\|\\.+\\'" "" symbol))
     (and symbol (cons symbol start))))
 
 (defun company-coq-symbol-at-point ()
@@ -1709,47 +1701,60 @@ If NAME has an 'anchor text property, returns a help message."
   (set-buffer-modified-p nil)
   (setq-local buffer-offer-save nil))
 
-(defun company-coq-highlight-and-scroll-above-definition-at-pt ()
+(defun company-coq-scroll-above-definition-at-pt ()
   "Highlight the current line and scroll up to for context."
-  (company-coq-make-title-line 'company-coq-doc-header-face-docs-and-sources t)
   (forward-line -2)
   (or (and (coq-looking-at-comment)
            (car (company-coq--get-comment-region)))
       (point)))
 
-(defun company-coq-search-then-scroll-up (target)
-  "Find the definition of TARGET, then return a good point to scroll to.
+(defun company-coq-search-then-scroll-up (target highlight-p)
+  "Find a match for TARGET, then return a good point to scroll to.
 Returns a point before that definition: it can be a few lines
 higher or, if that's inside a comment, at the beginning of the
-comment."
+comment.  If target is nil, go to the top.  If HIGHLIGHT-P is
+non-nil, highlight the definition."
   (save-excursion
-    (cond
-     ((number-or-marker-p target)
-      (goto-char target)
-      (company-coq-highlight-and-scroll-above-definition-at-pt))
-     ((and (stringp target)
-           (goto-char (point-min))
-           (re-search-forward target nil t))
-      (company-coq-highlight-and-scroll-above-definition-at-pt))
-     (t 1))))
+    (if (or (and (number-or-marker-p target)
+                 (goto-char target))
+            (and (stringp target)
+                 (goto-char (point-min))
+                 (re-search-forward target nil t)))
+        (progn (when highlight-p
+                 (company-coq-make-title-line 'company-coq-doc-header-face-docs-and-sources t))
+               (when (and (stringp target) (match-beginning 2))
+                 (goto-char (match-beginning 2)))
+               (cons (point) (company-coq-scroll-above-definition-at-pt)))
+      (cons (point-min) (point-min)))))
 
-(defun company-coq-location-simple (name &optional target interactive)
+(defun company-coq-align-to (point-pos)
+  "Go to (car POINT-POS), and scroll to (cdr POINT-POS).
+Return the cdr of POINT-POS."
+  (goto-char (car point-pos))
+  ;; (when (member (selected-window) (get-buffer-window-list (current-buffer)))
+  (set-window-start (selected-window) (cdr point-pos))
+  (cdr point-pos))
+
+(defun company-coq-recenter-on (point-pos)
+  "Go to (car POINT-POS), and scroll to (car POINT-POS).
+The cdr of POINT-POS is ignored."
+  (goto-char (car point-pos))
+  (recenter))
+
+(defun company-coq-location-simple (name &optional target)
   "Show context of NAME based on its location property.
-Once location of NAME is found look for TARGET in it.  With
-INTERACTIVE, fail loudly if no location is found."
+Once location of NAME is found look for TARGET in it."
   (company-coq-dbg "company-coq-location-simple: Called for name %s" name)
   (let* ((fname-or-buffer (company-coq-get-prop 'location name))
          (is-buffer       (and fname-or-buffer (bufferp fname-or-buffer)))
          (is-fname        (and fname-or-buffer (stringp fname-or-buffer) (file-exists-p fname-or-buffer))))
     (if (or is-buffer is-fname)
         (company-coq-with-clean-doc-buffer
-          (cond (is-buffer (insert-buffer-substring fname-or-buffer))
-                (is-fname  (insert-file-contents fname-or-buffer nil nil nil t)))
-          (company-coq-setup-temp-coq-buffer)
-          (cons (current-buffer)
-                (set-window-start nil (goto-char (company-coq-search-then-scroll-up target)))))
-      (when interactive
-        (error "No location found for %s" name)))))
+         (cond (is-buffer (insert-buffer-substring fname-or-buffer))
+               (is-fname  (insert-file-contents fname-or-buffer nil nil nil t)))
+         (company-coq-setup-temp-coq-buffer)
+         (cons (current-buffer)
+               (company-coq-align-to (company-coq-search-then-scroll-up target t)))))))
 
 (defun company-coq-longest-matching-path-spec (qname)
   "Find the longest logical name matching QNAME.
@@ -1761,20 +1766,6 @@ Returns the corresponding (logical name . real name) pair."
            do      (when (> (length logical) (length (car longest)))
                      (setq longest (cons logical real)))
            finally return longest))
-
-(defun company-coq-fully-qualified-name-1 (name cmd)
-  "Run CMD, formatted with NAME, and look for locate output."
-  (-when-let* ((output (company-coq-ask-prover-swallow-errors (format cmd name))))
-    (save-match-data
-      (when (string-match company-coq-locate-output-format output)
-        (match-string-no-properties 1 output)))))
-
-(defun company-coq-fully-qualified-name (name cmds)
-  "Use CMDS to find the the fully qualified name of NAME.
-Commands in CMDS are issued successively until one of them
-returns proper output."
-  (cl-loop for cmd in cmds
-           thereis (company-coq-fully-qualified-name-1 name cmd)))
 
 (defun company-coq-library-path (lib-path mod-name fallback-spec)
   "Find a .v file likely to hold the definition of (LIB-PATH MOD-NAME).
@@ -1791,62 +1782,145 @@ to a non-existent file (for an example of such a case, try
                           (replace-regexp-in-string "\\.vi?o\\'" ".v" (match-string-no-properties 2 output)))))
           (and fallback-spec (expand-file-name (concat mod-name ".v") (cdr fallback-spec)))))))
 
-(defun company-coq-location-source (name locate-cmds &optional interactive)
+(defun company-coq--locate-name (name functions)
+  "Use FUNCTIONS to find the location of NAME.
+FUNCTIONS are called successively with NAME until one of them
+returns proper output, which must be a cons of a file name or
+buffer, followed by a (possibly empty) regexp used to find NAME
+in that file."
+  (cl-loop for function in functions
+           thereis (funcall function name)))
+
+(defun company-coq--loc-output-regexp (headers)
+  "Create a regexp matching HEADERS followed by a name."
+  (concat "\\`" (regexp-opt headers) "\\_>[\n[:space:]]+" "\\(" company-coq-symbol-regexp "\\)"))
+
+(defun company-coq--loc-fully-qualified-name (fqn)
+  "Find source file for fully qualified name FQN."
+  (let* ((spec       (company-coq-longest-matching-path-spec fqn))
+         (logical    (if spec (concat (car spec) ".") ""))
+         (mod-name   (replace-regexp-in-string "\\..*\\'" "" fqn nil nil nil (length logical))))
+    (company-coq-library-path logical mod-name spec)))
+
+(defun company-coq--fqn-with-regexp (name cmd-format response-headers)
+  "Find qualified name of NAME using CMD-FORMAT and RESPONSE-HEADERS."
+  (-when-let* ((output (company-coq-ask-prover-swallow-errors (format cmd-format name)))
+               (response-format (company-coq--loc-output-regexp response-headers)))
+    (save-match-data
+      (when (string-match response-format output)
+        (match-string-no-properties 1 output)))))
+
+(defun company-coq--loc-with-regexp (name cmd-format response-headers)
+  "Find location of name of NAME using CMD-FORMAT and RESPONSE-HEADERS.
+Returns a cons as specified by `company-coq--locate-name'."
+  (-when-let* ((fqn (company-coq--fqn-with-regexp name cmd-format response-headers))
+               (loc (company-coq--loc-fully-qualified-name fqn))
+               (short-name (replace-regexp-in-string "\\`.*\\." "" fqn)))
+    (cons loc (concat (company-coq-make-headers-regexp response-headers)
+                      "\\s-*\\(" (regexp-quote short-name) "\\)\\_>"))))
+
+(defun company-coq--loc-symbol (symbol)
+  "Find the fully qualified name of SYMBOL."
+  (company-coq--loc-with-regexp symbol "Locate %s." (cons "Constant" company-coq-definitions-kwds)))
+
+(defun company-coq--loc-tactic (tactic)
+  "Find the fully qualified name of TACTIC."
+  (company-coq--loc-with-regexp tactic "Locate Ltac %s." '("Ltac")))
+
+(defun company-coq--loc-constructor (constructor)
+  "Find the fully qualified name of CONSTRUCTOR."
+  ;; First check if CONSTRUCTOR is indeed a constructor?
+  (when (company-coq--fqn-with-regexp constructor "Locate %s." '("Constructor"))
+    ;; Then obtain it's parent type using Print
+    (-when-let* ((parent (company-coq--fqn-with-regexp constructor "Print %s." '("Inductive"))))
+      (company-coq--loc-with-regexp parent "Locate %s." '("Inductive")))))
+
+(defun company-coq--loc-module (module)
+  "Find the fully qualified name of MODULE.
+FIXME more docs"
+  (let ((candidates (company-coq-candidates-modules module)))
+    (cl-loop for candidate in candidates
+             when (string= module candidate)
+             thereis (cons (company-coq-get-prop 'location candidate) nil))))
+
+(defun company-coq-locate-internal (name fqn-functions display-fun &optional interactive)
   "Show the definition of NAME in source context.
-Use LOCATE-CMDS to guess the fully qualified name of NAME.  If
+Use FQN-FUNCTIONS to guess the fully qualified name of NAME
+and its location, then use DISPLAY-FUN to show that name.  If
 INTERACTIVE, complain loudly if the location of NAME cannot be
 determined."
   (company-coq-dbg "company-coq-location-source: Called for [%s]" name)
-  (-if-let* ((qname (company-coq-fully-qualified-name name locate-cmds)))
-      (let* ((spec       (company-coq-longest-matching-path-spec qname))
-             (logical    (if spec (concat (car spec) ".") ""))
-             (short-name (replace-regexp-in-string "\\`.*\\." "" qname))
-             (mod-name   (replace-regexp-in-string "\\..*\\'" "" qname nil nil nil (length logical)))
-             (fname      (company-coq-library-path logical mod-name spec))
-             (target     (concat (company-coq-make-headers-regexp company-coq-named-outline-kwds)
-                                 "\\s-*" (regexp-quote short-name) "\\_>")))
-        (company-coq-location-simple (propertize name 'location fname) target interactive))
-    (when interactive (error "No location found for %s" name))))
+  (pcase (company-coq--locate-name name fqn-functions)
+    (`(,fname . ,target)
+     (funcall display-fun target fname))
+    (_ (when interactive
+         (user-error "No location found for %s.%s"
+                     name (if (company-coq-prover-available) ""
+                            " Try starting Coq, or waiting for processing to complete."))))))
+
+(defun company-coq-location-source-1 (target location)
+  "Show TARGET in LOCATION."
+  (company-coq-location-simple (propertize target 'location location) target))
+
+(defun company-coq-location-source (name fqn-functions)
+  "Show the definition of NAME in source context.
+FQN-FUNCTIONS: see `company-coq-locate-internal'."
+  (company-coq-locate-internal name fqn-functions #'company-coq-location-source-1 nil))
 
 (defvar company-coq-location-history nil
   "Keeps track of manual location queries.")
 
-(defun company-coq-location-interact (dynamic-pool)
-  "Prompt for, and read, a name to find sources for.
-Completion candidates are taken from DYNAMIC-POOL."
-  (let ((completions (apply #'append
-                            (company-coq-collect-local-definitions)
-                            dynamic-pool)))
-    (list (completing-read "Name to find sources for? " completions
-                           (lambda (choice) (not (eq (company-coq-get-prop 'source choice) 'tacn)))
-                           nil nil 'company-coq-location-history (company-coq-symbol-at-point) t)
-          t)))
+(defun company-coq-location-symbol (name)
+  "Prompt for a symbol NAME, and display its definition in context."
+  ;; (interactive (company-coq-location-interact (list company-coq-dynamic-symbols)))
+  (company-coq-location-source name (list #'company-coq--loc-symbol)))
 
-(defun company-coq-location-symbol (name &optional interactive)
-  "Prompt for a symbol NAME, and display its definition in context.
-With INTERACTIVE, complain loundly if the definition can't be
-found."
-  (interactive (company-coq-location-interact (list company-coq-dynamic-symbols)))
-  (company-coq-location-source name (list company-coq-locate-symbol-cmd) interactive))
+(defun company-coq-location-tactic (name)
+  "Prompt for a tactic NAME, and display its definition in context."
+  ;; (interactive (company-coq-location-interact (list company-coq-dynamic-tactics)))
+  (company-coq-location-source (replace-regexp-in-string " .*" "" name) (list #'company-coq--loc-tactic)))
 
-(defun company-coq-location-tactic (name &optional interactive)
-  "Prompt for a tactic NAME, and display its definition in context.
-With INTERACTIVE, complain loundly if the definition can't be
-found."
-  (interactive (company-coq-location-interact (list company-coq-dynamic-tactics)))
-  (setq name (replace-regexp-in-string " .*" "" name))
-  (company-coq-location-source name (list company-coq-locate-tactic-cmd) interactive))
+(defun company-coq-location-local-definition (name)
+  "Display the definition of a local definition NAME in context."
+  (company-coq-location-simple name (company-coq-get-prop 'target name)))
 
-(defun company-coq-location-definition (name &optional interactive)
-  "Prompt for a tactic or symbol NAME, and display its definition in context.
-With INTERACTIVE, complain loudly if the definition can't be
-found."
-  (interactive (company-coq-location-interact (list company-coq-dynamic-symbols company-coq-dynamic-tactics)))
-  (-if-let* ((target (company-coq-get-prop 'target name)))
-      (company-coq-location-simple name target)
-    (company-coq-location-source name (list company-coq-locate-symbol-cmd
-                                 company-coq-locate-tactic-cmd)
-                      interactive)))
+(defun company-coq-location-definition (name)
+  "Prompt for a tactic or symbol NAME, and display its definition in context."
+  ;; (interactive (company-coq-location-interact (list company-coq-dynamic-symbols company-coq-dynamic-tactics)))
+  (company-coq-location-source name (list #'company-coq--loc-symbol #'company-coq--loc-tactic)))
+
+;; (defun company-coq-jump-interact (dynamic-pool)
+;;   "Prompt for, and read, a name to find sources for.
+;; Completion candidates are taken from DYNAMIC-POOL."
+;;   (let ((completions (apply #'append
+;;                             (company-coq-collect-local-definitions)
+;;                             dynamic-pool)))
+;;     (list (completing-read "Name to find sources for? " completions
+;;                            (lambda (choice) (not (eq (company-coq-get-prop 'source choice) 'tacn)))
+;;                            nil nil 'company-coq-location-history (company-coq-symbol-at-point) t)
+;;           t)))
+
+;; TODO jump to module Locate Module
+
+(defun company-coq-jump-to-definition-1 (target location)
+  "Jump to TARGET in LOCATION."
+  (cond
+   ((bufferp location)
+    (switch-to-buffer location))
+   ((and (stringp location) (file-exists-p location))
+    (find-file location))
+   (t (user-error "Not found: %S" location)))
+  (company-coq-recenter-on (company-coq-search-then-scroll-up target nil))
+  (pulse-momentary-highlight-one-line (point) 'next-error))
+
+(defun company-coq-jump-to-definition (name &optional fqn-functions)
+  "Jump to the definition of NAME, using FQN-FUNCTIONS to find it."
+  (interactive (list (company-coq-symbol-at-point) nil))
+  (company-coq-error-unless-feature-active 'cross-ref)
+  (unless fqn-functions ;; TODO show a tip about M-.; but where?
+    (setq fqn-functions (list #'company-coq--loc-module #'company-coq--loc-tactic
+                              #'company-coq--loc-symbol #'company-coq--loc-constructor)))
+  (company-coq-locate-internal name fqn-functions #'company-coq-jump-to-definition-1 t))
 
 (defun company-coq-make-title-line (face &optional skip-space)
   "Format the current line as a title, applying FACE.
@@ -1860,7 +1934,7 @@ With SKIP-SPACE, do not format leading spaces."
 
 (defun company-coq-annotation-snippet (source candidate)
   "Compute company's annotation for snippet CANDIDATE.
-SOURCE identified the backend that produced CANDIDATE."
+SOURCE identifies the backend that produced CANDIDATE."
   (let* ((num-holes (company-coq-get-prop 'num-holes candidate))
          (prefix    (if (company-coq-get-prop 'anchor candidate) "..." ""))) ;; 🕮 📓 …
     (if (and (numberp num-holes) (> num-holes 0))
@@ -2321,7 +2395,7 @@ COMMAND, ARG and IGNORED: see `company-backends'."
     (`no-cache t)
     (`match (company-coq-get-prop 'match-end arg))
     (`annotation "<ldef>")
-    (`location (company-coq-location-definition arg))
+    (`location (company-coq-location-local-definition arg))
     (`doc-buffer (company-coq-doc-buffer-definition arg))
     (`comparison-fun #'company-coq-string-lessp-match-beginning)
     (`require-match 'never)))
@@ -2368,7 +2442,7 @@ COMMAND, ARG and IGNORED: see `company-backends'."
 
 (defun company-coq-generic-refman-backend (db-init-fun backend command &optional arg &rest ignored)
   "Generic `company-mode' backend for documented abbrevs.
-DB-INIT-FUNCTION is a function initializing and returning a
+DB-INIT-FUN is a function initializing and returning a
 database of snippets.  BACKEND is the name of the calling
 backend.  COMMAND, ARG and IGNORED: see `company-backends'."
   (interactive (list 'interactive))
@@ -2630,6 +2704,7 @@ Do not edit this keymap: instead, edit `company-coq-map'.")
     (define-key cc-map (kbd "<backtab>")        #'company-coq-features/code-folding-toggle-current-block)
     (define-key cc-map (kbd "SPC")              #'company-coq-maybe-exit-snippet)
     (define-key cc-map (kbd "RET")              #'company-coq-maybe-exit-snippet)
+    (define-key cc-map (kbd "M-.")              #'company-coq-jump-to-definition)
     (define-key cc-map [remap coq-insert-match] #'company-coq-insert-match-construct)
     (define-key cc-map [remap narrow-to-defun]  #'company-coq-narrow-to-defun)
     cc-map)
@@ -3920,6 +3995,10 @@ Uses alert.el to display a notification when a proof completes."
      (mapc (lambda (hook)
              (remove-hook hook #'company-coq-features/alerts--handle-output))
            company-coq-features/alerts--output-hooks))))
+
+(company-coq-define-feature cross-ref (arg)
+  "Cross references and browsing to definition.
+Let's you jump to the definition of a symbol by pressing M-. on it.")
 
 (company-coq-define-feature company (arg)
   "Context-sensitive completion.
