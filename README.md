@@ -62,7 +62,7 @@ Once auto-completion has started, the following key bindings are available:
 * <kbd>C-g</kbd> interrupts completion.
 * <kbd>C-h</kbd> and <kbd>&lt;f1></kbd> display documentation for the currently highlighted keyword, identifier, or tactic.
 * <kbd>C-M-v</kbd> scrolls down in the documentation window.
-* <kbd>C-w</kbd> opens source view when available.
+* <kbd>C-w</kbd> opens source view when available (alternatively, pressing <kbd>M-.</kbd> browses to the definition of the current word).
 
 Selecting a completion often inserts a snippet with holes at the current point (`company-coq` uses `yasnippet` as the snippet backend). You can move between holes by using <kbd>&lt;tab></kbd> and <kbd>S-&lt;tab></kbd>. Some snippets (like Print Instances) include multiple choices.
 
@@ -110,9 +110,11 @@ Loading `company-coq` also binds the following keys:
 <img src="img/match-goal.gif" alt="Insertion of new match goal rules" />
 <img src="img/smart-intros.gif" alt="Fully explicit intros (smart intros)" />
 
-#### Outlines and code folding
+#### Outlines, code folding, and jumping to definition
 
-<img src="img/outline.png" alt="Outline of Coq source files" /> <img src="img/folding.gif" alt="Code folding" />
+<img src="img/outline.png" alt="Outline of Coq source files" />
+<img src="img/folding.gif" alt="Code folding" />
+<img src="img/crossref.gif" alt="Jumping to source (cross references)" />
 
 #### Help with errors
 

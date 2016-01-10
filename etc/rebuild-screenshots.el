@@ -321,15 +321,20 @@ Goal forall n: nat, exists m, n = m.
         (set-window-buffer nil (current-buffer))
         (kill-local-variable 'mode-line-format)))))
 
-;; Outlines | Code folding
+;; Outlines | Code folding | Go to source
 ;; TODO: outline could be thinner, leaving space for something else (what?)
 
-(my/with-screenshot my/github-width*2/3 18 "west" "Buffer outlines." "outline"
+(my/with-screenshot my/github-width/3 18 "west" "Buffer outlines." "outline"
   (insert-file-contents "/usr/local/lib/coq/theories/Arith/Plus.v")
   (rename-buffer "Plus.v")
   (progn
     (my/send-keys "C-c C-,")
     (toggle-truncate-lines 1)
+    (let ((inhibit-read-only t))
+      (save-excursion
+        (goto-char (point-min))
+        (while (and (forward-line) (not (eobp)))
+          (delete-char 4))))
     (message nil)))
 
 (my/with-screencast my/github-width/3 18 "center" 50 1 "Code folding." "folding"
@@ -363,6 +368,45 @@ Qed.")
   "RET" "RET" "RET"
   "M-<"
   "C-c C-/" "C-c C-/ C-c C-/" "C-c C-\\" "C-c C-\\ C-c C-\\");; HACK due to incorrect last-command
+
+
+(my/with-screencast my/github-width/3 18 "center" 100 0 "Jump to definition (M-.)." "jump-to-definition"
+  (progn (my/insert-with-point "Require Import Coq.Logic.Eqdep_dec.
+Require Import Coq.Arith.Peano_dec.
+
+<|>Proof.
+  exfalso.
+  apply inj_pair2_eq_dec in H; trivial.
+  apply eq_nat_dec.
+Qed.")
+         (recenter-top-bottom 0)
+         (my/send-keys "C-c <C-return>")
+         (proof-shell-wait)
+         (delete-other-windows)
+         (message nil))
+  "C-u 9 C-f"
+  (progn (my/send-keys "M-.")
+         (toggle-truncate-lines t)
+         (message nil)
+         (setq last-command 'my/keep-window))
+  (setq last-command 'my/keep-window)
+  "C-x k"
+  "C-u 17 C-f"
+  (progn (my/send-keys "M-.")
+         (toggle-truncate-lines t)
+         (message nil)
+         (setq last-command 'my/keep-window))
+  (setq last-command 'my/keep-window)
+  "C-x k"
+  "C-u 40 C-f"
+  (progn (my/send-keys "M-.")
+         (toggle-truncate-lines t)
+         (message nil)
+         (setq last-command 'my/keep-window))
+  (setq last-command 'my/keep-window)
+  "C-x k")
+
+;; Snippets | Match snippets | Smart intros
 
 (my/with-screencast my/github-width/3 13 "west" 20 8 "Snippets for match branches (Gallina)." "match-function"
   (:split "Fixpoint nsum l :=") "RET"

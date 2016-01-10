@@ -28,7 +28,8 @@
   (redisplay t))
 
 (defun my/faces-setup ()
-  (setq-default frame-background-mode 'dark)
+  (setq-default frame-background-mode 'dark) ;; For Coq icon
+  (set-face-attribute 'match nil :background "yellow1")
   (set-face-attribute 'default nil :family "Ubuntu Mono" :height 105)
   (set-face-attribute 'mode-line nil :foreground "gray60" :background "black")
   (set-face-attribute 'mode-line-inactive nil :foreground "gray60" :background "#404045")
@@ -115,7 +116,8 @@
      (delete-other-windows)
      (set-frame-size nil (floor (cdr ,frame-w-spec)) (floor (* ,frame-h-columns (frame-char-height))) t)
      (redisplay t)
-     (let ((--buf-- (get-buffer-create (replace-regexp-in-string "\\.?\\'" "." ,buf-name))))
+     (let ((--buf-- (get-buffer-create (replace-regexp-in-string "\\.?\\'" "." ,buf-name)))
+           (--dir-- default-directory))
        (set-buffer --buf--)
        (set-window-buffer nil --buf--)
        (coq-mode)
@@ -124,9 +126,11 @@
          ,@(mapcar (lambda (f) `(progn
                                   (proof-shell-wait)
                                   (set-buffer-modified-p nil)
-                                  (set-window-buffer nil --buf--)
-                                  (set-window-point nil  (point))
-                                  ,f))
+                                  (unless (eq last-command 'my/keep-window)
+                                    (set-window-buffer nil --buf--)
+                                    (set-window-point nil  (point)))
+                                  ,f
+                                  (setq default-directory --dir--)))
                    body)))))
 
 (defmacro my/with-screenshot (frame-w-spec frame-h-columns gravity buf-name capture-prefix &rest body)
@@ -142,7 +146,7 @@
     (pcase prog
       ((pred stringp)
        `((my/send-keys ,prog)))
-      (`(,':split ,(pred stringp))
+      (`(:split ,(pred stringp))
        (mapcar (lambda (c) `(my/send-keys ,(char-to-string c))) (string-to-list (cadr prog))))
       ((pred listp)
        (list prog))
