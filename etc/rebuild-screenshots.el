@@ -220,7 +220,7 @@ myR")
 
 ;; Deprecated | Titles in comments | Inline docs
 
-(my/with-screencast my/github-width/3 13 "west" 60 1 "Inline docs (quick peek)." "inline-docs"
+(my/with-screencast my/github-width/3 13 "west" 60 1 "Inline docs / quick peek (<C-click>)." "inline-docs"
   (progn
     (my/start-pg-no-windows)
     (company-coq-ask-prover "Set Printing Width 40.")
@@ -263,7 +263,7 @@ assert (x := y).")
 
 ;; Error diffs | Documentation of errors
 
-(my/with-screenshot my/github-width/2 16 "west" "Diff of unification errors." "unification"
+(my/with-screenshot my/github-width/2 16 "west" "Diff of unification errors (M-x company-coq-diff-unification-errors)." "unification"
   (my/start-pg-no-windows)
   (my/insert-with-point "Inductive Tree {T} :=
 | Leaf : T -> Tree
@@ -304,7 +304,7 @@ exact pr.")
       (with-selected-window (split-window-vertically 5)
         (set-window-buffer nil "*Diff*")))))
 
-(my/with-screenshot my/github-width/2 16 "east" "Documentation of errors." "errors-doc"
+(my/with-screenshot my/github-width/2 16 "east" "Documentation of errors (C-c C-a C-e)." "errors-doc"
   (my/start-pg-no-windows)
   (my/insert-with-point "Require Import Omega.
 Goal forall n: nat, exists m, n = m.
@@ -324,7 +324,7 @@ Goal forall n: nat, exists m, n = m.
 ;; Outlines | Code folding | Go to source
 ;; TODO: outline could be thinner, leaving space for something else (what?)
 
-(my/with-screenshot my/github-width/3 18 "west" "Buffer outlines." "outline"
+(my/with-screenshot my/github-width/3 18 "west" "Buffer outlines (C-c C-,)." "outline"
   (insert-file-contents "/usr/local/lib/coq/theories/Arith/Plus.v")
   (rename-buffer "Plus.v")
   (progn
@@ -337,7 +337,7 @@ Goal forall n: nat, exists m, n = m.
           (delete-char 4))))
     (message nil)))
 
-(my/with-screencast my/github-width/3 18 "center" 50 1 "Code folding." "folding"
+(my/with-screencast my/github-width/3 18 "center" 50 1 "Code folding (S-tab, C-/)." "folding"
   (my/insert-with-point "<|>Goal forall a b c d e: Prop,
   a -> b -> c -> d -> e ->
   (a /\\ b) /\\ (c /\\ (d /\\ e)).
@@ -368,7 +368,6 @@ Qed.")
   "RET" "RET" "RET"
   "M-<"
   "C-c C-/" "C-c C-/ C-c C-/" "C-c C-\\" "C-c C-\\ C-c C-\\");; HACK due to incorrect last-command
-
 
 (my/with-screencast my/github-width/3 18 "center" 100 0 "Jump to definition (M-.)." "jump-to-definition"
   (progn (my/insert-with-point "Require Import Coq.Logic.Eqdep_dec.
@@ -408,14 +407,14 @@ Qed.")
 
 ;; Snippets | Match snippets | Smart intros
 
-(my/with-screencast my/github-width/3 13 "west" 20 8 "Snippets for match branches (Gallina)." "match-function"
+(my/with-screencast my/github-width/3 13 "west" 20 8 "Snippets for match branches (M-RET)." "match-function"
   (:split "Fixpoint nsum l :=") "RET"
   (:split "miw") "<C-return>" "<C-return> RET"
   (:split "l") "TAB" "<M-return>"
   (:split "[]") "TAB" (:split "0") "TAB <M-return>"
   (:split "h :: t") "TAB" (:split "h + nsum t") "M->" ".")
 
-(my/with-screencast my/github-width/3 13 "center" 20 8 "Snippets for match branches (Ltac)." "match-goal"
+(my/with-screencast my/github-width/3 13 "center" 20 8 "Snippets for match goal rules (M-S-RET)." "match-goal"
   (:split "mgw") "<C-return>" "<C-return> RET"
   "<M-S-return>" "TAB" (:split "?a /\\ ?b") "TAB" (:split "?a") "TAB" "RET"
   (:split "destr") "<C-return>" "<C-return> RET" (:split "H; ass") "<C-return>" "<C-return> RET" "M->" ".")
