@@ -1611,14 +1611,19 @@ all company-coq backends."
 Does not use `coq-id-or-notation-at-point', because we want to
 return the starting point as well."
   (let* ((start  (and (company-coq-looking-back company-coq-prefix-regexp (point-at-bol))
-                      (match-beginning 0)))
-         (symbol (and start (save-excursion
-                              (goto-char start)
-                              (when (looking-at company-coq-symbol-regexp)
-                                (match-string-no-properties 0))))))
+                      (save-excursion
+                        (goto-char (match-beginning 0))
+                        (skip-chars-forward ".")
+                        (point))))
+         (end (and start (save-excursion
+                           (goto-char start)
+                           (when (looking-at company-coq-symbol-regexp)
+                             (goto-char (match-end 0))
+                             (skip-chars-backward ".")
+                             (point))))))
     ;; Trim dots
-    (setq symbol (replace-regexp-in-string "\\`\\.+\\|\\.+\\'" "" symbol))
-    (and symbol (cons symbol start))))
+    (when (and start end (< start end))
+      (cons (buffer-substring-no-properties start end) start))))
 
 (defun company-coq-symbol-at-point ()
   "Return symbol at point."
@@ -1917,6 +1922,8 @@ FQN-FUNCTIONS: see `company-coq-locate-internal'."
   "Jump to the definition of NAME, using FQN-FUNCTIONS to find it."
   (interactive (list (company-coq-symbol-at-point) nil))
   (company-coq-error-unless-feature-active 'cross-ref)
+  (unless name
+    (user-error "No identifier found at point"))
   (unless fqn-functions ;; TODO show a tip about M-.; but where?
     (setq fqn-functions (list #'company-coq--loc-module #'company-coq--loc-tactic
                               #'company-coq--loc-symbol #'company-coq--loc-constructor)))
