@@ -229,7 +229,7 @@ Feel free to share your snippets on company-coq's GitHub!")
 This is an experimental feature.  It requires Coq 8.5 beta 3 or a
 patched version of Coq 8.4 to work properly."
   :group 'company-coq-obsolete)
-(make-obsolete-variable 'company-coq-dynamic-autocompletion 'company-coq-disabled-features "company-coq 1.0")
+(make-obsolete-variable 'company-coq-dynamic-autocompletion 'company-coq-live-on-the-edge "company-coq 1.0")
 
 (defconst company-coq--capability-detection-cmd "Test Search Output Name Only"
   "Command used to test for dynamic completion capabilities.
@@ -1767,11 +1767,11 @@ Once location of NAME is found look for TARGET in it."
          (is-fname        (and fname-or-buffer (stringp fname-or-buffer) (file-exists-p fname-or-buffer))))
     (if (or is-buffer is-fname)
         (company-coq-with-clean-doc-buffer
-         (cond (is-buffer (insert-buffer-substring fname-or-buffer))
-               (is-fname  (insert-file-contents fname-or-buffer nil nil nil t)))
-         (company-coq-setup-temp-coq-buffer)
-         (cons (current-buffer)
-               (company-coq-align-to (company-coq-search-then-scroll-up target t)))))))
+          (cond (is-buffer (insert-buffer-substring fname-or-buffer))
+                (is-fname  (insert-file-contents fname-or-buffer nil nil nil t)))
+          (company-coq-setup-temp-coq-buffer)
+          (cons (current-buffer)
+                (company-coq-align-to (company-coq-search-then-scroll-up target t)))))))
 
 (defun company-coq-longest-matching-path-spec (qname)
   "Find the longest logical name matching QNAME.
@@ -3131,7 +3131,7 @@ subsequent invocations)."
     (company-coq-tactic-initialize-notations-filter)))
 
 (defconst company-coq--tutorial-tty-fonts-message
-  "\n\n    (On TTYs, set `company-coq-features/prettify-symbols-in-terminal' to t to enable prettification.)"
+  "\n\n    (On TTYs, set `company-coq-features/prettify-symbols-in-terminals' to t to enable prettification.)"
   "Message inserted in the tutorial on TTY terminals.")
 
 (defconst company-coq--tutorial-buffer-name
@@ -3266,13 +3266,16 @@ changes."
             (company-coq-toggle-features newly-enabled t))))))
   (set-default symbol value))
 
-(defcustom company-coq-disabled-features '(dynamic-symbols-backend)
+(defcustom company-coq-disabled-features nil
   "List of disabled company-coq features.
 
 The list of all available features is in
 `company-coq-available-features'.  Use
 `company-coq-describe-feature' to get help about one of these
 features.
+
+Some of these features are experimental; use
+`company-coq-live-on-the-edge' to enable them anyhow.
 
 Editing this variable through the customize interface applies
 changes immediately.  From Lisp code, make sure to set this
@@ -3285,6 +3288,12 @@ time a new feature is added."
   :set #'company-coq--set-disabled-features
   :type (company-coq-disabled-features--custom-type))
 
+(defcustom company-coq-live-on-the-edge nil
+  "Whether to enable experimental features of company-coq.
+See also `company-coq-disabled-features'."
+  :group 'company-coq
+  :type 'booleanp)
+
 (defun company-coq--disable-features (cc-features)
   "Disable company-coq features CC-FEATURES.
 That is, deactivate them and add them to the disabled list."
@@ -3292,7 +3301,10 @@ That is, deactivate them and add them to the disabled list."
 
 (defun company-coq-feature-active-p (feature)
   "Check if company-coq feature FEATURE is active."
-  (get (company-coq-feature-toggle-function feature) 'company-coq-feature-active))
+  (let ((toggle-function (company-coq-feature-toggle-function feature)))
+    (and (get toggle-function 'company-coq-feature-active)
+         (or (not (get toggle-function 'company-coq-feature-experimental))
+             company-coq-live-on-the-edge))))
 
 (eval-and-compile
   (defconst company-coq-define-feature-doc-format
@@ -3461,7 +3473,7 @@ types using <C-click> or <menu>."
   (pcase arg
     (`off (company-coq-do-in-coq-buffers (company-coq-clear-definition-overlay)))))
 
-(defcustom company-coq-features/prettify-symbols-in-terminal nil
+(defcustom company-coq-features/prettify-symbols-in-terminals nil
   "If set, set up prettification in TTY frames as well."
   :group 'company-coq)
 
@@ -3475,7 +3487,7 @@ REF-BUFFER is used to retrieve the buffer-local values of
                   (-distinct (append prettify-symbols-alist
                                      company-coq-prettify-symbols-alist
                                      company-coq-local-symbols)))))
-  (when (and (or (display-graphic-p) company-coq-features/prettify-symbols-in-terminal)
+  (when (and (or (display-graphic-p) company-coq-features/prettify-symbols-in-terminals)
              (fboundp #'prettify-symbols-mode))
     (company-coq-suppress-warnings (prettify-symbols-mode))))
 
@@ -4171,16 +4183,21 @@ Autocompletes tactics and notations by querying the prover."
 
 (company-coq-define-feature dynamic-symbols-backend (arg)
   "Completion of global definitions [experiental, slow].
-Autocompletes theorem names by querying the prover."
+Autocompletes theorem names by querying the prover.
+Use `company-coq-live-on-the-edge' to enable this feature."
   (pcase arg
     (`on (company-coq-add-backend #'company-coq-dynamic-symbols-backend))
     (`off (company-coq-remove-backend #'company-coq-dynamic-symbols-backend))))
+
+(eval-and-compile
+  (put (company-coq-feature-toggle-function 'dynamic-symbols-backend)
+       'company-coq-feature-experimental t))
 
 (defun company-coq-warn-obsolete-setting (setting)
   "Warn about the use of obsolete setting SETTING."
   ;; LATER: start issuing warnings for outdated customizations
   (unless t
-    (company-coq-warn "Option %S is obsolete. Customize `company-coq-disabled-features' instead." setting)))
+    (company-coq-warn "Option %S is obsolete. Customize `company-coq-disabled-features' and `company-coq-live-on-the-edge' instead." setting)))
 
 (company-coq-define-feature obsolete-settings (arg)
   "Obsolete settings support (from versions before 1.0).
@@ -4209,8 +4226,7 @@ company-coq."
          (add-to-list 'company-coq-disabled-features 'prettify-symbols))
        (when company-coq-dynamic-autocompletion
          (push 'company-coq-dynamic-autocompletion used-obsolete-settings)
-         (cl-loop for feature in '(dynamic-symbols-backend)
-                  do (setq company-coq-disabled-features (remove feature company-coq-disabled-features))))
+         (setq company-coq-live-on-the-edge t))
        (dolist (setting used-obsolete-settings)
          (company-coq-warn-obsolete-setting setting))))))
 
