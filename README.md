@@ -62,7 +62,7 @@ Once auto-completion has started, the following key bindings are available:
 * <kbd>C-g</kbd> interrupts completion.
 * <kbd>C-h</kbd> and <kbd>&lt;f1></kbd> display documentation for the currently highlighted keyword, identifier, or tactic.
 * <kbd>C-M-v</kbd> scrolls down in the documentation window.
-* <kbd>C-w</kbd> opens source view when available (alternatively, pressing <kbd>M-.</kbd> browses to the definition of the current word).
+* <kbd>C-w</kbd> opens source view when available (alternatively, pressing <kbd>M-.</kbd> browses to the definition of the identifier at point).
 
 Selecting a completion often inserts a snippet with holes at the current point (`company-coq` uses `yasnippet` as the snippet backend). You can move between holes by using <kbd>&lt;tab></kbd> and <kbd>S-&lt;tab></kbd>. Some snippets (like Print Instances) include multiple choices.
 
@@ -72,7 +72,7 @@ Loading `company-coq` also binds the following keys:
 * <kbd>M-S-RET</kbd> inserts a new `match goal` rule (`| [ H: _ |- _ ] => _`).
 * <kbd>C-c C-a C-x</kbd> extracts the current goal into a separate lemma.
 * <kbd>C-c C-a C-e</kbd> tries to match the last output to a documented error message, and displays the relevant section of the manual if it finds one.
-* <kbd>C-down-mouse-1</kbd> (i.e. <kbd>C-click</kbd>) shows an inline quick help box for the symbol under point. The box disappears when the mouse is released. Pressing the <kbd>&lt;menu></kbd> key also works.
+* <kbd>C-down-mouse-1</kbd> (i.e. <kbd>C-click</kbd>) shows an inline quick help box for the identifier under point. The box disappears when the mouse is released. Pressing the <kbd>&lt;menu></kbd> key also works.
 * <kbd>C-c C-,</kbd> opens an outline of the code in a separate buffer (using `occur`).
 * <kbd>C-c C-/</kbd> folds the current code block, or all blocs in the file if repeated.
 * <kbd>C-c C-\\</kbd> unfolds the current code block, or all blocs in the file if repeated.
@@ -114,7 +114,7 @@ Loading `company-coq` also binds the following keys:
 
 <img src="img/outline.png" alt="Outline of Coq source files" />
 <img src="img/folding.gif" alt="Code folding" />
-<img src="img/crossref.gif" alt="Jumping to source (cross references)" />
+<img src="img/jump-to-definition.gif" alt="Jumping to definition (cross references)" />
 
 #### Help with errors
 
