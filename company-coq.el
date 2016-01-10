@@ -2435,7 +2435,6 @@ backend.  COMMAND, ARG and IGNORED: see `company-backends'."
     (`no-cache t)
     (`match (company-coq-get-prop 'match-end arg))
     (`post-completion (company-coq-post-completion-snippet arg))
-    (`pre-render arg)
     (`require-match 'never)))
 
 (defun company-coq-user-snippets-backend (command &optional arg &rest ignored)
@@ -2632,6 +2631,7 @@ because it makes it easier to enable or disable backends."
     (`sorted t) ;; Prevent company from re-sorting results
     (`no-cache t)
     (`require-match 'never)
+    (`pre-render arg) ;; Show fontified candidates
     (_ (when (stringp arg)
          (-if-let* ((backend (company-coq-get-prop 'company-coq-original-backend arg)))
              (apply backend command (cons arg ignored))
