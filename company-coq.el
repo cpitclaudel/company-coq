@@ -1680,6 +1680,17 @@ If NAME has an 'anchor text property, returns a help message."
              pg-window)
     (display-buffer buffer)))
 
+(defvar company-coq--temp-buffer-minor-mode-map
+  (let ((cc-map (make-sparse-keymap)))
+    (define-key cc-map (kbd "q") #'quit-window)
+    cc-map)
+  "Keymap for company-coq's temp buffers.")
+
+(define-minor-mode company-coq--temp-buffer-minor-mode
+  "Makes it easy to close a temp Coq buffer."
+  :lighter nil
+  :keymap company-coq--temp-buffer-minor-mode-map)
+
 (defmacro company-coq-with-clean-doc-buffer (&rest body)
   "Run BODY in a clean documentation buffer."
   (declare (indent defun)
@@ -1690,10 +1701,10 @@ If NAME has an 'anchor text property, returns a help message."
        (with-selected-window (company-coq-display-in-pg-window doc-buffer)
          (with-current-buffer doc-buffer
            (let ((inhibit-read-only t))
-             (help-mode)
              (erase-buffer)
              (remove-overlays)
              (buffer-disable-undo)
+             (company-coq--temp-buffer-minor-mode)
              (visual-line-mode 1)
              (setq-local show-trailing-whitespace nil)
              (setq-local cursor-type nil)
@@ -1703,6 +1714,7 @@ If NAME has an 'anchor text property, returns a help message."
   "Change current buffer to Coq mode, and prepare it."
   (coq-mode)
   (company-coq-mode)
+  (company-coq--temp-buffer-minor-mode)
   (set-buffer-modified-p nil)
   (setq-local buffer-offer-save nil))
 
