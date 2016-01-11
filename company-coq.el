@@ -2628,23 +2628,29 @@ order."
   (setq-local company-coq-enabled-backends (company-coq-sort-according-to-reference
                                  backends company-coq-sorted-backends)))
 
-(defun company-coq-put-exact-matches-on-top (sorted-candidates)
+(defun company-coq-put-exact-matches-on-top (prefix sorted-candidates)
   "Return a copy of SORTED-CANDIDATES with all exact matches at the front."
   (let ((exact-matches nil)
-        (partial-matches nil))
+        (plain-matches nil)
+        (fuzzy-matches nil)
+        (prefix-length (length prefix)))
     (dolist (candidate sorted-candidates)
-      (if (and (eq (company-coq-get-prop 'match-beginning candidate) 0)
-               (eq (company-coq-get-prop 'match-end candidate) (length candidate)))
-          (push candidate exact-matches)
-        (push candidate partial-matches)))
-    (if exact-matches
-        (append (nreverse exact-matches)
-                (nreverse partial-matches))
-      sorted-candidates)))
+      (cond
+       ((string= prefix candidate)
+        (push candidate exact-matches))
+       ((and (eq (company-coq-get-prop 'match-beginning candidate) 0)
+             (eq (company-coq-get-prop 'match-end candidate) prefix-length))
+        (push candidate plain-matches))
+       (t
+        (push candidate fuzzy-matches))))
+    (append (nreverse exact-matches)
+            (nreverse plain-matches)
+            (nreverse fuzzy-matches))))
 
 (defun company-coq-candidates-master (prefix)
   "Compute all company-coq candidates for PREFIX."
   (company-coq-put-exact-matches-on-top
+   prefix
    (cl-loop for backend in company-coq-enabled-backends
             nconc (company-coq-tagged-candidates backend prefix))))
 
