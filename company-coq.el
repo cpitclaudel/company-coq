@@ -751,8 +751,10 @@ goals and response windows."
     str))
 
 (defun company-coq-ask-prover-swallow-errors (question)
-  "Call `company-coq-ask-prover' with QUESTION, swallowing errors."
-  (company-coq-unless-error (company-coq-ask-prover question)))
+  "Call `company-coq-ask-prover' with QUESTION, swallowing errors.
+Since the caller seems to be ok with this erroring out, we add
+seize the opportunity and wrap this in [Timeout 1]."
+  (company-coq-unless-error (company-coq-ask-prover (format "Timeout 1 %s" question))))
 
 (defun company-coq-split-lines (str &optional omit-nulls)
   "Split lines of STR.
@@ -1809,7 +1811,7 @@ to a non-existent file (for an example of such a case, try
   (if (and (equal lib-path "") (equal mod-name "Top"))
       (current-buffer)
     (let* ((lib-name (concat lib-path mod-name))
-           (output   (company-coq-ask-prover (format company-coq-locate-lib-cmd lib-name))))
+           (output   (company-coq-ask-prover-swallow-errors (format company-coq-locate-lib-cmd lib-name))))
       (or (and output (save-match-data
                         (when (string-match company-coq-locate-lib-output-format output)
                           (replace-regexp-in-string "\\.vi?o\\'" ".v" (match-string-no-properties 2 output)))))
