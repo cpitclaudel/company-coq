@@ -40,6 +40,8 @@ Definition PrettySymbols : (nat -> nat -> Prop) :=
 
 (* Does constructor sort before constructor @{num}? What about intuition? *)
 
+Definition SLD := False.
+(* Type SLD RET here. Does this add a newline after introducing SLD? *)
 
 Definition bullets: True \/ (True \/ True) -> True.
 Proof.

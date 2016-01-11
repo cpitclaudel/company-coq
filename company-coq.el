@@ -2269,7 +2269,8 @@ Before calling INSERT-FUN, delete BEG .. END."
     (-if-let* ((insert-fun (company-coq-get-prop 'insert-fun candidate)))
         (company-coq-call-insert-fun insert-fun beg end)
       (-when-let* ((snippet (company-coq-get-snippet candidate)))
-        (yas-expand-snippet snippet beg end)))))
+        (yas-expand-snippet snippet beg end))))
+  t) ;; Return t to prevent neline insertion from kicking in
 
 (defun company-coq-goto-occurence (&optional _event)
   "Close occur buffer and go to position at point."
@@ -2564,14 +2565,16 @@ COMMAND, ARG and IGNORED: see `company-backends'."
 COMMAND, ARG and IGNORED: see `company-backends'.
 
 This is mostly useful to prevent completion from kicking in
-instead of inserting a newline, after e.g. typing [with]."
+instead of inserting a newline, after e.g. typing [with].  The
+insertion of the actual newline is taken care of by the master
+backend; this backend merely ensures that the candidates are
+there to begin with."
   (interactive (list 'interactive))
   (company-coq-dbg "reserved keywords backend: called with command %s" command)
   (pcase command
     (`interactive (company-begin-backend 'company-coq-reserved-keywords-backend))
     (`prefix (company-coq-prefix-at-point))
     (`candidates (company-coq-candidates-reserved arg))
-    (`post-completion (call-interactively #'newline))
     (`annotation "<reserved>")
     (`sorted nil)
     (`duplicates nil)
@@ -2645,6 +2648,29 @@ order."
    (cl-loop for backend in company-coq-enabled-backends
             nconc (company-coq-tagged-candidates backend prefix))))
 
+(defun company-coq-delegate-to-backend (command arg)
+  "Pass COMMAND ARG IGNORED to the backend that ARG came from."
+  (when (stringp arg)
+    (-if-let* ((backend (company-coq-get-prop 'company-coq-original-backend arg)))
+        (funcall backend command arg)
+      ;; `pre-render (for annotations) is the only case where candidates may
+      ;; appear without a -backend tag, and that case is handled by
+      ;; `company-coq-master-backend' already
+      (cl-assert nil))))
+
+(defun company-coq-post-completion-master (arg)
+  "Try post-completing ARG.
+If the backend that produced ARG returns nil after
+post-completing, insert a newline.  This heuristic ensures that
+when users press RET after typing the top completion in full,
+that completion a newline will be inserted.
+Note that this only happens if the `company-defaults' feature
+is enabled."
+  (unless (company-coq-delegate-to-backend 'post-completion arg)
+    (when (and (string= arg company-prefix)
+               (company-coq-feature-active-p 'company-defaults))
+      (call-interactively #'newline))))
+
 (defun company-coq-master-backend (command &optional arg &rest ignored)
   "The master company-coq backend, merging results of other backends.
 COMMAND, ARG and IGNORED: see `company-backends'.
@@ -2663,11 +2689,8 @@ because it makes it easier to enable or disable backends."
     (`no-cache t)
     (`require-match 'never)
     (`pre-render arg) ;; Show fontified candidates
-    (_ (when (stringp arg)
-         (-if-let* ((backend (company-coq-get-prop 'company-coq-original-backend arg)))
-             (apply backend command (cons arg ignored))
-           ;; Only annotations may appear without a -backend tag
-           (cl-assert (and (eq command 'pre-render) (car ignored))))))))
+    (`post-completion (company-coq-post-completion-master arg))
+    (_ (company-coq-delegate-to-backend command arg))))
 
 (defvar company-coq-choices-list nil)
 (defvar company-coq-saved-idle-delay nil)
