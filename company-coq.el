@@ -3534,10 +3534,7 @@ Do not disable this feature"
      (company-coq--init-pg)
      (yas-minor-mode)
      (company-coq--record-selected-window)
-     (company-coq--listen-for-input #'company-coq--record-selected-window)
-     (company-coq--listen-for-output #'company-coq--record-selected-window)
-     (add-hook 'proof-state-change-hook #'company-coq--record-selected-window)
-     (add-hook 'buffer-list-update-hook #'company-coq--record-selected-window)
+     (add-hook 'post-command-hook #'company-coq--record-selected-window)
      (add-hook 'proof-shell-init-hook #'company-coq-prover-init)
      (add-hook 'proof-state-change-hook #'company-coq-state-change)
      (add-hook 'proof-shell-insert-hook #'company-coq-maybe-proof-input-reload-things)
@@ -3546,10 +3543,7 @@ Do not disable this feature"
      (add-hook 'yas-after-exit-snippet-hook #'company-coq-forget-choices))
     (`off
      (yas-minor-mode -1)
-     (company-coq--unlisten-for-input #'company-coq--record-selected-window)
-     (company-coq--unlisten-for-output #'company-coq--record-selected-window)
-     (remove-hook 'proof-state-change-hook #'company-coq--record-selected-window)
-     (remove-hook 'buffer-list-update-hook #'company-coq--record-selected-window)
+     (remove-hook 'post-command-hook #'company-coq--record-selected-window)
      (remove-hook 'proof-shell-init-hook #'company-coq-prover-init)
      (remove-hook 'proof-state-change-hook #'company-coq-state-change)
      (remove-hook 'proof-shell-insert-hook #'company-coq-maybe-proof-input-reload-things)
@@ -4406,7 +4400,7 @@ window every time it changes."
 
 (defun company-coq--lighter-string ()
   "Compute a string to display in the modeline."
-  (let* ((selected-p (eq (get-buffer-window) company-coq--selected-window))
+  (let* ((selected-p (eq (selected-window) company-coq--selected-window))
          (mode-line-face (if selected-p 'mode-line 'mode-line-inactive))
          (mode-line-height (face-attribute 'mode-line :height nil 'default))
          (mode-line-background (face-attribute mode-line-face :background nil 'default))
