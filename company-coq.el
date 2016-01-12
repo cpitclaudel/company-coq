@@ -1729,22 +1729,25 @@ KILL: See `quit-window'."
            (debug body))
   `(progn
      (company-coq-dbg "company-prepare-doc-buffer: Called")
-     (let ((doc-buffer (get-buffer-create company-coq--doc-buffer)))
-       (with-selected-window (company-coq-display-in-pg-window doc-buffer)
-         (with-current-buffer doc-buffer
-           (let ((inhibit-read-only t))
-             (erase-buffer)
-             (remove-overlays)
-             (prog1 (progn ,@body)
-               (visual-line-mode 1)
-               (buffer-disable-undo)
-               (company-coq--keybindings-minor-mode)
-               (company-coq--temp-buffer-minor-mode)
-               (set-buffer-modified-p nil)
-               (kill-local-variable 'kill-buffer-hook)
-               (setq-local buffer-offer-save nil)
-               (setq-local show-trailing-whitespace nil)
-               (setq-local cursor-in-non-selected-windows nil))))))))
+     (prog1
+         (let ((doc-buffer (get-buffer-create company-coq--doc-buffer)))
+           (with-selected-window (company-coq-display-in-pg-window doc-buffer)
+             (with-current-buffer doc-buffer
+               (let ((inhibit-read-only t))
+                 (erase-buffer)
+                 (remove-overlays)
+                 (fundamental-mode)
+                 (prog1 (progn ,@body)
+                   (visual-line-mode)
+                   (buffer-disable-undo)
+                   (company-coq--keybindings-minor-mode)
+                   (company-coq--temp-buffer-minor-mode)
+                   (set-buffer-modified-p nil)
+                   (kill-local-variable 'kill-buffer-hook)
+                   (setq-local buffer-offer-save nil)
+                   (setq-local show-trailing-whitespace nil)
+                   (setq-local cursor-in-non-selected-windows nil))))))
+       (company-coq--record-selected-window))))
 
 (defun company-coq-scroll-above-definition-at-pt ()
   "Highlight the current line and scroll up to for context."
@@ -1776,8 +1779,11 @@ non-nil, highlight the definition."
   "Go to (car POINT-POS), and scroll to (cdr POINT-POS).
 Return the cdr of POINT-POS."
   (goto-char (car point-pos))
-  ;; (when (member (selected-window) (get-buffer-window-list (current-buffer)))
-  (set-window-start (selected-window) (cdr point-pos))
+  (set-window-start (selected-window)
+                    (save-excursion
+                      ;; set-window-start needs pt at bol
+                      (goto-char (cdr point-pos))
+                      (point-at-bol)))
   (cdr point-pos))
 
 (defun company-coq-recenter-on (point-pos)
@@ -2137,6 +2143,7 @@ of aligning at top."
       (when doc-full-path
         (company-coq-with-clean-doc-buffer
           (company-coq-doc-refman-put-html doc-full-path)
+          (beginning-of-line) ;; set-window-start needs point at bol
           (if center (recenter)
             (set-window-start (selected-window) (point)))
           (cons (current-buffer) (point)))))))
@@ -4188,7 +4195,7 @@ Configures `company-mode' for use with Coq."
   (pcase arg
     (`on
      (company-coq-do-in-coq-buffers
-       (company-mode 1)
+       (company-mode)
        (make-local-variable 'company-backends)
        (push #'company-coq-master-backend company-backends)
        (push #'company-coq-choices-backend company-backends)))
