@@ -84,8 +84,8 @@ class TextPattern:
                      (r'([\(\{\[]) +', r'\1'),      # Spurious spaces after opening brackets
                      (r' +([\)\}\]])', r'\1'),      # Spurious spaces before closing brackets
                      (r'\.\.\.', '…'),              # Ellipses
-                     (ID_PAT + "[′’]", r"@{\1'}"),  # Primes in identifiers (two types!)
-                     ("‘‘", '"'), ("’’", '"')]]     # Unicode quotes
+                     ("‘‘", '"'), ("’’", '"'),      # `` and '' in texttt
+                     (ID_PAT + "[′’]", r"@{\1'}")]] # Primes in identifiers (two types!)
 
     ALT_RE    = re.compile(r'\[\?\<\<([^\[\]]+)\>\>\?\]')
     OPTION_RE = re.compile(r'^(Set|Unset|Test) ')
