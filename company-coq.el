@@ -1726,21 +1726,16 @@ KILL: See `quit-window'."
            (let ((inhibit-read-only t))
              (erase-buffer)
              (remove-overlays)
-             (buffer-disable-undo)
-             (company-coq--temp-buffer-minor-mode)
-             (visual-line-mode 1)
-             (setq-local show-trailing-whitespace nil)
-             (setq-local cursor-in-non-selected-windows nil)
-             ,@body))))))
-
-(defun company-coq--setup-temp-coq-buffer (mode company-coq-p)
-  "Change current buffer to MODE, and prepare it.
-With COMPANY-COQ-P, enable company-coq-mode."
-  (funcall mode)
-  (when company-coq-p (company-coq-mode))
-  (company-coq--temp-buffer-minor-mode)
-  (set-buffer-modified-p nil)
-  (setq-local buffer-offer-save nil))
+             (prog1 (progn ,@body)
+               (visual-line-mode 1)
+               (buffer-disable-undo)
+               (company-coq--keybindings-minor-mode)
+               (company-coq--temp-buffer-minor-mode)
+               (set-buffer-modified-p nil)
+               (kill-local-variable 'kill-buffer-hook)
+               (setq-local buffer-offer-save nil)
+               (setq-local show-trailing-whitespace nil)
+               (setq-local cursor-in-non-selected-windows nil))))))))
 
 (defun company-coq-scroll-above-definition-at-pt ()
   "Highlight the current line and scroll up to for context."
@@ -1793,7 +1788,8 @@ Once location of NAME is found look for TARGET in it."
         (company-coq-with-clean-doc-buffer
           (cond (is-buffer (insert-buffer-substring fname-or-buffer))
                 (is-fname  (insert-file-contents fname-or-buffer nil nil nil t)))
-          (company-coq--setup-temp-coq-buffer #'coq-mode t)
+          (coq-mode)
+          (company-coq-mode)
           (cons (current-buffer)
                 (company-coq-align-to (company-coq-search-then-scroll-up target t)))))))
 
@@ -2015,7 +2011,7 @@ If INTERACTIVE is non-nil and no help is found, complain loudly."
              (doc-full      (concat doc-tagline "\n\n" doc-body)))
         (company-coq-with-clean-doc-buffer
           (insert doc-full)
-          (company-coq--setup-temp-coq-buffer #'coq-response-mode nil)
+          (coq-response-mode)
           (goto-char (point-min))
           (company-coq-make-title-line 'company-coq-doc-header-face-about)
           (current-buffer)))
@@ -3224,7 +3220,8 @@ subsequent invocations)."
                          t t)
           (fill-paragraph))
         (goto-char (point-min))
-        (company-coq--setup-temp-coq-buffer #'coq-mode t)
+        (coq-mode)
+        (company-coq-mode)
         (setq-local proof-script-fly-past-comments nil))
       (pop-to-buffer-same-window (current-buffer)))))
 
