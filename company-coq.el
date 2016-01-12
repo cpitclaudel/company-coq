@@ -168,6 +168,7 @@ forward-declare; instead, check that the declaration is valid."
     "\\(^\\|^  \\|^    \\|[^^ ] ?  \\)\\(\\(?:[^\n :(),=]\\|, \\)+ *\\(?::[ \n]\\|,$\\)\\)")
   (company-coq-forward-declare-fun proof-shell-invisible-command "ext:proof-shell.el" cmd)
   (company-coq-forward-declare-fun proof-shell-available-p "ext:proof-shell.el")
+  (company-coq-forward-declare-fun proof-shell-live-buffer "ext:proof-shell.el")
   (company-coq-forward-declare-fun proof-shell-ready-prover "ext:proof-shell.el")
   (company-coq-forward-declare-fun proof-unprocessed-begin "ext:proof-script.el")
   (company-coq-forward-declare-fun proof-goto-point "ext:pg-user.el")
@@ -721,7 +722,7 @@ infinite loop (they are not cleared by [generalize dependent]).")
 This function attemps to preserve the offsets of the
 goals and response windows."
   (when question
-    (if (company-coq-prover-available)
+    (if (company-coq-prover-available-p)
         (progn
           (setq company-coq-talking-to-prover t)
           (unwind-protect
@@ -898,10 +899,15 @@ Returns a cons of what remains"
   (unless (string-equal path "<>")
     (split-string path "\\.")))
 
-(defun company-coq-prover-available ()
+(defun company-coq-prover-available-p ()
   "Return non-nil if the prover is available."
   (and (not company-coq-talking-to-prover)
        (proof-shell-available-p)))
+
+(defun company-coq-prover-busy-p ()
+  "Return non-nil if the prover is started and busy."
+  (and (proof-shell-live-buffer)
+       (not (company-coq-prover-available-p))))
 
 (defun company-coq-reload-db (db init-fun track-symbol needs-prover force)
   "Initialize DB using INIT-FUN if needed (or FORCE'd).
@@ -909,7 +915,7 @@ If NEEDS-PROVER is non-nil, ensure that the prover is available
 before reloading.  If TRACK-SYMBOL is non-nil, use it to track
 whether the database is up-to-date."
   (company-coq-dbg "company-coq-reload-db: Initializing %S (currently has %s elems)" db (length (symbol-value db)))
-  (unless (and needs-prover (not (company-coq-prover-available)))
+  (unless (and needs-prover (not (company-coq-prover-available-p)))
     (let ((non-nil (symbol-value db))
           (non-stale (or (null track-symbol) (not (symbol-value track-symbol)))))
       (unless (and non-nil non-stale (not force))
@@ -1473,7 +1479,7 @@ search term and a qualifier."
   (company-coq-dbg "company-coq-maybe-reload-each: [%s] [%s]"
         company-coq-symbols-reload-needed
         company-coq-modules-reload-needed)
-  (when (company-coq-prover-available)
+  (when (company-coq-prover-available-p)
     (company-coq-detect-capabilities)
     (company-coq-init-tactics)
     (company-coq-init-symbols)
@@ -1882,7 +1888,7 @@ FIXME more docs"
   "If INTERACTIVE-P, complain that do DOC-TYPE was found for NAME."
   (when interactive-p
     (user-error "No %s found for %s.%s" doc-type name
-                (if (company-coq-prover-available) ""
+                (if (company-coq-prover-available-p) ""
                   " Try starting Coq, or waiting for processing to complete."))))
 
 (defun company-coq-locate-internal (name fqn-functions display-fun &optional interactive)
@@ -2256,7 +2262,7 @@ Which conversion function to use is determined from SOURCE."
 Before calling INSERT-FUN, delete BEG .. END."
   (delete-region beg end)
   (condition-case-unless-debug err
-      (if (company-coq-prover-available)
+      (if (company-coq-prover-available-p)
           (funcall insert-fun)
         (user-error "Please ensure that the prover is started and idle before using smart completions"))
     (error (if (eq (car err) 'user-error)
@@ -3189,7 +3195,7 @@ starts.  It does basic capability detection and records known
 tactic notations (thus ensuring that they are ignored in
 subsequent invocations)."
   (setq company-coq--coqtop-patched-p 'unknown)
-  (when (proof-shell-available-p)
+  (when (company-coq-prover-available-p)
     (company-coq-dbg "Doing early capability detection and filter initialization")
     (company-coq-detect-capabilities)
     (company-coq-tactic-initialize-notations-filter)))
@@ -4008,7 +4014,7 @@ If non-nil, alerts are not displayed.")
   "Show a notification if the prover is waiting for input."
   (when (and company-coq-features/alerts--last-interaction
              (not company-coq-features/alerts--has-focus)
-             (proof-shell-available-p)
+             (company-coq-prover-available-p)
              (cl-every #'null proof-action-list)
              (> (company-coq-features/alerts--time-since-last-interaction)
                 company-coq-features/alerts-long-running-task-threshold))
