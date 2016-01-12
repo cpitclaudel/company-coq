@@ -3492,13 +3492,42 @@ loading as much as possible."
   (require 'coq-indent)   ;; `coq-looking-at-comment'
   (require 'coq))         ;; `coq-insert-match'
 
+
+(defconst company-coq--input-hooks '(proof-assert-command-hook)
+  "Hooks that denote user input.")
+
+(defun company-coq--listen-for-input (handler)
+  "Register HANDLER to be called when input is sent to the prover."
+  (mapc (lambda (hook) (add-hook hook handler)) company-coq--input-hooks))
+
+(defun company-coq--unlisten-for-input (handler)
+  "Unregister HANDLER to be called when input is sent to the prover."
+  (mapc (lambda (hook) (add-hook hook handler)) company-coq--input-hooks))
+
+(defconst company-coq--output-hooks '(proof-shell-handle-delayed-output-hook
+                           proof-shell-handle-error-or-interrupt-hook)
+  "Hooks that denote prover output.")
+
+(defun company-coq--listen-for-output (handler)
+  "Register HANDLER to be called when output is sent by the prover."
+  (mapc (lambda (hook) (add-hook hook handler)) company-coq--output-hooks))
+
+(defun company-coq--unlisten-for-output (handler)
+  "Unregister HANDLER to be called when output is sent by the prover."
+  (mapc (lambda (hook) (add-hook hook handler)) company-coq--output-hooks))
+
 (company-coq-define-feature core (arg)
   "Core components.
-(do not disable this feature)"
+Do not disable this feature"
   (pcase arg
     (`on
      (company-coq--init-pg)
      (yas-minor-mode)
+     (company-coq--record-selected-window)
+     (company-coq--listen-for-input #'company-coq--record-selected-window)
+     (company-coq--listen-for-output #'company-coq--record-selected-window)
+     (add-hook 'proof-state-change-hook #'company-coq--record-selected-window)
+     (add-hook 'buffer-list-update-hook #'company-coq--record-selected-window)
      (add-hook 'proof-shell-init-hook #'company-coq-prover-init)
      (add-hook 'proof-state-change-hook #'company-coq-state-change)
      (add-hook 'proof-shell-insert-hook #'company-coq-maybe-proof-input-reload-things)
@@ -3507,6 +3536,10 @@ loading as much as possible."
      (add-hook 'yas-after-exit-snippet-hook #'company-coq-forget-choices))
     (`off
      (yas-minor-mode -1)
+     (company-coq--unlisten-for-input #'company-coq--record-selected-window)
+     (company-coq--unlisten-for-output #'company-coq--record-selected-window)
+     (remove-hook 'proof-state-change-hook #'company-coq--record-selected-window)
+     (remove-hook 'buffer-list-update-hook #'company-coq--record-selected-window)
      (remove-hook 'proof-shell-init-hook #'company-coq-prover-init)
      (remove-hook 'proof-state-change-hook #'company-coq-state-change)
      (remove-hook 'proof-shell-insert-hook #'company-coq-maybe-proof-input-reload-things)
@@ -4036,12 +4069,14 @@ If non-nil, alerts are not displayed.")
          (_      proof-shell-last-response-output))
        "")))
 
-(defun company-coq--icon ()
-  "Return the path to the icon of company-coq."
-  (let ((path (expand-file-name
-               (if (eq frame-background-mode 'dark)
-                   "rooster.png" "rooster-shadow.png")
-               company-coq-refman-path)))
+(defun company-coq--icon (&optional rotation)
+  "Return the path to the icon of company-coq.
+If ROTATION is non-nil, return the path to a rotated copy."
+  (let ((path (expand-file-name (format (if (eq frame-background-mode 'dark)
+                                            "icons/rooster-dark-%d.png"
+                                          "icons/rooster-light-%d.png")
+                                        (or rotation 0))
+                                company-coq-refman-path)))
     (and (file-exists-p path) path)))
 
 (defun company-coq-features/alerts--alert ()
@@ -4067,13 +4102,6 @@ If non-nil, alerts are not displayed.")
          :title title
          :app-icon (or (company-coq--icon) (bound-and-true-p notifications-application-icon))))))))
 
-(defconst company-coq-features/alerts--input-hooks '(proof-assert-command-hook)
-  "Hooks that denote user input.")
-
-(defconst company-coq-features/alerts--output-hooks '(proof-shell-handle-delayed-output-hook
-                                           proof-shell-handle-error-or-interrupt-hook)
-  "Hooks that denote prover output.")
-
 (company-coq-define-feature alerts (arg)
   "Notifications for completion of long-running proofs.
 Uses alert.el to display a notification when a proof completes."
@@ -4081,21 +4109,69 @@ Uses alert.el to display a notification when a proof completes."
     (`on
      (add-hook 'focus-in-hook #'company-coq-features/alerts--focus-in)
      (add-hook 'focus-out-hook #'company-coq-features/alerts--focus-out)
-     (mapc (lambda (hook)
-             (add-hook hook #'company-coq-features/alerts--handle-input))
-           company-coq-features/alerts--input-hooks)
-     (mapc (lambda (hook)
-             (add-hook hook #'company-coq-features/alerts--handle-output))
-           company-coq-features/alerts--output-hooks))
+     (company-coq--listen-for-input #'company-coq-features/alerts--handle-input)
+     (company-coq--listen-for-output #'company-coq-features/alerts--handle-output))
     (`off
      (remove-hook 'focus-in-hook #'company-coq-features/alerts--focus-in)
      (remove-hook 'focus-out-hook #'company-coq-features/alerts--focus-out)
-     (mapc (lambda (hook)
-             (remove-hook hook #'company-coq-features/alerts--handle-input))
-           company-coq-features/alerts--input-hooks)
-     (mapc (lambda (hook)
-             (remove-hook hook #'company-coq-features/alerts--handle-output))
-           company-coq-features/alerts--output-hooks))))
+     (company-coq--unlisten-for-input #'company-coq-features/alerts--handle-input)
+     (company-coq--unlisten-for-output #'company-coq-features/alerts--handle-output))))
+
+(defvar company-coq-features/spinner--rotation 0
+  "Current orientation, in degrees, of the modeline spinner.
+May be negative; in that case, it should be considered null.")
+
+(defvar company-coq-features/spinner--rotation-step 30
+  "Amplitude of an individual rotation of the modeline spinner.")
+
+(defvar company-coq-features/spinner--initial-rotation -360
+  "Initial orientation of the modeline spinner.
+Anything below 0 causes the spinner to wait for a small while
+before actually spinning.")
+
+(defvar company-coq-features/spinner--token nil
+  "Cancellation token for the current spinner timer.")
+
+(defvar company-coq-features/spinner-delay 0.05
+  "Delay, in seconds, between two refreshes of the modeline spinner.")
+
+(defun company-coq-features/spinner--maybe-stop (&optional force)
+  "Stop spinning, if necessary or FORCE'd."
+  (when company-coq-features/spinner--token
+    (unless (and (company-coq-feature-active-p 'spinner)
+                 (company-coq-prover-busy-p)
+                 (not force))
+      (cancel-timer company-coq-features/spinner--token)
+      (setq company-coq-features/spinner--token nil))))
+
+(defun company-coq-features/spinner--spin ()
+  "Update the rotation of the modeline spinner.
+If the prover is idle, stop spinning after completing a full
+rotation."
+  (cl-incf company-coq-features/spinner--rotation company-coq-features/spinner--rotation-step)
+  (when (>= company-coq-features/spinner--rotation 360)
+    (setq company-coq-features/spinner--rotation 0))
+  (when (= company-coq-features/spinner--rotation 0)
+    (company-coq-features/spinner--maybe-stop))
+  (company-coq-do-in-coq-buffers (force-mode-line-update)))
+
+(defun company-coq-features/spinner--start ()
+  "Start spinning the modeline icon."
+  (when (and (company-coq-feature-active-p 'spinner) (not company-coq-features/spinner--token))
+    (setq company-coq-features/spinner--rotation company-coq-features/spinner--initial-rotation)
+    (setq company-coq-features/spinner--token (run-with-timer 0 company-coq-features/spinner-delay
+                                                   #'company-coq-features/spinner--spin))))
+
+(company-coq-define-feature spinner (arg)
+  "Context-sensitive completion.
+Configures `company-mode' for use with Coq."
+  (pcase arg
+    (`on
+     (company-coq-features/spinner--start)
+     (company-coq--listen-for-input #'company-coq-features/spinner--start))
+    ('off
+     (company-coq-features/spinner--maybe-stop t)
+     (company-coq--unlisten-for-input #'company-coq-features/spinner--start))))
 
 (company-coq-define-feature cross-ref (arg)
   "Cross references and browsing to definition.
@@ -4302,19 +4378,40 @@ company-coq."
   (cl-remove-if (lambda (b) (member b company-coq-disabled-features))
                 (mapcar #'car company-coq-available-features)))
 
-(defvar company-coq--lighter-var
-  '(:eval (let* ((mode-line-background (face-attribute 'mode-line :background nil 'default))
-                 (mode-line-height (face-attribute 'mode-line :height nil 'default))
-                 (display-spec `(image :type imagemagick ;; Image file from emojione
-                                       :file ,(company-coq--icon) ;; rooster
-                                       :ascent center
-                                       :mask heuristic
-                                       :height ,(ceiling (* 0.14 mode-line-height))
-                                       ;; Inherit bg explicitly
-                                       :background ,mode-line-background)))
-            (list " " (apply #'propertize "company-🐤"
-                             (when (company-coq--icon) ;; 🐤 🐣 🐓 🐔
-                               (list 'display display-spec))))))
+(defvar company-coq--selected-window nil
+  "Tracks the currently selected window.")
+
+(defun company-coq--record-selected-window ()
+  "Save selected window.
+There is no way to access the selected window from
+`company-coq--lighter-string', as it is always called with the
+current window selected.  Instead, we simply save the selected
+window every time it changes."
+  (unless (eq (selected-window) (minibuffer-window))
+    (setq company-coq--selected-window (selected-window))))
+
+(defun company-coq--ligther-image ()
+  "Compute the match to the modeline icon."
+  (company-coq--icon (max company-coq-features/spinner--rotation 0)))
+
+(defun company-coq--lighter-string ()
+  "Compute a string to display in the modeline."
+  (let* ((selected-p (eq (get-buffer-window) company-coq--selected-window))
+         (mode-line-face (if selected-p 'mode-line 'mode-line-inactive))
+         (mode-line-height (face-attribute 'mode-line :height nil 'default))
+         (mode-line-background (face-attribute mode-line-face :background nil 'default))
+         (display-spec `(image :type imagemagick ;; Image file from emojione
+                               :file ,(company-coq--ligther-image) ;; rooster
+                               :ascent center
+                               :mask heuristic
+                               :height ,(ceiling (* 0.14 mode-line-height))
+                               :background ,mode-line-background))) ;; Inherit bg explicitly
+    (apply #'propertize "company-🐤" ;; 🐤 🐣 🐓 🐔
+           (when (company-coq--icon)
+             (list 'display display-spec)))))
+
+(defvar company-coq--lighter-var ;; See https://emacs.stackexchange.com/questions/18945/can-i-use-an-image-in-my-modeline-lighter
+  '(:eval (list " " (company-coq--lighter-string)))
   "Lighter var for `company-coq-mode'.
 Must be tagged risky to display properly.")
 
