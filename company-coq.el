@@ -825,14 +825,13 @@ Optionally adds an ELLIPSIS at the end."
       (forward-line 1))))
 
 (defun company-coq-insert-spacer (pos)
-  "Insert a thing horizontal line at POS."
+  "Insert a thin horizontal line at POS."
   (save-excursion
     (goto-char pos)
     (let* ((from  (point))
            (to    (progn (insert "\n") (point)))
            (color (or (face-attribute 'highlight :background) "black")))
-      (when (fboundp 'add-face-text-property)
-        (company-coq-suppress-warnings (add-face-text-property from to `(:height 1 :background ,color)))))))
+      (add-text-properties from to `(face (:height 1 :background ,color))))))
 
 (defun company-coq-get-header (str)
   "Extract contents of STR, until the first blank line."
@@ -2804,7 +2803,7 @@ Do not edit this keymap: instead, edit `company-coq-map'.")
     (define-key cc-map (kbd "<M-S-return>")     #'company-coq-insert-match-rule-complex)
     (define-key cc-map (kbd "<C-down-mouse-1>") #'company-coq-show-definition-overlay-under-pointer)
     (define-key cc-map (kbd "<C-mouse-1>")      #'company-coq-clear-definition-overlay)
-    (define-key cc-map (kbd "<menu>")           #'company-coq-show-definition-overlay)
+    (define-key cc-map (kbd "<menu>")           #'company-coq-toggle-definition-overlay)
     (define-key cc-map (kbd "<backtab>")        #'company-coq-features/code-folding-toggle-current-block)
     (define-key cc-map (kbd "SPC")              #'company-coq-maybe-exit-snippet)
     (define-key cc-map (kbd "RET")              #'company-coq-maybe-exit-snippet)
@@ -3114,6 +3113,11 @@ Useful for debugging tactics in versions of Coq prior to 8.5: use
     (company-coq--fontify-buffer-with ref-buffer)
     (buffer-string)))
 
+(defface company-coq-inline-docs-face
+  '((t :inherit region))
+  "Default face for inline docs."
+  :group 'company-coq-faces)
+
 (defun company-coq--prepare-for-definition-overlay (strs offset &optional max-lines)
   "Prepare STRS for display as an inline documentation string.
 Return value is a string that includes properties surrounding it
@@ -3171,13 +3175,14 @@ to show at most MAX-LINES."
   (unless (company-coq-feature-active-p cc-feature)
     (user-error "The `%s' feature is disabled" cc-feature)))
 
-(defun company-coq-show-definition-overlay ()
+(defun company-coq-toggle-definition-overlay ()
   "Toggle inline docs for symbol at point."
   (interactive)
   (company-coq-error-unless-feature-active 'inline-docs)
   (if company-coq-definition-overlay
       (company-coq-clear-definition-overlay)
-    (company-coq--show-definition-overlay-at-point)))
+    (company-coq--show-definition-overlay-at-point)
+    (message (substitute-command-keys "Press \\[company-coq-toggle-definition-overlay] again to hide the inline docs."))))
 
 (defun company-coq-show-definition-overlay-under-pointer (event)
   "Show inline definition for symbol under pointer.
@@ -3512,7 +3517,8 @@ loading as much as possible."
   (require 'coq))         ;; `coq-insert-match'
 
 
-(defconst company-coq--input-hooks '(proof-assert-command-hook)
+(defconst company-coq--input-hooks '(proof-assert-command-hook 
+				     proof-shell-insert-hook)
   "Hooks that denote user input.")
 
 (defun company-coq--listen-for-input (handler)
@@ -4170,6 +4176,7 @@ rotation."
 
 (defun company-coq-features/spinner--start ()
   "Start spinning the modeline icon."
+  (company-coq-dbg "company-coq-features/spinner--start called")
   (when (and (company-coq-feature-active-p 'spinner) (not company-coq-features/spinner--token))
     (setq company-coq-features/spinner--rotation company-coq-features/spinner--initial-rotation)
     (setq company-coq-features/spinner--token (run-with-timer 0 company-coq-features/spinner-delay
