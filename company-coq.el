@@ -4154,12 +4154,11 @@ before actually spinning.")
 (defvar company-coq-features/spinner-delay 0.05
   "Delay, in seconds, between two refreshes of the modeline spinner.")
 
-(defun company-coq-features/spinner--maybe-stop (&optional force)
-  "Stop spinning, if necessary or FORCE'd."
+(defun company-coq-features/spinner--maybe-stop ()
+  "Stop spinning if necessary."
   (when company-coq-features/spinner--token
     (unless (and (company-coq-feature-active-p 'spinner)
-                 (company-coq-prover-busy-p)
-                 (not force))
+                 (company-coq-prover-busy-p))
       (cancel-timer company-coq-features/spinner--token)
       (setq company-coq-features/spinner--token nil))))
 
@@ -4190,7 +4189,6 @@ Spins the modeline icon when Coq is busy."
      (company-coq-features/spinner--start)
      (company-coq--listen-for-input #'company-coq-features/spinner--start))
     (`off
-     (company-coq-features/spinner--maybe-stop t)
      (company-coq--unlisten-for-input #'company-coq-features/spinner--start))))
 
 (company-coq-define-feature cross-ref (arg)
