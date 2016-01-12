@@ -623,7 +623,7 @@ infinite loop (they are not cleared by [generalize dependent]).")
   "Construct and cache a regexp matching Coq's reserved keywords."
   (or company-coq--reserved-keywords-regexp
       (setq company-coq--reserved-keywords-regexp
-            (regexp-opt (append coq-reserved '("Set" "Prop" "Type"))))))
+            (concat "^" (regexp-opt (append coq-reserved '("Set" "Prop" "Type"))) "$"))))
 
 (defconst company-coq--doc-buffer "*company-coq: documentation*"
   "Name to give to company-coq documentation buffers.")
@@ -2189,8 +2189,9 @@ returning it if it matches PREFIX."
 (defun company-coq-candidates-reserved (prefix)
   "Find reserved keywords matching PREFIX."
   (interactive)
-  (when (string-match-p (company-coq--reserved-keywords-regexp) prefix)
-    (list prefix)))
+  (let ((case-fold-search nil))
+    (when (string-match-p (company-coq--reserved-keywords-regexp) prefix)
+      (list prefix))))
 
 (defun company-coq-parse-search-results ()
   "Extract and store symbols from the prover's output.
