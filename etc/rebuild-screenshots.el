@@ -234,16 +234,16 @@ myR")
 (my/with-screenshot my/github-width/3 13 "center" "Special comments for titles." "titles"
   (insert "(***    H1 title    ***)
 
-(*+     H2 title in a     +*)
-(*+ slightly smaller font +*)
+\(*+     H2 title in a     +*)
+\(*+ slightly smaller font +*)
 
-(*!  H3 title for remarks !*)
+\(*!  H3 title for remarks !*)
 
-(** *  Coqdoc title       **)
-(** ** Coqdoc subtitle    **)
-(** Documentation comment **)
+\(** *  Coqdoc title       **)
+\(** ** Coqdoc subtitle    **)
+\(** Documentation comment **)
 
-(* Regular comment *)")
+\(* Regular comment *)")
   (my/send-keys "M-<")
   (while (re-search-forward "\n\n" nil t)
     (let ((ov (make-overlay (match-beginning 0) (match-end 0))))
