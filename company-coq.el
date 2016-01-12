@@ -2643,7 +2643,8 @@ order."
                                  backends company-coq-sorted-backends)))
 
 (defun company-coq-put-exact-matches-on-top (prefix sorted-candidates)
-  "Return a copy of SORTED-CANDIDATES with all exact matches at the front."
+  "Return a copy of SORTED-CANDIDATES with all exact matches at the front
+PREFIX is the prefix that led to this completion session."
   (let ((exact-matches nil)
         (plain-matches nil)
         (fuzzy-matches nil)
