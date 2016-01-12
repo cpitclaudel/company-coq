@@ -112,40 +112,41 @@
 (eval-and-compile
   (defvar company-coq--check-forward-declarations nil
     "Whether incorrect `company-coq--forward-declare' forms should throw errors.
-This is useful for debugging, mostly."))
+This is useful for debugging, mostly.")
 
-(defmacro company-coq-forward-declare-var (var &optional value)
-  "Forward-declare VAR.
-If `company-coq--check-forward-declarations' is set, do not
-forward-declare; instead, check that the declaration is valid.
-If VALUE is non-nil, assign it to the variable if it isn't
-declared, and (when `company-coq--check-forward-declarations' is
-set) throw if it is declared and set to a different value."
-  (declare (indent defun))
-  `(progn
-     (when company-coq--check-forward-declarations
-       (unless (or (boundp ',var) ,value)
-         (error "Variable %S isn't declared" ',var))
-       (when (and (boundp ',var) ,value (not (equal (symbol-value ',var) ,value)))
-         (error "Variable %S is declared to %S, but fallback is set to %S" ',var (symbol-value ',var) ,value)))
-     (when (and (not (boundp ',var)) ,value)
-       (defvar ,var ,value))
-     (defvar ,var)))
+  (defun company-coq-forward-declare-var--verify (var value)
+    "Check that the forward declaration of SYMBOL with VALUE is legitimate."
+    (when company-coq--check-forward-declarations
+      (unless (or (boundp var) value)
+        (warn "Variable %S isn't declared" var))
+      (when (and (boundp var) value (not (equal (symbol-value var) value)))
+        (warn "Variable %S is declared to %S, but fallback is set to %S" var (symbol-value var) value))))
 
-(defmacro company-coq-forward-declare-fun (fun &rest args)
-  "Forward-declare FUN with ARGS.
+  (defmacro company-coq-forward-declare-var (var &optional value)
+    "Forward-declare VAR.
+If `company-coq--check-forward-declarations', check that the declaration is valid.
+If VALUE is non-nil, assign it to the variable."
+    (declare (indent defun))
+    `(progn
+       (company-coq-forward-declare-var--verify ',var ,value)
+       (if ,value
+           (defvar ,var ,value)
+         (defvar ,var))))
+
+  (defun company-coq-forward-declare-fun--verify (fun)
+    "Check that the forward declaration of FUN is legitimate."
+    (when (and company-coq--check-forward-declarations (not (fboundp fun)))
+      (warn "Function %S isn't declared" fun)))
+
+  (defmacro company-coq-forward-declare-fun (fun &rest args)
+    "Forward-declare FUN with ARGS.
 If `company-coq--check-forward-declarations' is set, do not
 forward-declare; instead, check that the declaration is valid."
-  (declare (indent defun))
-  `(progn
-     (when (and company-coq--check-forward-declarations (not (fboundp ',fun)))
-       (error "Function %S isn't declared" ',fun))
-     (declare-function ,fun ,@args)))
+    (declare (indent defun))
+    `(progn
+       (company-coq-forward-declare-fun--verify ',fun)
+       (declare-function ,fun ,@args)))
 
-;; Compatibility shims for PG
-;; Explicitly loading PG is a huge mess, so instead of trying that just expect
-;; hope that the user will have loaded it independently of this package.
-(eval-and-compile
   (company-coq-forward-declare-var proof-goals-buffer)
   (company-coq-forward-declare-var proof-script-buffer)
   (company-coq-forward-declare-var proof-response-buffer)
