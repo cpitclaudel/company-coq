@@ -15,7 +15,7 @@ clean: clean-elc clean-package clean-sandbox
 test: elc
 	$(EMACS) --debug-init -L . -l company-coq tests.v
 
-baretest: clean-sandbox package
+baretest: elc
 	$(CASK) exec $(EMACS) -Q \
 		-L $(PG_GENERIC_ROOT) -l proof-site -L . $(COMPANY_COQ_ARGS) tests.v
 

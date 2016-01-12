@@ -616,6 +616,15 @@ infinite loop (they are not cleared by [generalize dependent]).")
                                  "\\)")
   "Regexp matching all deprecated forms.")
 
+(defvar company-coq--reserved-keywords-regexp nil
+  "Regexp matching Coq's reserved keywords.")
+
+(defun company-coq--reserved-keywords-regexp ()
+  "Construct and cache a regexp matching Coq's reserved keywords."
+  (or company-coq--reserved-keywords-regexp
+      (setq company-coq--reserved-keywords-regexp
+            (regexp-opt (append coq-reserved '("Set" "Prop" "Type"))))))
+
 (defconst company-coq--doc-buffer "*company-coq: documentation*"
   "Name to give to company-coq documentation buffers.")
 
@@ -2180,7 +2189,7 @@ returning it if it matches PREFIX."
 (defun company-coq-candidates-reserved (prefix)
   "Find reserved keywords matching PREFIX."
   (interactive)
-  (when (member prefix coq-reserved)
+  (when (string-match-p (company-coq--reserved-keywords-regexp) prefix)
     (list prefix)))
 
 (defun company-coq-parse-search-results ()
