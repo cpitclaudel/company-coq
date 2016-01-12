@@ -4183,8 +4183,8 @@ rotation."
                                                    #'company-coq-features/spinner--spin))))
 
 (company-coq-define-feature spinner (arg)
-  "Context-sensitive completion.
-Configures `company-mode' for use with Coq."
+  "Busy spinner.
+Spins the modeline icon when Coq is busy."
   (pcase arg
     (`on
      (company-coq-features/spinner--start)
@@ -4195,7 +4195,7 @@ Configures `company-mode' for use with Coq."
 
 (company-coq-define-feature cross-ref (arg)
   "Cross references and browsing to definition.
-Let's you jump to the definition of a symbol by pressing M-. on it.")
+Lets you jump to the definition of a symbol by pressing M-. on it.")
 
 (company-coq-define-feature company (arg)
   "Context-sensitive completion.
