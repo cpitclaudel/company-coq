@@ -4173,7 +4173,7 @@ Configures `company-mode' for use with Coq."
     (`on
      (company-coq-features/spinner--start)
      (company-coq--listen-for-input #'company-coq-features/spinner--start))
-    ('off
+    (`off
      (company-coq-features/spinner--maybe-stop t)
      (company-coq--unlisten-for-input #'company-coq-features/spinner--start))))
 
