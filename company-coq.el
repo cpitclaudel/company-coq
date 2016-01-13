@@ -1327,7 +1327,7 @@ With IGNORE-CASE, search case-insensitive."
 (defun company-coq-complete-sub-re (prefix candidates)
   "Find fuzzy candidates for PREFIX in CANDIDATES."
   (let* ((chars (string-to-list prefix)) ;; The regexp says: skip stuff before beginning a new word, or skip nothing
-         (re    (concat "\\`\\W*" (mapconcat (lambda (c) (regexp-quote (char-to-string c))) chars "\\(\\|.+?\\_<\\)")))
+         (re    (concat "\\`\\W*" (mapconcat (lambda (c) (regexp-quote (char-to-string c))) chars "\\(?:\\|\\(?:.\\|\n\\)+?\\_<\\)")))
          (case-fold-search nil))
     (save-match-data
       (cl-loop for     candidate
