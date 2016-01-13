@@ -4161,38 +4161,39 @@ May be negative; in that case, it should be considered null.")
 Anything below 0 causes the spinner to wait for a small while
 before actually spinning.")
 
-(defvar company-coq-features/spinner--token nil
-  "Cancellation token for the current spinner timer.")
+(defvar company-coq-features/spinner--spinning nil
+  "Whether the modeline icon is currently spinning.")
 
 (defvar company-coq-features/spinner-delay 0.05
   "Delay, in seconds, between two refreshes of the modeline spinner.")
 
 (defun company-coq-features/spinner--maybe-stop ()
   "Stop spinning if necessary."
-  (when company-coq-features/spinner--token
-    (unless (and (company-coq-feature-active-p 'spinner)
-                 (company-coq-prover-busy-p))
-      (cancel-timer company-coq-features/spinner--token)
-      (setq company-coq-features/spinner--token nil))))
+  (unless (and (company-coq-prover-busy-p) (company-coq-feature-active-p 'spinner))
+    (cancel-function-timers #'company-coq-features/spinner--spin)
+    (setq company-coq-features/spinner--spinning nil)))
 
 (defun company-coq-features/spinner--spin ()
   "Update the rotation of the modeline spinner.
 If the prover is idle, stop spinning after completing a full
 rotation."
-  (cl-incf company-coq-features/spinner--rotation company-coq-features/spinner--rotation-step)
-  (when (>= company-coq-features/spinner--rotation 360)
-    (setq company-coq-features/spinner--rotation 0))
-  (when (= company-coq-features/spinner--rotation 0)
-    (company-coq-features/spinner--maybe-stop))
+  (cl-assert (or company-coq-features/spinner--spinning (= company-coq-features/spinner--rotation 0)))
+  (when company-coq-features/spinner--spinning
+    (cl-incf company-coq-features/spinner--rotation company-coq-features/spinner--rotation-step)
+    (when (>= company-coq-features/spinner--rotation 360)
+      (setq company-coq-features/spinner--rotation 0))
+    (when (= company-coq-features/spinner--rotation 0)
+      (company-coq-features/spinner--maybe-stop)))
   (company-coq-do-in-coq-buffers (force-mode-line-update)))
 
 (defun company-coq-features/spinner--start ()
   "Start spinning the modeline icon."
   (company-coq-dbg "company-coq-features/spinner--start called")
-  (when (and (company-coq-feature-active-p 'spinner) (not company-coq-features/spinner--token))
+  (company-coq-error-unless-feature-active 'spinner)
+  (unless company-coq-features/spinner--spinning
+    (setq company-coq-features/spinner--spinning t)
     (setq company-coq-features/spinner--rotation company-coq-features/spinner--initial-rotation)
-    (setq company-coq-features/spinner--token (run-with-timer 0 company-coq-features/spinner-delay
-                                                   #'company-coq-features/spinner--spin))))
+    (run-with-timer 0 company-coq-features/spinner-delay #'company-coq-features/spinner--spin)))
 
 (company-coq-define-feature spinner (arg)
   "Busy spinner.
