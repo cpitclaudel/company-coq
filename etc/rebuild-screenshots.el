@@ -71,7 +71,8 @@
                            (set-face-attribute 'company-coq-comment-h1-face nil :height 1.5)
                            (set-face-attribute 'company-coq-comment-h2-face nil :height 1.3)
                            (set-face-attribute 'company-coq-comment-h3-face nil :height 1.2)
-                           (company-coq-mode)))
+                           (company-coq-mode)
+                           (setq company-idle-delay 0)))
 
 (defvar my/github-width/3   '(0.3333 . 275))
 (defvar my/github-width/2   '(0.5    . 420))
