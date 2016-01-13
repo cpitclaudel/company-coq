@@ -4284,7 +4284,7 @@ Complete FROM into TO."
          (cache-sym (intern (format "company-coq--refman-%s-abbrevs-cache" name)))
          (init-sym (intern (format "company-coq--init-refman-%s-abbrevs-cache" name)))
          (backend-sym (intern (format "company-coq-refman-%s-abbrevs-backend" name)))
-         (feature-sym (intern (format "refman-%s-abbrevs" name))))
+         (feature-sym (intern (format "refman-%s-abbrevs-backend" name))))
     `(progn
        (defvar ,cache-sym nil
          ,(format "Cache of parsed Coq %s abbrevs taken from the RefMan." name))

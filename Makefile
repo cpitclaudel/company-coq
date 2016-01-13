@@ -12,17 +12,17 @@ all: elc package
 
 clean: clean-elc clean-package clean-sandbox
 
-test: elc
+sandbox: elc
 	$(EMACS) --debug-init -L . $(COMPANY_COQ_ARGS) tests.v
 
 emacs24:
 	$(eval EMACS := /usr/bin/emacs24)
 
-baretest: elc
+test: elc
 	$(CASK) exec $(EMACS) -Q \
 		-L $(PG_GENERIC_ROOT) -l proof-site -L . $(COMPANY_COQ_ARGS) tests.v
 
-baretest-old-pg: elc
+test-old-pg: elc
 	$(CASK) exec $(EMACS) -Q \
 		-L $(OLD_PG_GENERIC_ROOT) -l proof-site -L . $(COMPANY_COQ_ARGS) tests.v
 
@@ -50,9 +50,6 @@ screenshots: elc
 
 install: package
 	$(EMACS) --eval "(package-install-file $(PKG))"
-
-clean-sandbox:
-	rm -rf $(SANDBOX)
 
 etc: clean-etc
 	env --unset COQPATH make -j8 -C $(TAGGED_REFMAN_ROOT) doc-html
