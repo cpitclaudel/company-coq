@@ -3456,9 +3456,14 @@ Defining a feature adds it to `company-coq-available-features'."
 (defvar company-coq--refontification-requested nil
   "Whether a refontification is needed, due to feature changes.")
 
+(defvar-local company-coq--refontification-delayed nil
+  "Whether `company-coq-request-refontification' should delay refontifications.")
+
 (defun company-coq-request-refontification ()
   "Request a refontification of the buffer."
-  (setq-local company-coq--refontification-requested t))
+  (if company-coq--refontification-delayed
+      (setq-local company-coq--refontification-requested t)
+    (company-coq-fontify-buffer)))
 
 (defun company-coq--perform-requested-refontification ()
   "Refontify the buffer, if requested."
@@ -3466,17 +3471,25 @@ Defining a feature adds it to `company-coq-available-features'."
     (setq-local company-coq--refontification-requested nil)
     (company-coq-fontify-buffer)))
 
+(defmacro company-coq-with-delayed-refontification (&rest body)
+  "Run BODY, grouping all refontifications at the end."
+  (declare (indent defun))
+  `(progn
+     (setq company-coq--refontification-delayed t)
+     (prog1 (progn ,@body)
+       (company-coq-do-in-coq-buffers (company-coq--perform-requested-refontification))
+       (company-coq-do-in-goals-buffer (company-coq--perform-requested-refontification))
+       (company-coq-do-in-response-buffer (company-coq--perform-requested-refontification))
+       (setq company-coq--refontification-delayed nil))))
+
 (defun company-coq-toggle-features (enabled-or-disabled-features status)
   "Enable or disable ENABLED-OR-DISABLED-FEATURES.
 If STATUS is non-nil, enable each feature in
 ENABLED-OR-DISABLED-FEATURES.  Otherwise, disable them."
-  (dolist (feature enabled-or-disabled-features)
-    (let ((toggle-func (company-coq-feature-toggle-function feature)))
-      (funcall toggle-func (if status 1 -1))))
-  ;; Only do one pass of refontification
-  (company-coq-do-in-coq-buffers (company-coq--perform-requested-refontification))
-  (company-coq-do-in-goals-buffer (company-coq--perform-requested-refontification))
-  (company-coq-do-in-response-buffer (company-coq--perform-requested-refontification)))
+  (company-coq-with-delayed-refontification
+    (dolist (feature enabled-or-disabled-features)
+      (let ((toggle-func (company-coq-feature-toggle-function feature)))
+        (funcall toggle-func (if status 1 -1))))))
 
 (defun company-coq-read-feature ()
   "Read a feature name from the user."
