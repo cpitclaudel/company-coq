@@ -14,22 +14,20 @@ See screenshots below, or jump right to [setup instructions](#setup) and try the
 Download and install Proof General from [GitHub](https://github.com/ProofGeneral/PG):
 
 ```bash
-cd ~/.emacs.d/
-git clone https://github.com/ProofGeneral/PG lisp/PG && make -C lisp/PG
+git clone https://github.com/ProofGeneral/PG ~/.emacs.d/lisp/PG
+make -C ~/.emacs.d/lisp/PG
 ```
 
 Then add the following to your `.emacs`:
 
 ```elisp
-(add-to-list 'load-path "~/.emacs.d/lisp/PG/generic")
-
-;; Open .v files with Proof General's coq-mode
-(require 'proof-site)
+;; Open .v files with Proof General's Coq mode
+(require 'proof-site "~/.emacs.d/lisp/PG/generic/proof-site")
 ```
 
 ### MELPA
 
-Skip this step if you already use [MELPA](http://melpa.org/#/getting-started). Otherwise, add the following to your `.emacs` and restart Emacs:
+MELPA is a repository of Emacs packages. Skip this step if you already use [MELPA](http://melpa.org/#/getting-started). Otherwise, add the following to your `.emacs` and restart Emacs:
 
 ```elisp
 (require 'package)
@@ -244,3 +242,7 @@ You can download these changes as patches for [8.4](etc/8.4-additions.patch) or 
 ### Installing from source
 
 See dependencies in `Cask` file.
+
+### Special thanks
+
+Many thanks to Pierre Courtieu for his work on Proof General, and to Jonathan Leivent and Jason Gross for their tireless bug reports and suggestions!
