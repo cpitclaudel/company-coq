@@ -4433,10 +4433,15 @@ window every time it changes."
                                :ascent center
                                :mask heuristic
                                :height ,(ceiling (* 0.14 mode-line-height))
-                               :background ,mode-line-background))) ;; Inherit bg explicitly
-    (apply #'propertize "company-🐤" ;; 🐤 🐣 🐓 🐔
-           (when (company-coq--icon)
-             (list 'display display-spec)))))
+                               ;; Inherit bg explicitly
+                               :background ,mode-line-background))
+         (lighter-string (if (or (display-graphic-p)
+                                 company-coq-features/prettify-symbols-in-terminals)
+                             ;; 🐤 🐣 🐓 🐔
+                             "company-🐤"
+                           "company-coq")))
+    (apply #'propertize lighter-string
+           (when (company-coq--icon) (list 'display display-spec)))))
 
 (defvar company-coq--lighter-var ;; See https://emacs.stackexchange.com/questions/18945/can-i-use-an-image-in-my-modeline-lighter
   '(:eval (list " " (company-coq--lighter-string)))
