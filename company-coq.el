@@ -3851,7 +3851,7 @@ EVENT is the corresponding mouse event."
 (defun company-coq-features/code-folding-toggle-bullet-at-point (&optional beg)
   "Fold or unfold bullet at point.
 If BEG is specified, skip the bullet detection logic and assume
-BEG is a good position to call hidesho functions."
+BEG is a good position to call hideshow functions."
   (interactive)
   (-when-let* ((beg (cond (beg beg)
                           ((member (char-after) '(?* ?+ ?-))

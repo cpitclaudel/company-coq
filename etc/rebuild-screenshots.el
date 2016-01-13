@@ -78,6 +78,8 @@
 (defvar my/github-width/2   '(0.5    . 420))
 (defvar my/github-width*2/3 '(0.6666 . 560))
 
+;; (profiler-start 'cpu)
+
 ;;; Screenshots
 
 ;;;;;;;;;;;;;;;;
@@ -432,4 +434,5 @@ Proof.
     (my/send-keys "C-x 1 M-< M->"))
   (:split "intros!") "<C-return>" "<C-return> RET")
 
+;; (profiler-report)
 (kill-emacs)
