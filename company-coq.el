@@ -393,7 +393,7 @@ The result matches any symbol in HEADERS, followed by BODY."
 (defconst company-coq-block-end-regexp (company-coq-make-headers-regexp '("End") company-coq-id-regexp)
   "Regexp used to find section endings.")
 
-(defcustom company-coq-search-blacklist '("_ind" "_rec" "_rect" "Raw" "Proofs") ;; "_refl" "_sym" "_trans"
+(defcustom company-coq-search-blacklist '("Raw" "Proofs") ;; "_refl" "_sym" "_trans" "_ind" "_rec" "_rect"
   "List of strings to add to Coq's search blacklist when loading completion candidates.")
 
 (defconst company-coq-search-blacklist-str (mapconcat (lambda (str) (concat "\"" str "\""))
