@@ -2274,13 +2274,9 @@ Which conversion function to use is determined from SOURCE."
   "Check if prover is available and call INSERT-FUN.
 Before calling INSERT-FUN, delete BEG .. END."
   (delete-region beg end)
-  (condition-case-unless-debug err
-      (if (company-coq-prover-available-p)
-          (funcall insert-fun)
-        (user-error "Please ensure that the prover is started and idle before using smart completions"))
-    (error (if (eq (car err) 'user-error)
-               (run-with-timer 0 nil #'message (error-message-string err))
-             (signal (car err) (cdr err))))))
+  (if (company-coq-prover-available-p)
+      (funcall insert-fun)
+    (message "Please ensure that the prover is started and idle before using smart completions")))
 
 (defun company-coq-post-completion-snippet (candidate)
   "Run post-action for CANDIDATE (most often, insert YAS snippet)."
@@ -2291,7 +2287,7 @@ Before calling INSERT-FUN, delete BEG .. END."
         (company-coq-call-insert-fun insert-fun beg end)
       (-when-let* ((snippet (company-coq-get-snippet candidate)))
         (yas-expand-snippet snippet beg end))))
-  t) ;; Return t to prevent neline insertion from kicking in
+  t) ;; Return t to prevent newline insertion from kicking in
 
 (defun company-coq-goto-occurence (&optional _event)
   "Close occur buffer and go to position at point."
