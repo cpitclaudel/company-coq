@@ -2650,7 +2650,7 @@ order."
                                  backends company-coq-sorted-backends)))
 
 (defun company-coq-put-exact-matches-on-top (prefix sorted-candidates)
-  "Return a copy of SORTED-CANDIDATES with all exact matches at the front
+  "Return a copy of SORTED-CANDIDATES with all exact matches at the front.
 PREFIX is the prefix that led to this completion session."
   (let ((exact-matches nil)
         (plain-matches nil)
@@ -3530,8 +3530,8 @@ loading as much as possible."
   (require 'coq))         ;; `coq-insert-match'
 
 
-(defconst company-coq--input-hooks '(proof-assert-command-hook 
-				     proof-shell-insert-hook)
+(defconst company-coq--input-hooks '(proof-assert-command-hook
+                          proof-shell-insert-hook)
   "Hooks that denote user input.")
 
 (defun company-coq--listen-for-input (handler)
