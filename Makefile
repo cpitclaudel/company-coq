@@ -18,26 +18,27 @@ sandbox: elc
 emacs24:
 	$(eval EMACS := /usr/bin/emacs24)
 
-test: update elc
+test: elc
 	$(CASK) exec $(EMACS) -Q \
 		-L $(PG_GENERIC_ROOT) -l proof-site -L . $(COMPANY_COQ_ARGS) tests.v
 
-test-old-pg: update elc
+test-old-pg: elc
 	$(CASK) exec $(EMACS) -Q \
 		-L $(OLD_PG_GENERIC_ROOT) -l proof-site -L . $(COMPANY_COQ_ARGS) tests.v
 
-compatibility: emacs24 update elc
+compatibility: emacs24 elc
 	$(CASK) exec $(EMACS) -Q \
 		-L $(OLD_PG_GENERIC_ROOT) -l proof-site -L . $(COMPANY_COQ_ARGS) tests.v
+
+update:
+	$(CASK) install
+	$(CASK) update
 
 clean-elc:
 	$(CASK) clean-elc
 
-elc: clean-elc
+elc: update clean-elc
 	$(CASK) build
-
-update:
-	$(CASK) update
 
 pkg-def:
 	$(eval PKG := "dist/company-coq-$(shell cask version).tar")
