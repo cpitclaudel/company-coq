@@ -592,7 +592,10 @@ infinite loop (they are not cleared by [generalize dependent]).")
                                 "Tactic Evars Pattern Unification" "Undo")
   "Deprecated options, as reported by [Print Tables].")
 
-(defconst company-coq-deprecated-options-re (concat "\\(?1:" (regexp-opt '("Set" "Unset" "Test")) " "
+(defconst company-coq-options-header-re (regexp-opt '("Set " "Unset " "Test "))
+  "Regexp matching keywords starting option-related vernacs.")
+
+(defconst company-coq-deprecated-options-re (concat "\\(?1:" company-coq-options-header-re
                                          (regexp-opt company-coq-deprecated-options) "\\)")
   "Regexp matching uses of deprecated options.")
 
@@ -1610,6 +1613,9 @@ Nothing is reloaded immediately; instead the relevant flags are set."
   "Check if current buffer is in Coq mode."
   (derived-mode-p 'coq-mode))
 
+(defvar company-coq--use-special-set-unset-test-regexp nil
+  "If non-nil, consider ‘Set ’ (etc.) as valid prefixes.")
+
 (defun company-coq-prefix-at-point ()
   "Compute prefix at point, for completion.
 All candidates for a given company completion session must share
@@ -1622,7 +1628,9 @@ all company-coq backends."
       ;; Only complete if company-coq-completion-predicate allows it
       (when (or (null company-coq-completion-predicate) (funcall company-coq-completion-predicate))
         (save-excursion
-          (when (company-coq-looking-back company-coq-prefix-regexp (point-at-bol))
+          (when (or (and company-coq--use-special-set-unset-test-regexp
+                         (company-coq-looking-back (concat company-coq-options-header-re company-coq-prefix-regexp) (point-at-bol)))
+                    (company-coq-looking-back company-coq-prefix-regexp (point-at-bol)))
             (match-string-no-properties 0)))))))
 
 (defun company-coq-symbol-at-point-with-pos ()
