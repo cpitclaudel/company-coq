@@ -2311,9 +2311,11 @@ Which conversion function to use is determined from SOURCE."
   "Check if prover is available and call INSERT-FUN.
 Before calling INSERT-FUN, delete BEG .. END."
   (delete-region beg end)
-  (if (company-coq-prover-available-p)
-      (funcall insert-fun)
-    (message "Please ensure that the prover is started and idle before using smart completions")))
+  (condition-case err
+      (if (company-coq-prover-available-p)
+          (funcall insert-fun)
+        (user-error "Please ensure that the prover is started and idle before using smart completions"))
+    (error (run-with-timer 0 nil #'message (error-message-string err)))))
 
 (defun company-coq-post-completion-snippet (candidate)
   "Run post-action for CANDIDATE (most often, insert YAS snippet)."
