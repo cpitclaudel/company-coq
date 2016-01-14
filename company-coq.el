@@ -2317,14 +2317,20 @@ Before calling INSERT-FUN, delete BEG .. END."
 
 (defun company-coq-post-completion-snippet (candidate)
   "Run post-action for CANDIDATE (most often, insert YAS snippet)."
-  (-when-let* ((found (search-backward candidate))
-               (beg (match-beginning 0))
-               (end (match-end 0)))
-    (-if-let* ((insert-fun (company-coq-get-prop 'insert-fun candidate)))
+  (when (search-backward candidate)
+    (let* ((beg (match-beginning 0))
+           (end (match-end 0))
+           (snippet (company-coq-get-snippet candidate))
+           (num-holes (company-coq-get-prop 'num-holes candidate))
+           (insert-fun (company-coq-get-prop 'insert-fun candidate))
+           (needs-newline (or insert-fun (> num-holes 0))))
+      (cond
+       (insert-fun
         (company-coq-call-insert-fun insert-fun beg end)
-      (-when-let* ((snippet (company-coq-get-snippet candidate)))
-        (yas-expand-snippet snippet beg end))))
-  t) ;; Return t to prevent newline insertion from kicking in
+        (indent-according-to-mode))
+       (snippet
+        (yas-expand-snippet snippet beg end)))
+      needs-newline)))
 
 (defun company-coq-goto-occurence (&optional _event)
   "Close occur buffer and go to position at point."
