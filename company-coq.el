@@ -77,6 +77,7 @@
 
 (require 'company-coq-abbrev) ;; Tactics from the manual
 (require 'company-coq-tg)     ;; Parsing code for tactic notations
+(require 'company-coq-utils)  ;; Various utils
 
 ;;; Shims for old emacsen
 
@@ -4220,9 +4221,10 @@ Configures `company-mode' for use with Coq."
        (company-mode -1)
        (kill-local-variable 'company-backends)))))
 
-(defun company-coq-features/company-defaults--indent-or-complete-common (&rest args)
-  "Forward ARGS to company-indent-or-complete-common."
-  (apply #'company-indent-or-complete-common args))
+(defun company-coq-features/company-defaults--indent-or-complete-common ()
+  "Call `company-indent-or-complete-common'."
+  (interactive)
+  (call-interactively #'company-indent-or-complete-common))
 
 (company-coq-define-feature company-defaults (arg)
   "Convenient defaults for `company-mode'.
