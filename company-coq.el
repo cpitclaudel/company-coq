@@ -2105,24 +2105,52 @@ Don't even try to call shr; draw the line ourselves."
     (when (= (char-after (point)) ?*)
       (delete-char 1)))) ;; Remove the star (*) added by shr
 
-(defun company-coq-emacs-below-25-p ()
-  "Check if current Emacs version is below 25."
-  (< emacs-major-version 25))
+(defconst company-coq-emacs-below-25-p
+  (< emacs-major-version 25)
+  "Whether Emacs version is below 25.")
+
+(defconst company-coq--shr-lacks-targets-p
+  (version< emacs-version "24.4")
+  "Non-nil when SHR does not support target ids.")
+
+(defconst company-coq--shr-target-marker "!!COMPANY-COQ!!"
+  "Used to mark the target .")
+
+(defun company-coq--shr-maybe-find-target ()
+  "Find an ‘id’ matching ‘shr-target-id’ and mark it."
+  (when (and shr-target-id company-coq--shr-lacks-targets-p)
+    (goto-char (point-min))
+    (when (and (search-forward (format "id=\"%s\"" shr-target-id) nil t)
+               (search-forward ">" nil t))
+      (goto-char (match-end 0))
+      (insert company-coq--shr-target-marker))))
+
+(defun company-coq--shr-maybe-mark-target ()
+  "Annotate text matching ‘company-coq--shr-target-marker’."
+  (when (and shr-target-id company-coq--shr-lacks-targets-p)
+    (goto-char (point-min))
+    (when (search-forward company-coq--shr-target-marker nil t)
+      (replace-match "" t t)
+      (insert (propertize "*" 'shr-target-id t)))))
 
 (defun company-coq-doc-refman-put-html (html-full-path)
-  "Print formatted html from HTML-FULL-PATH in current buffer."
+  "Print formatted html from HTML-FULL-PATH in current buffer.
+Highlights the surroundings of the first tag whose id is
+‘shr-target-id’ (or at least try to on old Emacsen)."
   (let ((doc (with-temp-buffer
                (insert-file-contents html-full-path)
+               (company-coq--shr-maybe-find-target)
                (libxml-parse-html-region (point-min) (point-max))))
         ;; Disable wrapping in webpages
         ;; NOTE: Using 0 is undocumented behaviour (and new in 25.0).
-        (shr-width (if (company-coq-emacs-below-25-p) most-positive-fixnum 0))
+        (shr-width (if company-coq-emacs-below-25-p most-positive-fixnum 0))
         (after-change-functions nil)
         (shr-external-rendering-functions '((tt . company-coq-shr-tag-tt)
                                             (i . company-coq-shr-tag-i)
                                             (hr . company-coq-shr-tag-hr)
                                             (table . company-coq-shr-tag-table))))
     (shr-insert-document doc) ;; This sets the 'shr-target-id property upon finding the shr-target-id anchor
+    (company-coq--shr-maybe-mark-target)
     (company-coq-doc-refman-prettify-title (next-single-property-change (point-min) 'shr-target-id))))
 
 (defun company-coq--help-hide-docs ()
@@ -3084,7 +3112,7 @@ Useful for debugging tactics in versions of Coq prior to 8.5: use
 (defun company-coq-fontify-buffer ()
   "Refontify the current buffer."
   (with-no-warnings
-    (if (company-coq-emacs-below-25-p)
+    (if company-coq-emacs-below-25-p
         (font-lock-fontify-buffer)
       (font-lock-flush)
       (font-lock-ensure))))
