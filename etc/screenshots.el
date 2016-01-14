@@ -41,8 +41,7 @@
   (frame-parameter nil 'outer-window-id))
 
 (eval-and-compile
-  (defvar my/github-w 800)
-  (defvar my/real-github-w 880))
+  (defvar my/github-w 880))
 
 (defun my/next-insertion-point (&optional end)
   (when (search-forward "<|>" end t)
@@ -83,7 +82,7 @@
                      (pcase-let* (((seq frame-h frame-w)
                                    (mapcar #'string-to-number (process-lines "identify" "-ping" "-format" "%h\n%w" png-fname)))
                                   (target-width
-                                   (floor (* (car width-spec) my/real-github-w))))
+                                   (floor (* (car width-spec) my/github-w))))
                        (when (> frame-w target-width)
                          (error "Frame is too large (%d > %d)" frame-w target-width))
                        (list "-background" "none" "-gravity" gravity
@@ -114,6 +113,7 @@
                   (not (eq (aref (buffer-name buf) 0) ?\s)))
          (kill-buffer buf)))
      (delete-other-windows)
+     ;; (setq-default frame-resize-pixelwise t)
      (set-frame-size nil (floor (cdr ,frame-w-spec)) (floor (* ,frame-h-columns (frame-char-height))) t)
      (redisplay t)
      (let ((--buf-- (get-buffer-create (replace-regexp-in-string "\\.?\\'" "." ,buf-name)))
