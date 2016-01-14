@@ -19,15 +19,15 @@ emacs24:
 	$(eval EMACS := /usr/bin/emacs24)
 
 test: elc
-	$(CASK) exec $(EMACS) -Q \
+	$(CASK) exec $(EMACS) --debug-init -Q \
 		-L $(PG_GENERIC_ROOT) -l proof-site -L . $(COMPANY_COQ_ARGS) tests.v
 
 test-old-pg: elc
-	$(CASK) exec $(EMACS) -Q \
+	$(CASK) exec $(EMACS) --debug-init -Q \
 		-L $(OLD_PG_GENERIC_ROOT) -l proof-site -L . $(COMPANY_COQ_ARGS) tests.v
 
 compatibility: emacs24 elc
-	$(CASK) exec $(EMACS) -Q \
+	$(CASK) exec $(EMACS) --debug-init -Q \
 		-L $(OLD_PG_GENERIC_ROOT) -l proof-site -L . $(COMPANY_COQ_ARGS) tests.v
 
 update:
@@ -52,8 +52,15 @@ clean-package:
 screenshots: elc
 	$(CASK) exec $(EMACS) --debug-init -Q --load etc/rebuild-screenshots.el
 
-install-pkg: package
-	$(EMACS) --eval "(package-install-file $(PKG))"
+# find ./.cask/ -type d -name elpa -exec rm -rf {} +
+pkg-install: elc package
+	rm -rf .emacs.d
+	mkdir .emacs.d
+	$(CASK) exec $(EMACS) --debug-init -Q \
+		--eval '(setq user-init-directory "./.emacs.d/")' \
+		--eval '(package-initialize)' \
+		--eval '(package-install-file $(PKG))' \
+		-L $(OLD_PG_GENERIC_ROOT) -l proof-site $(COMPANY_COQ_ARGS) tests.v
 
 etc: clean-etc
 	env --unset COQPATH make -j8 -C $(TAGGED_REFMAN_ROOT) doc-html
