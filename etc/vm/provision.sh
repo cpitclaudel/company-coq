@@ -12,6 +12,7 @@ echo '***   Installing base packages   ***'
 echo '************************************'
 
 echo '* apt-get update'
+add-apt-repository -y ppa:ubuntu-elisp/ppa >> /vagrant/provision.log 2>&1
 apt-get -y update >> /vagrant/provision.log 2>&1
 echo '* apt-get install (needs to download about 90MB)'
 apt-get -y install make m4 patch unzip git aspcud ocaml ocaml-native-compilers camlp4-extra opam emacs virtualbox-guest-dkms virtualbox-guest-utils virtualbox-guest-x11 >> /vagrant/provision.log 2>&1
@@ -68,12 +69,18 @@ sudo su vagrant <<-EOF
 		;; Load company-coq when opening Coq files
 		(add-hook 'coq-mode-hook #'company-coq-mode)
 
+		;; Terminal keybindings
+		(with-eval-after-load 'coq-mode
+		  (define-key company-coq-map (kbd "C-c RET") #'company-coq-proof-goto-point)
+		  (define-key company-coq-map (kbd "C-c C-j") #'company-coq-proof-goto-point))
+
 		;; Font fallback
 		(when (functionp 'set-fontset-font)
 		  (set-face-attribute 'default nil :family "Ubuntu Mono")
 		  (set-fontset-font t 'unicode (font-spec :name "Ubuntu Mono"))
 		  (set-fontset-font t 'unicode (font-spec :name "Symbola monospacified for Ubuntu Mono") nil 'append))
 
+		;; Basic usability
 		(xterm-mouse-mode)
 		(load-theme 'tango-dark t)
 	EOS
