@@ -2001,19 +2001,12 @@ With SKIP-SPACE, do not format leading spaces."
 (defun company-coq-annotation-snippet (source candidate)
   "Compute company's annotation for snippet CANDIDATE.
 SOURCE identifies the backend that produced CANDIDATE."
-  (let* ((num-holes (company-coq-get-prop 'num-holes candidate))
-         (prefix    (if (company-coq-get-prop 'anchor candidate) "..." ""))) ;; 🕮 📓 …
-    (if (and (numberp num-holes) (> num-holes 0))
-        (format "%s<%s[%d]>" prefix source num-holes)
-      (format "%s<%s>" prefix source))))
-
-(defun company-coq-annotation-context (_)
-  "Compute company's annotation for candidates from the proof contexts."
-  "<h>")
+  (let* ((anchored  (company-coq-get-prop 'anchor candidate)))
+    (propertize source 'face `(:underline ,(if anchored t nil)))))
 
 (defun company-coq-annotation-tactic (candidate)
   "Compute company's annotation for tactic CANDIDATE."
-  (concat "<" (or (symbol-name (company-coq-get-prop 'source candidate)) "") ">"))
+  (symbol-name (company-coq-get-prop 'source candidate)))
 
 (defun company-coq-doc-buffer-collect-outputs (name templates &optional fallbacks)
   "Insert NAME into each TEMPLATES, run these commands, and collect the outputs.
@@ -2467,7 +2460,7 @@ COMMAND, ARG and IGNORED: see `company-backends'."
     (`meta (company-coq-meta-symbol arg))
     (`no-cache t)
     (`match (company-coq-get-prop 'match-end arg))
-    (`annotation "<def>")
+    (`annotation "def")
     (`location (company-coq-location-symbol arg))
     (`doc-buffer (company-coq-doc-buffer-symbol arg))
     (`comparison-fun #'company-coq-string-lessp-match-beginning)
@@ -2508,7 +2501,7 @@ COMMAND, ARG and IGNORED: see `company-backends'."
     (`meta (company-coq-meta-symbol arg))
     (`no-cache t)
     (`match (company-coq-get-prop 'match-end arg))
-    (`annotation "<ldef>")
+    (`annotation "ldef")
     (`location (company-coq-location-local-definition arg))
     (`doc-buffer (company-coq-doc-buffer-definition arg))
     (`comparison-fun #'company-coq-string-lessp-match-beginning)
@@ -2585,7 +2578,7 @@ COMMAND, ARG and IGNORED: see `company-backends'."
     (`ignore-case nil)
     (`meta (company-coq-meta-simple arg))
     (`no-cache t)
-    (`annotation (company-coq-annotation-context arg))
+    (`annotation "h")
     (`comparison-fun #'company-coq-string-lessp-match-beginning)
     (`require-match 'never)))
 
@@ -2616,7 +2609,7 @@ COMMAND, ARG and IGNORED: see `company-backends'."
     (`interactive (company-begin-backend 'company-coq-block-end-backend))
     (`prefix (company-coq-prefix-at-point))
     (`candidates (company-coq-candidates-block-end arg))
-    (`annotation "<secn>")
+    (`annotation "end")
     (`sorted nil)
     (`duplicates nil)
     (`ignore-case nil)
@@ -2637,7 +2630,7 @@ there to begin with."
     (`interactive (company-begin-backend 'company-coq-reserved-keywords-backend))
     (`prefix (company-coq-prefix-at-point))
     (`candidates (company-coq-candidates-reserved arg))
-    (`annotation "<reserved>")
+    (`annotation "reserved")
     (`sorted nil)
     (`duplicates nil)
     (`ignore-case nil)
@@ -2654,7 +2647,7 @@ COMMAND, ARG and IGNORED: see `company-backends'."
     (`prefix (company-coq-prefix-at-point))
     (`candidates (company-coq-candidates-search-results arg))
     (`match (company-coq-get-prop 'match-end arg))
-    (`annotation "<search>")
+    (`annotation "search")
     (`sorted nil)
     (`duplicates nil)
     (`ignore-case nil)
