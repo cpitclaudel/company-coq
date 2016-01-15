@@ -2315,7 +2315,7 @@ Before calling INSERT-FUN, delete BEG .. END."
       (if (company-coq-prover-available-p)
           (funcall insert-fun)
         (user-error "Please ensure that the prover is started and idle before using smart completions"))
-    (error (run-with-timer 0 nil #'message (error-message-string err)))))
+    (error (message "%s" (error-message-string err)))))
 
 (defun company-coq-post-completion-snippet (candidate)
   "Run post-action for CANDIDATE (most often, insert YAS snippet)."
