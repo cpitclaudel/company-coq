@@ -79,11 +79,11 @@
            "mogrify" "-strip" "-matte"
            "-bordercolor" (face-attribute 'fringe :background) "-border" (format "0x%d" my/fringe-width)
            (append (when gravity
-                     (pcase-let* (((seq frame-h frame-w)
+                     (pcase-let* ((`(,frame-h ,frame-w)
                                    (mapcar #'string-to-number (process-lines "identify" "-ping" "-format" "%h\n%w" png-fname)))
                                   (target-width
                                    (floor (* (car width-spec) my/github-w))))
-                       (when (> frame-w target-width)
+                       (when (and (>= emacs-major-version 25) (> frame-w target-width))
                          (error "Frame is too large (%d > %d)" frame-w target-width))
                        (list "-background" "none" "-gravity" gravity
                              "-extent" (format "%dx%d" target-width (+ frame-h (* 2 my/fringe-width))))))
@@ -114,7 +114,9 @@
          (kill-buffer buf)))
      (delete-other-windows)
      ;; (setq-default frame-resize-pixelwise t)
-     (set-frame-size nil (floor (cdr ,frame-w-spec)) (floor (* ,frame-h-columns (frame-char-height))) t)
+     (if (< emacs-major-version 25)
+         (set-frame-size (selected-frame) (floor (/ (cdr ,frame-w-spec) (frame-char-width))) ,frame-h-columns)
+       (set-frame-size nil (floor (cdr ,frame-w-spec)) (floor (* ,frame-h-columns (frame-char-height))) t))
      (redisplay t)
      (let ((--buf-- (get-buffer-create (replace-regexp-in-string "\\.?\\'" "." ,buf-name)))
            (--dir-- default-directory))
