@@ -3021,7 +3021,7 @@ With prefix ARG, insert an inductive constructor with arguments."
         (candidates (cons "" (car (company-coq-run-then-parse-context-and-goal "Show")))))
     (while (string-equal lemma-name "")
       (setq lemma-name (read-string "Lemma name? ")))
-    (while candidates
+    (while (> (length candidates) 1) ;; "" is always in there
       (let ((hyp (completing-read "Hypothesis to keep (name of hypothesis, or C-j when done)? " candidates nil t)))
         (if (string-equal hyp "")
             (setq candidates nil)
@@ -3038,12 +3038,11 @@ of these hypotheses are also added to the lemma."
   (proof-shell-ready-prover)
   (-if-let* ((statenum (car (coq-last-prompt-info-safe))))
       (unwind-protect
-          (-if-let* ((gen-cmds (mapcar (lambda (hyp) (concat "generalize dependent " hyp)) hyps))
-                     (full-cmd (mapconcat 'identity (nconc gen-cmds company-coq-lemma-introduction-forms) ";"))
-                     (ctx-goal (company-coq-run-then-parse-context-and-goal full-cmd))
-                     (lemma (cdr ctx-goal)))
-              (company-coq-insert-indented (format "Lemma %s:\n%s.\nProof.\n" lemma-name lemma))
-            (error "Lemma extraction failed"))
+          (let* ((gen-cmds (mapcar (lambda (hyp) (concat "generalize dependent " hyp)) hyps))
+                 (full-cmd (mapconcat 'identity (nconc gen-cmds company-coq-lemma-introduction-forms) ";")))
+            (-if-let* ((lemma (cadr (company-coq-run-then-parse-context-and-goal full-cmd))))
+                (company-coq-insert-indented (format "Lemma %s:\n%s.\nProof.\n" lemma-name lemma))
+              (error "Lemma extraction failed")))
         (company-coq-ask-prover (format "BackTo %d." statenum)))
     (user-error "Please start a proof before extracting a lemma")))
 
