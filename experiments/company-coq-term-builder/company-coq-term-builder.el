@@ -53,16 +53,29 @@ If UNDO-STATE is non-nil, go back to that Coq state before throwing."
                    (script-win (get-buffer-window script-buf)))
         (set-window-buffer (split-window-vertically) (current-buffer))))))
 
+(defun company-coq-features/live-extraction--cleanup ()
+  "Close the live extraction window and kill its buffer."
+  (-when-let* ((win (get-buffer-window company-coq--extraction-buffer-name)))
+    (delete-window win)))
+
 (defun company-coq--extract-partial-in-bg ()
   "Update extraction buffer, ignoring errors if any."
   (condition-case err
       (company-coq--extract-partial)
-    (error (-when-let* ((win (get-buffer-window company-coq--extraction-buffer-name)))
-             (delete-window win)))))
+    (error (company-coq-features/live-extraction--cleanup))))
 
 (defun company-coq--extraction-hook-fn ()
   "Hook function to update extraction display."
   (unless (memq 'no-goals-display proof-shell-delayed-output-flags)
     (run-with-timer 0 nil #'company-coq--extract-partial-in-bg)))
 
-(add-hook 'proof-shell-handle-delayed-output-hook #'company-coq--extraction-hook-fn)
+(define-minor-mode company-coq-TermBuilder
+  "Render Coq goals using LaTeX."
+  :lighter " 🐤—TB"
+  (if company-coq-TermBuilder
+      (progn
+        (add-hook 'proof-shell-handle-delayed-output-hook #'company-coq--extraction-hook-fn))
+    (company-coq-features/live-extraction--cleanup)
+    (remove-hook 'proof-shell-handle-delayed-output-hook #'company-coq--extraction-hook-fn)))
+
+(company-coq-TermBuilder)
