@@ -29,9 +29,9 @@ Uses ALT as help-echo."
 This file is recursively searched for, starting from the current
 script's folder.")
 
-(defun company-coq-features/latex--find-latex-template ()
+(defun company-coq-features/latex--find-template ()
   "Explore parent directories to locate a rendering template."
-  (-if-let* ((script-name (company-coq-with-current-buffer-maybe proof-script-buffer buffer-file-name)))
+  (-if-let* ((script-name buffer-file-name))
       (let ((dir (directory-file-name script-name)))
         (while (not (file-exists-p (expand-file-name company-coq-features/latex--template-file-name dir)))
           (let ((parent (file-name-directory (directory-file-name dir))))
@@ -43,7 +43,7 @@ script's folder.")
 
 (defvar company-coq-features/latex--template-path nil
   "Path to ‘company-coq-features/latex--template-file-name’.
-Dynamically bound; do not customize.")
+Usually populated by calling ‘company-coq-features/latex--find-template’.")
 
 (defun company-coq-features/latex--make-file-name (fname ext)
   "Construct a file name from FNAME and EXT."
@@ -52,7 +52,7 @@ Dynamically bound; do not customize.")
 (defvar company-coq-features/latex--temporaries nil
   "Lest of prefixes of temporary files used by the LaTeX rendering code.")
 
-(defun company-coq-features/latex--cleanup-temporaries ()
+(defun company-coq-features/latex--cleanup-temporaries () ;; FIXME does this work?
   "Cleanup temporary files created by LaTeX rendering."
   (dolist (file company-coq-features/latex--temporaries)
     (dolist (ext '("dvi" "png" "aux" "tex"))
@@ -74,7 +74,7 @@ Raise an error if PROG exits with a non-zero error code."
   "Prepare a LaTeX source file from STR; save it as FNAME.
 Uses template file in ‘company-coq-features/latex--template-path’."
   (with-temp-buffer
-    (insert-file-contents company-coq-features/latex--template-path)
+    (insert-file-contents (buffer-local-value 'company-coq-features/latex--template-path proof-script-buffer))
     (company-coq-features/latex--substitute-placeholder "BACKGROUND" (company-coq-features/latex--default-color :background))
     (company-coq-features/latex--substitute-placeholder "FOREGROUND" (company-coq-features/latex--default-color :foreground))
     (company-coq-features/latex--substitute-placeholder "CONTENTS" (concat "\\[" str "\\]"))
@@ -91,12 +91,11 @@ to PNG-FNAME."
 
 (defun company-coq-features/latex--prepare-latex (str)
   "Cleanup STR before sending it to LaTeX."
-  (replace-regexp-in-string
-   "(" "\\left("
-   (replace-regexp-in-string
-    ")" "\\right)"
-    str t t)
-   t t))
+  (pcase-dolist (`(,from . ,to) `(("(" . "\\\\left(")
+                                  (")" . "\\\\right)")
+                                  (,(concat "[?]\\(" coq-id "\\)\\({[^}]}\\)?") . "\\\\ccEvar{\\1}")))
+    (setq str (replace-regexp-in-string from to str t)))
+  str)
 
 (defun company-coq-features/latex--render-string (beg end)
   "Render region BEG .. END as a bit of LaTeX code.
@@ -117,17 +116,28 @@ Uses the LaTeX template at ‘company-coq-features/latex--template-path’."
 (defun company-coq-features/latex--render-goal ()
   "Parse and LaTeX-render the contents of the goals buffer.
 Does not run when output is silenced."
-  (unless (memq 'no-goals-display proof-shell-delayed-output-flags)
+  (unless (or (memq 'no-goals-display proof-shell-delayed-output-flags)
+              (null proof-script-buffer)
+              (not (display-graphic-p)))
     (condition-case-unless-debug err
         (company-coq-with-current-buffer-maybe proof-goals-buffer
           (company-coq-features/latex--cleanup-temporaries)
-          (let ((company-coq-features/latex--template-path (company-coq-features/latex--find-latex-template)))
-            (pcase-dolist (`(_ _ ,type _ _ ,beg ,end) (company-coq--collect-hypotheses))
-              (company-coq-features/latex--render-string beg end))
-            (pcase-dolist (`(,type ,beg ,end) (company-coq--collect-subgoals))
-              (company-coq-features/latex--render-string beg end))))
+          (pcase-dolist (`(_ _ ,type _ _ ,beg ,end) (company-coq--collect-hypotheses))
+            (company-coq-features/latex--render-string beg end))
+          (pcase-dolist (`(,type ,beg ,end) (company-coq--collect-subgoals))
+            (company-coq-features/latex--render-string beg end)))
       (error (company-coq-features/latex--cleanup-temporaries)
              (remove-list-of-text-properties (point-min) (point-max) 'display)
              (message "Error while rendering goals buffers: %S" (error-message-string err))))))
 
-(add-hook 'proof-shell-handle-delayed-output-hook #'company-coq-features/latex--render-goal)
+(define-minor-mode company-coq-TeX
+  "Render Coq goals using LaTeX."
+  :lighter " 🐤—TeX"
+  (if company-coq-TeX
+      (progn
+        (add-hook 'proof-shell-handle-delayed-output-hook #'company-coq-features/latex--render-goal)
+        (unless company-coq-features/latex--template-path
+          (setq-local company-coq-features/latex--template-path (company-coq-features/latex--find-template))))
+    (remove-hook 'proof-shell-handle-delayed-output-hook #'company-coq-features/latex--render-goal)))
+
+(company-coq-TeX)
