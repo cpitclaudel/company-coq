@@ -49,15 +49,36 @@ Usually populated by calling ‘company-coq-features/latex--find-template’.")
   "Construct a file name from FNAME and EXT."
   (format "%s.%s" fname ext))
 
-(defvar company-coq-features/latex--temporaries nil
-  "Lest of prefixes of temporary files used by the LaTeX rendering code.")
+(defun company-coq-features/latex--cleanup-temporaries (prefix)
+  "Cleanup temporary files created by LaTeX while rendering PREFIX.
+Does not remove the image."
+  (dolist (ext '("dvi" "log" "aux" "tex"))
+    (ignore-errors (delete-file (company-coq-features/latex--make-file-name prefix ext)))))
 
-(defun company-coq-features/latex--cleanup-temporaries () ;; FIXME does this work?
-  "Cleanup temporary files created by LaTeX rendering."
-  (dolist (file company-coq-features/latex--temporaries)
-    (dolist (ext '("dvi" "png" "aux" "tex"))
-      (ignore-errors (delete-file (company-coq-features/latex--make-file-name file ext)))))
-  (setq company-coq-features/latex--temporaries nil))
+(defvar company-coq-features/latex--disk-cache-size 100
+  "Max number of goal pictures to keep in disk cache.")
+
+(defvar company-coq-features/latex--disk-cache nil
+  "List of PNGs present on disk, in order of last use.")
+
+(defun company-coq-features/latex--add-to-cache (png)
+  "Move PNG to the front of the disk cache."
+  (setq company-coq-features/latex--disk-cache
+        (cons png (remove png company-coq-features/latex--disk-cache))))
+
+(defun company-coq-features/latex-evict-cache (&optional keep-n flush-emacs)
+  "Remove all images but KEEP-N from disk cache.
+KEEP-N defaults to ‘company-coq-features/latex--disk-cache-size’.
+Interactively, empty the whole cache.  With FLUSH-EMACS (and
+interactively), also empty Emacs' cache."
+  (interactive '(0 t)) ;; FIXME check this
+  (setq keep-n (or keep-n company-coq-features/latex--disk-cache-size))
+  (let ((cache-cdr (nthcdr keep-n company-coq-features/latex--disk-cache)))
+    (dolist (file cache-cdr)
+      (ignore-errors (delete-file file)))
+    (setf cache-cdr nil))
+  (when flush-emacs
+    (clear-image-cache)))
 
 (defconst company-coq-features/latex--log-buffer "*LaTeX rendering log*"
   "Name of buffer into which LaTeX rendering output is placed.")
@@ -102,14 +123,17 @@ to PNG-FNAME."
 Uses the LaTeX template at ‘company-coq-features/latex--template-path’."
   (let* ((str (buffer-substring-no-properties beg end))
          (latex (company-coq-features/latex--prepare-latex str))
-         (prefix (make-temp-name "preview"))
-         (default-directory temporary-file-directory)
+         (prefix (format "cc-preview-%s" (md5 latex)))
          (tex-name (company-coq-features/latex--make-file-name prefix "tex"))
          (dvi-name (company-coq-features/latex--make-file-name prefix "dvi"))
-         (png-name (company-coq-features/latex--make-file-name prefix "png")))
-    (push prefix company-coq-features/latex--temporaries)
-    (company-coq-features/latex--prepare-tex-file latex tex-name)
-    (company-coq-features/latex--render-tex-file tex-name dvi-name png-name)
+         (png-name (company-coq-features/latex--make-file-name prefix "png"))
+         (default-directory temporary-file-directory))
+    (company-coq-features/latex--add-to-cache (expand-file-name png-name temporary-file-directory))
+    (unless (file-exists-p png-name)
+      (unwind-protect
+          (progn (company-coq-features/latex--prepare-tex-file latex tex-name)
+                 (company-coq-features/latex--render-tex-file tex-name dvi-name png-name))
+        (company-coq-features/latex--cleanup-temporaries (expand-file-name prefix temporary-file-directory))))
     (let ((inhibit-read-only t))
       (add-text-properties beg end (company-coq-features/latex--img-plist png-name str)))))
 
@@ -121,12 +145,12 @@ Does not run when output is silenced."
               (not (display-graphic-p)))
     (condition-case-unless-debug err
         (company-coq-with-current-buffer-maybe proof-goals-buffer
-          (company-coq-features/latex--cleanup-temporaries)
+          (company-coq-features/latex-evict-cache)
           (pcase-dolist (`(_ _ ,type _ _ ,beg ,end) (company-coq--collect-hypotheses))
             (company-coq-features/latex--render-string beg end))
           (pcase-dolist (`(,type ,beg ,end) (company-coq--collect-subgoals))
             (company-coq-features/latex--render-string beg end)))
-      (error (company-coq-features/latex--cleanup-temporaries)
+      (error (company-coq-features/latex-evict-cache)
              (remove-list-of-text-properties (point-min) (point-max) 'display)
              (message "Error while rendering goals buffers: %S" (error-message-string err))))))
 
@@ -138,6 +162,9 @@ Does not run when output is silenced."
         (add-hook 'proof-shell-handle-delayed-output-hook #'company-coq-features/latex--render-goal)
         (unless company-coq-features/latex--template-path
           (setq-local company-coq-features/latex--template-path (company-coq-features/latex--find-template))))
+    (company-coq-features/latex-evict-cache 0)
+    (company-coq-with-current-buffer-maybe proof-goals-buffer
+      (remove-list-of-text-properties (point-min) (point-max) '(display)))
     (remove-hook 'proof-shell-handle-delayed-output-hook #'company-coq-features/latex--render-goal)))
 
 (company-coq-TeX)

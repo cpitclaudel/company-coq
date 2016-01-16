@@ -19,8 +19,10 @@ Notation "'\ccSucc{' n '}'" := (S n).
 Infix "\times" := mult (at level 30).
 Notation "'\ccNsum{' x '}{' max '}{' f '}'" := (nsum max (fun x => f)).
 
+(*+ Sums +*)
+
 Require Import List.
-Lemma gauss: forall n, 2 * (nsum n (fun x => x)) = n * (n + 1).
+Lemma Gauss: forall n, 2 * (nsum n (fun x => x)) = n * (n + 1).
   intros.
   induction n.
   - cbv [nsum].
@@ -37,22 +39,18 @@ Notation "'\ccQ{}'" := Q.
 Notation "\ccPow{ x }{ y }" := (Qpower x y).
 Notation "'\ccFrac{' x '}{' y '}'" := (Qdiv x y)  : Q_scope.
 Infix "\le" := Qle (at level 100).
-Infix "\eq" := Qeq (at level 100).
+Infix "\equiv" := Qeq (at level 100).
 Infix "\times" := Qmult (at level 30).
 Notation "\ccNot{ x }" := (not x) (at level 100).
-Notation "x '\neq' y" := (not (Qeq x y)) (at level 100).
+Notation "x '\not\equiv' y" := (not (Qeq x y)) (at level 100).
 
 Lemma Qmult_Qdiv_fact :
   forall a b c, not (c == 0) -> a * (b / c) == (a * b) / c.
-Proof.
-  intros; field; assumption.
-Qed.
+Proof. intros; field; assumption. Qed.
 
 Lemma Qdiv_1 :
   forall a, a / 1 == a.
-Proof.
-  intros; field.
-Qed.
+Proof. intros; field. Qed.
 
 Lemma Qplus_le_0 :
   forall a b, 0 <= a -> 0 <= b -> 0 <= a + b.
@@ -94,7 +92,12 @@ Proof.
 Qed.
 
 Ltac Qside :=
-  auto using Qplus_le_0, Qmult_le_0_compat, Qmult_0, Qgt_0_Qneq_0, Qlt_le_weak, Qsqr_0, Qplus_lt_0.
+  try solve [repeat match goal with
+                    | [ H: _ /\ _ |- _ ] => destruct H
+                    end;
+             auto using Qplus_le_0, Qmult_le_0_compat, Qmult_0, Qgt_0_Qneq_0, Qlt_le_weak, Qsqr_0, Qplus_lt_0].
+
+(*+ Fractions! +*)
 
 Lemma Qfracs :
   forall a b c d,
@@ -102,7 +105,6 @@ Lemma Qfracs :
     (a + c)/(b + d) <= a/b + c/d.
 Proof with Qside.
   intros a b c d H.
-  destruct H as (Ha & Hb & Hc & Hd).
   field_simplify...
   rewrite <- Qmult_le_l with (z := b + d)...
   rewrite Qmult_div_r...

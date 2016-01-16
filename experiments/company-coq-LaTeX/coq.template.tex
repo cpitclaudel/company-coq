@@ -17,8 +17,14 @@
 % \newcommand*{\ccPlus}[2]{(#1 + #2)}
 % \newcommand*{\ccMult}[2]{(#1 \times #2)}
 
-\newcommand*{\ccForall}[2]{\forall #1, \: #2}
 \newcommand*{\ccEvar}[1]{\textit{\texttt{#1}}}
+
+% https://tex.stackexchange.com/questions/287922/automatically-adding-spaces-tracking-between-letters-in-math-mode
+\def\ccForall#1#2{\forall \xaddsp #1. \: #2}
+\def\xaddsp#1 {%
+\ifx:#1:\else
+\,#1\expandafter\xaddsp
+\fi}
 
 \pagestyle{empty}
 \definecolor{background}{HTML}{BACKGROUND}
