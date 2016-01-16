@@ -708,7 +708,7 @@ infinite loop (they are not cleared by [generalize dependent]).")
   "Face spec for subscripts.")
 
 (defconst company-coq-goal-separator-spec
-  `(("^  \\s-*\\(=====+\\)\\s-*$" 1 '(face nil display "") append))
+  `(("^  \\s-*=====+\\s-*$" 0 '(face nil display "") append))
   "Face spec for a sequence of '=' signs.")
 
 (defconst company-coq-deprecated-spec
@@ -3757,17 +3757,41 @@ added to `company-coq-custom-snippets'."
     (`on (company-coq-add-backend #'company-coq-user-snippets-backend))
     (`off (company-coq-remove-backend #'company-coq-user-snippets-backend))))
 
+(defcustom company-coq-goal-line-character ?═
+  "Character used to display the goals line.")
+
+(defun company-coq-features/pg-improvements--update-display-table ()
+  "Prettify ^L as a goal separator in the current buffer.
+Inspired by the excellent ‘page-break-lines-mode’."
+  (company-coq-with-current-buffer-maybe proof-goals-buffer
+    (-when-let* ((win (get-buffer-window (current-buffer))))
+      (unless buffer-display-table
+        (setq buffer-display-table (make-display-table)))
+      (let* ((line-width (- (window-width win) 3))
+             (display-entry (vconcat "  " (make-string line-width company-coq-goal-line-character))))
+        (unless (equal display-entry (elt buffer-display-table ?\^K))
+          (aset buffer-display-table ?\^K display-entry))))))
+
+(defun company-coq-features/pg-improvements--clear-display-table ()
+  "Remove prettification of ^K in the current buffer."
+  (when buffer-display-table
+    (aset buffer-display-table ?\^K nil)))
+
 (defun company-coq-features/pg-improvements--goals-buffer-enable ()
   "Apply company-coq improvements to current buffer."
   ;; Not adding this: it breaks pictures, and refontification is not common
   ;; since the buffer is in fact emptied for each new goal.
   ;; (add-to-list (make-local-variable 'font-lock-extra-managed-props) 'display)
+  (add-hook 'window-configuration-change-hook #'company-coq-features/pg-improvements--update-display-table)
+  (company-coq-features/pg-improvements--update-display-table)
   (font-lock-add-keywords nil company-coq-goal-separator-spec t)
   (font-lock-add-keywords nil company-coq-subscript-spec t)
   (company-coq-request-refontification))
 
 (defun company-coq-features/pg-improvements--goals-buffer-disable ()
   "Remove company-coq improvements from current buffer."
+  (remove-hook 'window-configuration-change-hook #'company-coq-features/pg-improvements--update-display-table)
+  (company-coq-features/pg-improvements--clear-display-table)
   (font-lock-remove-keywords nil company-coq-goal-separator-spec)
   (font-lock-remove-keywords nil company-coq-subscript-spec)
   (company-coq-request-refontification))

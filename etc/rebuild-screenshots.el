@@ -192,6 +192,7 @@ plus_")
 (my/with-screenshot my/github-width/3 13 "west" "Auto-completion of user-defined tactic notations." "ltac-completion"
   (my/start-pg-no-windows)
   (toggle-truncate-lines 1) ;; 55 119
+  (message nil)
   (my/insert-with-point "Tactic Notation \"myR\" constr(from)
   \"in\" hyp(hyp) := idtac.
 
