@@ -1598,10 +1598,9 @@ Nothing is reloaded immediately; instead the relevant flags are set."
   (and proof-response-buffer (get-buffer-window proof-response-buffer)))
 
 (defun company-coq-state-change (&rest _args)
-  "Handle modiications of prover state."
+  "Handle changes of prover state."
   (unless (window-live-p company-coq-goals-window)
     (setq company-coq-goals-window (company-coq-get-goals-window)))
-
   ;; Hide the docs and redisplay the goals buffer
   (-when-let* ((doc-buf (get-buffer company-coq--doc-buffer)))
     (bury-buffer doc-buf))
@@ -1732,6 +1731,18 @@ KILL: See `quit-window'."
   :lighter nil
   :keymap company-coq--temp-buffer-minor-mode-map)
 
+(defun company-coq--setup-doc-buffer ()
+  "Prepare current buffer for documentation display."
+  (visual-line-mode)
+  (buffer-disable-undo)
+  (company-coq--keybindings-minor-mode)
+  (company-coq--temp-buffer-minor-mode)
+  (set-buffer-modified-p nil)
+  (kill-local-variable 'kill-buffer-hook)
+  (setq-local buffer-offer-save nil)
+  (setq-local show-trailing-whitespace nil)
+  (setq-local cursor-in-non-selected-windows nil))
+
 (defmacro company-coq-with-clean-doc-buffer (&rest body)
   "Run BODY in a clean documentation buffer."
   (declare (indent defun)
@@ -1747,15 +1758,7 @@ KILL: See `quit-window'."
                  (remove-overlays)
                  (fundamental-mode)
                  (prog1 (progn ,@body)
-                   (visual-line-mode)
-                   (buffer-disable-undo)
-                   (company-coq--keybindings-minor-mode)
-                   (company-coq--temp-buffer-minor-mode)
-                   (set-buffer-modified-p nil)
-                   (kill-local-variable 'kill-buffer-hook)
-                   (setq-local buffer-offer-save nil)
-                   (setq-local show-trailing-whitespace nil)
-                   (setq-local cursor-in-non-selected-windows nil))))))
+                   (company-coq--setup-doc-buffer))))))
        (company-coq--record-selected-window))))
 
 (defun company-coq-scroll-above-definition-at-pt ()
@@ -3507,7 +3510,8 @@ Defining a feature adds it to `company-coq-available-features'."
 
 (defmacro company-coq-with-delayed-refontification (&rest body)
   "Run BODY, grouping all refontifications at the end."
-  (declare (indent defun))
+  (declare (indent defun)
+           (debug t))
   `(progn
      (setq company-coq--refontification-delayed t)
      (prog1 (progn ,@body)
@@ -3615,14 +3619,15 @@ Do not disable this feature"
 
 (defun company-coq--hello ()
   "Show a company-coq–related greeting."
-  (when (and company-coq-mode (buffer-name) (not (string-match-p "\\` ?\\*" (buffer-name))))
-    (message "%s" (substitute-command-keys "Welcome to company-coq! Use \\[company-coq-tutorial] to get started."))))
+  (message "%s" (substitute-command-keys "Welcome to company-coq! Use \\[company-coq-tutorial] to get started.")))
 
 (company-coq-define-feature hello (arg)
   "Startup message.
 Shows a greeting when company-coq starts."
   (pcase arg
-    (`on (run-with-timer 0 nil #'company-coq--hello))))
+    (`on
+     (when (and company-coq-mode (buffer-name) (not (string-match-p "\\` ?\\*" (buffer-name))))
+       (run-with-timer 0 nil #'company-coq--hello)))))
 
 (company-coq-define-feature keybindings (arg)
   "Company-coq keybindings.
@@ -3716,7 +3721,9 @@ added to `company-coq-custom-snippets'."
 
 (defun company-coq-features/pg-improvements--goals-buffer-enable ()
   "Apply company-coq improvements to current buffer."
-  (add-to-list (make-local-variable 'font-lock-extra-managed-props) 'display)
+  ;; Not adding this: it breaks pictures, and refontification is not common
+  ;; since the buffer is in fact emptied for each new goal.
+  ;; (add-to-list (make-local-variable 'font-lock-extra-managed-props) 'display)
   (font-lock-add-keywords nil company-coq-goal-separator-spec t)
   (font-lock-add-keywords nil company-coq-subscript-spec t)
   (company-coq-request-refontification))
@@ -4044,7 +4051,6 @@ the level of bullets."
        (company-coq-features/code-folding--set-display-table)
        (company-coq-features/code-folding--update-bullet-spec)
        (make-local-variable 'font-lock-extra-managed-props)
-       (add-to-list 'font-lock-extra-managed-props 'display)
        (add-to-list 'font-lock-extra-managed-props 'front-sticky)
        (add-to-list 'font-lock-extra-managed-props 'rear-nonsticky)
        (add-to-list 'font-lock-extra-managed-props 'mouse-face)
@@ -4223,11 +4229,11 @@ rotation."
 (defun company-coq-features/spinner--start ()
   "Start spinning the modeline icon."
   (company-coq-dbg "company-coq-features/spinner--start called")
-  (company-coq-error-unless-feature-active 'spinner)
-  (unless company-coq-features/spinner--spinning
-    (setq company-coq-features/spinner--spinning t)
-    (setq company-coq-features/spinner--rotation company-coq-features/spinner--initial-rotation)
-    (run-with-timer 0 company-coq-features/spinner-delay #'company-coq-features/spinner--spin)))
+  (when (company-coq-feature-active-p 'spinner)
+    (unless company-coq-features/spinner--spinning
+      (setq company-coq-features/spinner--spinning t)
+      (setq company-coq-features/spinner--rotation company-coq-features/spinner--initial-rotation)
+      (run-with-timer 0 company-coq-features/spinner-delay #'company-coq-features/spinner--spin))))
 
 (company-coq-define-feature spinner (arg)
   "Busy spinner.
