@@ -161,7 +161,7 @@ Tactic Notation "consequence" "of" constr(lemma) := Qside using lemma.
 
 Lemma Qfracs_take_two :
   forall a b c d,
-    a > 0 /\ b > 0 /\ c > 0 /\ d > 0 /\ d > 0 ->
+    a > 0 /\ b > 0 /\ c > 0 /\ d > 0 ->
     (a + c)/(b + d) <= a/b + c/d.
 Proof with Qside.
   intros a b c d H.

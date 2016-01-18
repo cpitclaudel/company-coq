@@ -1,8 +1,9 @@
-\documentclass[10pt]{article}
+\documentclass[12pt]{article}
 
 \usepackage{xcolor}
 \usepackage{graphicx}
 \usepackage{amsmath,amssymb}
+\usepackage{breqn}
 
 \usepackage[english]{babel}
 \usepackage[utf8]{inputenc}
@@ -35,5 +36,11 @@
 \begin{document}
    \pagecolor{background}
    \color{foreground}
-   CONTENTS
+
+   % Useful for debugging page widths
+   % \noindent\makebox[\linewidth]{\rule{\paperwidth}{0.4pt}}
+
+   \begin{dmath*}[compact,style={\mathindent=0pt}]
+     CONTENTS
+   \end{dmath*}
 \end{document}

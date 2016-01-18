@@ -107,7 +107,7 @@ WIDTH-IN is the paper width in inches."
     (company-coq-features/latex--substitute-placeholder "PAGE-WIDTH" (format "%.2fin" width-in))
     (company-coq-features/latex--substitute-placeholder "BACKGROUND" (company-coq-features/latex--default-color :background))
     (company-coq-features/latex--substitute-placeholder "FOREGROUND" (company-coq-features/latex--default-color :foreground))
-    (company-coq-features/latex--substitute-placeholder "CONTENTS" (concat "\\[" str "\\]"))
+    (company-coq-features/latex--substitute-placeholder "CONTENTS" str)
     (write-region (point-min) (point-max) fname nil nil)))
 
 (defun company-coq-features/latex--render-tex-file (tex-fname dvi-fname png-fname dpi)
@@ -130,13 +130,15 @@ to PNG-FNAME with resolution DPI."
 (defun company-coq-features/latex--compute-width ()
   "Compute a good width to display the current buffer as LaTeX."
   (ceiling (-if-let* ((win (get-buffer-window)))
-               (* (window-width win t) 0.8)
+               (* (window-width win t) 0.90)
              (* 0.5 (or (when (fboundp 'x-display-pixel-width)
                           (x-display-pixel-width))
                         1024)))))
 
-(defconst company-coq-features/latex--dvipng-scale-% 92)
-(defconst company-coq-features/latex--font-size-adjust 80.0)
+(defconst company-coq-features/latex--dvipng-scale-% 100
+  "How many pixels per inch, assuming unadjusted font size?")
+(defconst company-coq-features/latex--font-size-adjust 100.0
+  "What's the reference font size?")
 
 (defun company-coq-features/latex--compute-dpi (font-size)
   "Compute dpi setting from FONT-SIZE.
