@@ -3711,7 +3711,9 @@ REF-BUFFER is used to retrieve the buffer-local values of
 (defun company-coq-features/prettify-symbols--enable-others ()
   "Enable prettify-symbols in response and goals buffers."
   (company-coq-do-in-goals-buffer (company-coq-features/prettify-symbols--enable-other))
-  (company-coq-do-in-response-buffer (company-coq-features/prettify-symbols--enable-other)))
+  (company-coq-do-in-response-buffer (company-coq-features/prettify-symbols--enable-other))
+  (add-hook 'coq-goals-mode-hook #'company-coq-features/prettify-symbols--enable-other)
+  (add-hook 'coq-response-mode-hook #'company-coq-features/prettify-symbols--enable-other))
 
 (defun company-coq-features/prettify-symbols--enable ()
   "Enable prettify-symbols in all Coq buffers."
@@ -3724,7 +3726,9 @@ REF-BUFFER is used to retrieve the buffer-local values of
     (company-coq-suppress-warnings
       (company-coq-do-in-coq-buffers (prettify-symbols-mode -1))
       (company-coq-do-in-goals-buffer (prettify-symbols-mode -1))
-      (company-coq-do-in-response-buffer (prettify-symbols-mode -1)))))
+      (company-coq-do-in-response-buffer (prettify-symbols-mode -1))
+      (remove-hook 'coq-goals-mode-hook #'company-coq-features/prettify-symbols--enable-other)
+      (remove-hook 'coq-response-mode-hook #'company-coq-features/prettify-symbols--enable-other))))
 
 (defun company-coq-features/prettify-symbols--update-table ()
   "Update table of prettification symbols from file-local vars."
