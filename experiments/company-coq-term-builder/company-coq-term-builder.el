@@ -79,3 +79,5 @@ If UNDO-STATE is non-nil, go back to that Coq state before throwing."
     (remove-hook 'proof-shell-handle-delayed-output-hook #'company-coq--extraction-hook-fn)))
 
 (company-coq-TermBuilder)
+
+(provide 'company-coq-term-builder)

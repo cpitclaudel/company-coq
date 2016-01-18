@@ -193,10 +193,10 @@ Does not run when output is silenced."
                (remove-list-of-text-properties (point-min) (point-max) 'display)
                (message "Error while rendering goals buffers: %S" (error-message-string err))))))
 
-(define-minor-mode company-coq-TeX
+(define-minor-mode company-coq-LaTeX
   "Render Coq goals using LaTeX."
   :lighter " $"
-  (if company-coq-TeX
+  (if company-coq-LaTeX
       (progn
         (add-hook 'proof-shell-handle-delayed-output-hook #'company-coq-features/latex--render-goal)
         (unless company-coq-features/latex--template-path
@@ -204,4 +204,5 @@ Does not run when output is silenced."
     (company-coq-features/latex-evict-cache t)
     (remove-hook 'proof-shell-handle-delayed-output-hook #'company-coq-features/latex--render-goal)))
 
-(company-coq-TeX)
+(company-coq-LaTeX)
+(provide 'company-coq-latex)

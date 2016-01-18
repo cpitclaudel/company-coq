@@ -1,8 +1,9 @@
-\documentclass[12pt]{article}
+\documentclass[12pt,fleqn]{article}
 
 \usepackage{xcolor}
 \usepackage{graphicx}
 \usepackage{amsmath,amssymb}
+
 \usepackage{breqn}
 
 \usepackage[english]{babel}
@@ -15,7 +16,7 @@
 \newcommand*{\ccNat}{\ensuremath{\mathbb{N}}}
 \newcommand*{\ccSucc}[1]{\ensuremath{\mathrm{S}\:#1}}
 \newcommand*{\ccFrac}[2]{\ensuremath{\frac{#1}{#2}}}
-\newcommand*{\ccNsum}[3]{\ensuremath{\sum_{#1 = 0}^{#2} #3}}
+\newcommand*{\ccNsum}[3]{\ensuremath{\sum_{#1 \hiderel{=} 0}^{#2} #3}}
 \newcommand*{\ccPow}[2]{\ensuremath{{#1}^{#2}}}
 % \newcommand*{\ccPlus}[2]{(#1 + #2)}
 % \newcommand*{\ccMult}[2]{(#1 \times #2)}

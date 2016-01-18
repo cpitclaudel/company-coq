@@ -1,11 +1,11 @@
-(***   company-coq—LaTeX   ***)
+(***    company-coq—LaTeX    ***)
 
 
 (*+ What happens if we use Coq notations +*)
 (*+        to produce LaTeX code?        +*)
 
 
-(*!    [nsum 0 n (fun x => f x)]  ↦  [\sum_{x = 0}^n f(x)] ?    !*)
+(*!   [nsum 0 n (fun x => f x)]  ↦  [\sum_{x = 0}^n f(x)] ?   !*)
 
 
 (* Before stepping through this file, run the following (‘M-:’):
@@ -30,7 +30,7 @@ Notation "'\ccNsum{' x '}{' max '}{' f '}'" := (nsum max (fun x => f)).
 
 (* begin hide *)
 Infix "\wedge" := and (at level 190, right associativity).
-Notation "A \implies{} B" := (forall (_ : A), B) (at level 200, right associativity).
+Notation "A \Rightarrow{} B" := (forall (_ : A), B) (at level 200, right associativity).
 Notation "'\ccForall{' x .. y '}{' P '}'" := (forall x, .. (forall y, P) ..) (at level 200, x binder, y binder, right associativity, format "'\ccForall{' x .. y '}{' P '}'").
 Notation "'\ccNat{}'" := nat.
 Notation "'\ccSucc{' n '}'" := (S n).

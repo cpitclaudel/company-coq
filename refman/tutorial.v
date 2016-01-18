@@ -1,12 +1,12 @@
-(***    Company-Coq    ***)
+(***     Company-Coq     ***)
 
 (*+ A better environment for writing +*)
 (*+            Coq proofs            +*)
 
-(*! ************************************************* !*)
-(*!       Welcome to this company-coq tutorial!       !*)
-(*!       Here's a demo of a few nice features        !*)
-(*! ************************************************* !*)
+(*! *************************************************** !*)
+(*!        Welcome to this company-coq tutorial!        !*)
+(*!        Here's a demo of a few nice features         !*)
+(*! *************************************************** !*)
 
 (** First of all, let's ensure that company-coq is running.  Did you add
 
@@ -23,7 +23,7 @@
 
 (******************************************************************************)
 
-(** Let’s get started!  If you use emacs >= 24.4, the symbols below should be
+(** Let’s get started!  If you use emacs ≥ 24.4, the symbols below should be
     prettified, though they appear as ASCII in the source file.  You can disable
     this feature by typing ‘M-x prettify-symbols-mode’.  If the symbols show as
     square boxes instead, you may want to install a good unicode font, such as
