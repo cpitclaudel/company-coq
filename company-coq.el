@@ -2131,7 +2131,7 @@ except tables and horizontal rules, which we special-case in
 cause an OOM exception."
   (* (- (window-body-width) 2)
      (if (bound-and-true-p shr-use-fonts)
-         1 (frame-char-width))))
+         (frame-char-width) 1)))
 
 (defun company-coq-shr-tag-hr (_cont)
   "Format an hr tag CONT.
@@ -2156,16 +2156,16 @@ Don't even try to call shr; draw the line ourselves."
   (< emacs-major-version 25)
   "Whether Emacs version is below 25.")
 
-(defconst company-coq--shr-lacks-targets-p
+(defconst company-coq-emacs-below-24.4-p
   (version< emacs-version "24.4")
-  "Non-nil when SHR does not support target ids.")
+  "Non-nil when SHR lacks target ids and external rendering.")
 
 (defconst company-coq--shr-target-marker "!!COMPANY-COQ!!"
-  "Used to mark the target .")
+  "Used to mark the target html tag when shr can't do it.")
 
 (defun company-coq--shr-maybe-find-target ()
   "Find an ‘id’ matching ‘shr-target-id’ and mark it."
-  (when (and shr-target-id company-coq--shr-lacks-targets-p)
+  (when (and shr-target-id company-coq-emacs-below-24.4-p)
     (goto-char (point-min))
     (when (and (search-forward (format "id=\"%s\"" shr-target-id) nil t)
                (search-forward ">" nil t))
@@ -2174,7 +2174,7 @@ Don't even try to call shr; draw the line ourselves."
 
 (defun company-coq--shr-maybe-mark-target ()
   "Annotate text matching ‘company-coq--shr-target-marker’."
-  (when (and shr-target-id company-coq--shr-lacks-targets-p)
+  (when (and shr-target-id company-coq-emacs-below-24.4-p)
     (goto-char (point-min))
     (when (search-forward company-coq--shr-target-marker nil t)
       (replace-match "" t t)
@@ -2188,9 +2188,16 @@ Highlights the surroundings of the first tag whose id is
                (insert-file-contents html-full-path)
                (company-coq--shr-maybe-find-target)
                (libxml-parse-html-region (point-min) (point-max))))
-        ;; Disable wrapping in webpages
-        ;; NOTE: Using 0 is undocumented behaviour (and new in 25.0).
-        (shr-width (if company-coq-emacs-below-25-p most-positive-fixnum 0))
+        (shr-width (cond
+                    ;; Below 24.4: Let shr do its wrapping and abandon hopes of
+                    ;; proper wrapping of enlarged titles
+                    (company-coq-emacs-below-24.4-p (company-coq--reasonable-shr-width))
+                    ;; Below 25: Use infinite line width; external rendering
+                    ;; functions ensure that this doesn't cause problems
+                    (company-coq-emacs-below-25-p most-positive-fixnum)
+                    ;; Emacs 25: using 0 disables wrapping; the special case for
+                    ;; tables is still useful
+                    (t 0)))
         (after-change-functions nil)
         (shr-external-rendering-functions '((tt . company-coq-shr-tag-tt)
                                             (i . company-coq-shr-tag-i)

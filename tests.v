@@ -21,6 +21,8 @@ Unset Undo. (* Putting cursor or point on error should show help-echo *)
 (* This should not be underlined *)
 Fail abc_Unset Undo.
 
+Fail discrR. (* Does C-h here crash with OOM? *)
+
 Inductive AAABBB :=
 | AAA1
 | AAA2 : BBBCCC -> AAABBB
