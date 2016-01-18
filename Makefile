@@ -34,10 +34,13 @@ update:
 	$(CASK) install
 	$(CASK) update
 
+pkg-file:
+	$(CASK) pkg-file
+
 clean-elc:
 	$(CASK) clean-elc
 
-elc: update clean-elc
+elc: update clean-elc pkg-file
 	$(CASK) build
 
 pkg-def:
