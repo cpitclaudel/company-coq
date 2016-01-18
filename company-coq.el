@@ -3758,8 +3758,16 @@ added to `company-coq-custom-snippets'."
     (`on (company-coq-add-backend #'company-coq-user-snippets-backend))
     (`off (company-coq-remove-backend #'company-coq-user-snippets-backend))))
 
-(defcustom company-coq-goal-line-character ?═
-  "Character used to display the goals line.")
+(defcustom company-coq-goal-line-character ?\s
+  "Character used to display the goal line.
+Set to a space by default; the line is emulated using
+a :strike-through property on `company-coq-goal-line-face'.
+Suggested values: `═' or `─'.")
+
+(defface company-coq-goal-line-face
+  '((t :strike-through t))
+  "Face used to highlight the goal line."
+  :group 'company-coq-faces)
 
 (defun company-coq-features/pg-improvements--update-display-table ()
   "Prettify ^L as a goal separator in the current buffer.
@@ -3768,8 +3776,9 @@ Inspired by the excellent ‘page-break-lines-mode’."
     (-when-let* ((win (get-buffer-window (current-buffer))))
       (unless buffer-display-table
         (setq buffer-display-table (make-display-table)))
-      (let* ((line-width (- (window-width win) 3))
-             (display-entry (vconcat "  " (make-string line-width company-coq-goal-line-character))))
+      (let* ((line-width (max 1 (- (window-width win) 3)))
+             (glyph (make-glyph-code company-coq-goal-line-character 'company-coq-goal-line-face))
+             (display-entry (vconcat "  " (make-list line-width glyph))))
         (unless (equal display-entry (elt buffer-display-table ?\^K))
           (aset buffer-display-table ?\^K display-entry))))))
 
