@@ -239,7 +239,7 @@ Two patches are required for proper completion of theorems:
 =Redirect=ion to a file, and =Search Output Name Only=.  For
 tactics, and extra patch is required.")
 
-(defvar company-coq--coqtop-patched-p 'unknown
+(defvar company-coq--coqtop-patched-result 'unknown
   "Whether coqtop supports advanced completion features.
 One of 'unknown, 'yes, 'no.")
 
@@ -1470,18 +1470,21 @@ search term and a qualifier."
   "Show a warning MESSAGE, formatted with ARGS."
   (display-warning 'company-coq (apply #'format message args) :warning))
 
+(defun company-coq--coqtop-patched-p ()
+  "Check whether coqtop has company-coq patches."
+  (eq company-coq--coqtop-patched-result 'yes))
+
 (defun company-coq-detect-capabilities ()
-  "Update `company-coq--coqtop-patched-p' if needed."
-  (when (eq company-coq--coqtop-patched-p 'unknown)
+  "Update `company-coq--coqtop-patched-result' if needed."
+  (when (eq company-coq--coqtop-patched-result 'unknown)
     (let* ((output (car (company-coq-ask-prover-redirect company-coq--capability-detection-cmd)))
            (risky-features '(dynamic-symbols-backend)))
       (when output
-        (setq company-coq--coqtop-patched-p (company-coq-unless-error output))
+        (setq company-coq--coqtop-patched-result (if (company-coq-unless-error output) 'yes 'no))
         (message "Capability detection complete: dynamic completion is %savailable."
-                 (if company-coq--coqtop-patched-p "" "not "))
+                 (if (company-coq--coqtop-patched-p) "" "not "))
         (when (and (cl-some #'company-coq-feature-active-p risky-features)
-                   (not company-coq--coqtop-patched-p))
-          (company-coq--disable-features risky-features)
+                   (not (company-coq--coqtop-patched-p)))
           (company-coq-warn (concat "Dynamic completion is enabled, but "
                          "your version of coqtop does not seem to support it.")))))))
 
@@ -3287,7 +3290,7 @@ This function runs every time a new instance of the prover
 starts.  It does basic capability detection and records known
 tactic notations (thus ensuring that they are ignored in
 subsequent invocations)."
-  (setq company-coq--coqtop-patched-p 'unknown)
+  (setq company-coq--coqtop-patched-result 'unknown)
   (when (company-coq-prover-available-p)
     (company-coq-dbg "Doing early capability detection and filter initialization")
     (company-coq-detect-capabilities)
@@ -3458,17 +3461,14 @@ See also `company-coq-disabled-features'."
   :group 'company-coq
   :type 'booleanp)
 
-(defun company-coq--disable-features (cc-features)
-  "Disable company-coq features CC-FEATURES.
-That is, deactivate them and add them to the disabled list."
-  (company-coq--set-disabled-features 'company-coq-disabled-features (append cc-features company-coq-disabled-features)))
-
 (defun company-coq-feature-active-p (feature)
   "Check if company-coq feature FEATURE is active."
   (let ((toggle-function (company-coq-feature-toggle-function feature)))
     (and (get toggle-function 'company-coq-feature-active)
          (or (not (get toggle-function 'company-coq-feature-experimental))
-             company-coq-live-on-the-edge))))
+             company-coq-live-on-the-edge)
+         (or (not (get toggle-function 'company-coq-feature-requires-patched-coqtop))
+             (company-coq--coqtop-patched-p)))))
 
 (eval-and-compile
   (defconst company-coq-define-feature-doc-format
@@ -4484,7 +4484,9 @@ Use `company-coq-live-on-the-edge' to enable this feature."
 
 (eval-and-compile
   (put (company-coq-feature-toggle-function 'dynamic-symbols-backend)
-       'company-coq-feature-experimental t))
+       'company-coq-feature-experimental t)
+  (put (company-coq-feature-toggle-function 'dynamic-symbols-backend)
+       'company-coq-feature-requires-patched-coqtop t))
 
 (defun company-coq-warn-obsolete-setting (setting)
   "Warn about the use of obsolete setting SETTING."
