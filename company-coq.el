@@ -3760,9 +3760,10 @@ added to `company-coq-custom-snippets'."
 
 (defcustom company-coq-goal-line-character (if (display-graphic-p) ?\s ?─)
   "Character used to display the goal line.
-Set to a space by default; the line is emulated using
-a :strike-through property on `company-coq-goal-line-face'.
-Suggested values: `═' or `─'.")
+Set to a space by default on graphical displays; the line is
+emulated using a :strike-through property (set as part of
+`company-coq-goal-line-face').  That doesn't work on TTYs, so we
+use a box character there.  Suggested values: `═' or `─'.")
 
 (defface company-coq-goal-line-face
   '((((type tty)) ())
