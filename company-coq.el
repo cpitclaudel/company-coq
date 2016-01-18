@@ -1711,8 +1711,8 @@ return the starting point as well."
 (defun company-coq-truncate-to-minibuf (str)
   "Truncate STR for display in minibuffer."
   (when str
-    ;; (- … 5) adds some padding to compensate for wide characters
-    (truncate-string-to-width str (- (window-body-width (minibuffer-window)) 5) 0 nil "…")))
+    ;; (- … 10) adds some padding to compensate for wide characters
+    (truncate-string-to-width str (max 5 (- (window-body-width (minibuffer-window)) 10)) 0 nil "…")))
 
 (defun company-coq-meta-symbol (name)
   "Compute company's meta for symbol NAME."
