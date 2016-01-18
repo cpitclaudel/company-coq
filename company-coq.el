@@ -3758,14 +3758,15 @@ added to `company-coq-custom-snippets'."
     (`on (company-coq-add-backend #'company-coq-user-snippets-backend))
     (`off (company-coq-remove-backend #'company-coq-user-snippets-backend))))
 
-(defcustom company-coq-goal-line-character ?\s
+(defcustom company-coq-goal-line-character (if (display-graphic-p) ?\s ?─)
   "Character used to display the goal line.
 Set to a space by default; the line is emulated using
 a :strike-through property on `company-coq-goal-line-face'.
 Suggested values: `═' or `─'.")
 
 (defface company-coq-goal-line-face
-  '((t :strike-through t))
+  '((((type tty)) ())
+    (t (:strike-through t)))
   "Face used to highlight the goal line."
   :group 'company-coq-faces)
 
