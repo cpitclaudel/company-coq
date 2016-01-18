@@ -457,15 +457,12 @@ The result matches any symbol in HEADERS, followed by BODY."
 (defconst company-coq-end-of-def-regexp "\\(is\\|are\\) \\(recursively \\)?\\(defined\\|assumed\\|declared\\)"
   "Regexp used to detect signs that new symbols have been defined.")
 
-(defconst company-coq-basic-error-regexp "\\`Error: "
-  "Regexp used to detect simple errors.
-Useful in particular to prevent reloading the modules list after a failed import.")
-
-(defconst company-coq-error-regexps `(,company-coq-basic-error-regexp
-                           " not a defined object.\\s-\\'"
-                           "\\`No object of basename"
-                           "\\`Toplevel input, characters"
-                           "\\`No Ltac definition is referred to by")
+(defconst company-coq-error-regexps `("^Error:"
+                           "^No object of basename"
+                           "^Toplevel input, characters"
+                           "^No Ltac definition is referred to by"
+                           "^The command has indeed failed with message:"
+                           " not a defined object.\\s-$")
   "Regexps used to detect invalid output.")
 
 (defconst company-coq-error-regexp (concat "\\(" (mapconcat #'identity company-coq-error-regexps "\\|") "\\)")
@@ -582,7 +579,7 @@ infinite loop (they are not cleared by [generalize dependent]).")
    (regexp-quote ".") (replace-quote "\\(?:.\\|[\n]\\)")
    (replace-regexp-in-string
     (regexp-quote " ") (replace-quote "\\s-*")
-    (concat company-coq-unification-error-header " " "\\(?:"
+    (concat "\\(?:" company-coq-unification-error-header " \\)+" "\\(?:"
             (mapconcat #'identity company-coq-unification-error-messages "\\|")
             "\\)\\s-*")))
   "Rexep matching unification error messages.")
@@ -1574,7 +1571,7 @@ where FROM and TO indicate buffer positions bounding TYPE."
 (defun company-coq-run-then-parse-context-and-goal (command)
   "Send COMMAND to the prover, and return the new context and goal."
   (-if-let* ((output (company-coq-ask-prover-swallow-errors command)))
-      (company-coq--parse-context-and-goal (replace-regexp-in-string "\n\n\n[^\0]*\\'" "" output))
+      (company-coq--parse-context-and-goal (replace-regexp-in-string "\n\n[^\0]*\\'" "" output))
     (error (format "company-coq-parse-context: failed with message %s" output))))
 
 (defun company-coq-maybe-reload-context (&optional end-of-proof)
