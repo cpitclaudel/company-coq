@@ -3798,6 +3798,7 @@ Inspired by the excellent ‘page-break-lines-mode’."
   (company-coq-features/pg-improvements--update-display-table)
   (font-lock-add-keywords nil company-coq-goal-separator-spec t)
   (font-lock-add-keywords nil company-coq-subscript-spec t)
+  (setq-local show-trailing-whitespace nil)
   (company-coq-request-refontification))
 
 (defun company-coq-features/pg-improvements--goals-buffer-disable ()
@@ -3806,6 +3807,7 @@ Inspired by the excellent ‘page-break-lines-mode’."
   (company-coq-features/pg-improvements--clear-display-table)
   (font-lock-remove-keywords nil company-coq-goal-separator-spec)
   (font-lock-remove-keywords nil company-coq-subscript-spec)
+  (kill-local-variable 'show-trailing-whitespace)
   (company-coq-request-refontification))
 
 (defun company-coq-features/pg-improvements--response-buffer-enable ()
