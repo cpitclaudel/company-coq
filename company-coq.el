@@ -1124,7 +1124,7 @@ This used to load all tactics known by PG, but many of them did
 not lend themselves well to autocompletion, and deduplication was
 not fast."
   (let ((abbrevs (append '(("Module! (interactive)" nil "Module # : #.\n#\nEnd #." nil nil coq-insert-section-or-module)
-                           ("match! (from type)" nil "" nil "match" coq-insert-match)
+                           ("match! (from type)" nil "" nil "match" company-coq-insert-match-construct)
                            ("intros! (guess names)" nil "intros #" nil nil coq-insert-intros))
                          coq-user-cheat-tactics-db
                          coq-user-commands-db
