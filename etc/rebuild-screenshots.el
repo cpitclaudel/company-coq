@@ -341,7 +341,7 @@ Goal forall n: nat, exists m, n = m.
           (delete-char 4))))
     (message nil)))
 
-(my/with-screencast my/github-width/3 18 "center" 50 1 "Code folding (S-tab, C-/)." "folding"
+(my/with-screencast my/github-width/3 18 "center" 50 1 "Code folding (S-tab, C-c C-/)." "folding"
   (my/insert-with-point "<|>Goal forall a b c d e: Prop,
   a -> b -> c -> d -> e ->
   (a /\\ b) /\\ (c /\\ (d /\\ e)).
