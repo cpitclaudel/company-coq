@@ -2396,9 +2396,13 @@ Before calling INSERT-FUN, delete BEG .. END."
   (let* ((same-window-buffer-names '("*Occur*"))
          (source-name (buffer-name))
          (occur-title (format "Outline of [%s]" source-name)))
+    (-when-let* ((buf (get-buffer occur-title)))
+      (when (buffer-live-p buf)
+        (kill-buffer buf)))
     (occur company-coq-outline-regexp)
     (company-coq-with-current-buffer-maybe "*Occur*"
-      (rename-buffer occur-title)
+      (rename-buffer occur-title t)
+      (toggle-truncate-lines t)
       (let ((local-map (copy-keymap (current-local-map))))
         (substitute-key-definition #'occur-mode-goto-occurrence
                                    #'company-coq-goto-occurence local-map)
