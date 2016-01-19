@@ -1928,7 +1928,7 @@ Returns a cons as specified by `company-coq--locate-name'."
 
 (defun company-coq--loc-symbol (symbol)
   "Find the fully qualified name of SYMBOL."
-  (company-coq--loc-with-regexp symbol "Locate %s." (cons "Constant" company-coq-definitions-kwds)))
+  (company-coq--loc-with-regexp symbol "Locate %s." `("Notation" "Constant" ,@company-coq-definitions-kwds)))
 
 (defun company-coq--loc-tactic (tactic)
   "Find the fully qualified name of TACTIC."
