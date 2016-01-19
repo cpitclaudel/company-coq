@@ -18,6 +18,9 @@ Qed.
 (* This should be underlined. *)
 Unset Undo. (* Putting cursor or point on error should show help-echo *)
 
+(* With 8.5, does this jump to the right definition? *)
+Fail plus.
+
 (* This should not be underlined *)
 Fail abc_Unset Undo.
 
