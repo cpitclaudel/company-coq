@@ -412,11 +412,18 @@ Qed.")
 ;; Snippets | Match snippets | Smart intros
 
 (my/with-screencast my/github-width/3 13 "west" 20 8 "Match snippets (M-RET, C-c C-a RET)." "match-function"
+  (my/start-pg-no-windows)
+
   (:split "Fixpoint nsum l :=") "RET"
   (:split "miw") "<C-return>" "<C-return> RET"
   (:split "l") "TAB" "<M-return>"
   (:split "[]") "TAB" (:split "0") "TAB <M-return>"
-  (:split "h :: t") "TAB" (:split "h + nsum t") "M->" ".")
+  (:split "h :: t") "TAB" (:split "h + nsum t") "M->" "." "RET"
+
+  (:split "Fixpoint nsum' l :=") "RET"
+  (:minibuf "Type to destruct (nat, list, …): " "list")
+  (progn (company-coq-insert-match-construct "list") (message nil))
+  (:split "l") "TAB" (:split "0") "TAB" (:split "x + nsum x0") "M->" ".")
 
 (my/with-screencast my/github-width/3 13 "center" 20 8 "Match goal snippets (M-S-RET)." "match-goal"
   (:split "mgw") "<C-return>" "<C-return> RET"

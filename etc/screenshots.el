@@ -1,4 +1,4 @@
-;;; screenshots.el --- Programmable screenshots
+;;; screenshots.el --- Programmable screenshots -*- lexical-binding: t -*-
 
 ;;; Commentary:
 
@@ -127,8 +127,8 @@
        (noflet ((set-window-dedicated-p (&rest args) nil))
          ,@(mapcar (lambda (f) `(progn
                                   (proof-shell-wait)
-                                  (set-buffer-modified-p nil)
-                                  (unless (eq last-command 'my/keep-window)
+                                  (unless (or (eq last-command 'my/keep-window) (minibuffer-window-active-p (selected-window)))
+                                    (set-buffer-modified-p nil)
                                     (set-window-buffer nil --buf--)
                                     (set-window-point nil  (point)))
                                   ,f
@@ -149,7 +149,17 @@
       ((pred stringp)
        `((my/send-keys ,prog)))
       (`(:split ,(pred stringp))
-       (mapcar (lambda (c) `(my/send-keys ,(char-to-string c))) (string-to-list (cadr prog))))
+       (mapcar (lambda (c)
+                 `(my/send-keys ,(char-to-string c))
+                 ;; `(progn (setq last-command-event ,c)
+                 ;;         (setq this-command 'self-insert-command)
+                 ;;         (call-interactively #'self-insert-command))
+                 )
+               (string-to-list (cadr prog))))
+      (`(:minibuf ,(and (pred stringp) prompt) ,(and (pred stringp) value))
+       (mapcar (lambda (n)
+                 `(message "%s%s" ,(propertize prompt 'face 'minibuffer-prompt) ,(substring value 0 n)))
+               (cl-loop for i from 0 to (length value) collect i)))
       ((pred listp)
        (list prog))
       (_ (error "Unknown form %S" prog))))

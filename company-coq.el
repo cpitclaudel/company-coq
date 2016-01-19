@@ -3066,7 +3066,7 @@ pg-improvements feature isn't active, fallback to the regular
 function."
   (interactive (list
                 (if (company-coq-feature-active-p 'pg-improvements)
-                    (read-from-minibuffer "Type of the matched expression (e.g. nat, bool, list, …): ")
+                    (read-from-minibuffer "Type to destruct (e.g. nat, bool, list, …): ")
                   'fallback)))
   (if (eq type 'fallback)
       (call-interactively #'coq-insert-match)
