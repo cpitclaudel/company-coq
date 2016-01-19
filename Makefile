@@ -10,7 +10,7 @@ COMPANY_COQ_ARGS := --debug-init --eval "(progn (setq-default company-coq--check
 
 all: elc package
 
-clean: clean-elc clean-package clean-sandbox
+clean: clean-elc clean-package
 
 sandbox: elc
 	$(EMACS) --debug-init -L . $(COMPANY_COQ_ARGS) tests.v
