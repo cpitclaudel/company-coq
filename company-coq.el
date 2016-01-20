@@ -1392,7 +1392,7 @@ FULLY-MATCHED-COUNT and PART-MATCHED-LEN."
                           fully-matched-count))) ;; dots
       (mapcar (lambda (mod-name)
                 (propertize (concat prefix mod-name)
-                            'meta      (concat physical-path " -> " mod-name)
+                            'meta      (concat physical-path " → " mod-name)
                             'location  (expand-file-name (concat mod-name ".v") physical-path)
                             'match-end match-end))
               mod-names))))
