@@ -3515,11 +3515,12 @@ Defining a feature adds it to `company-coq-available-features'."
     (unless (equal 1 (length args))
       (error "Features take a single argument"))
     `(progn
+       ;; No need to set `company-coq-feature-active' here; in fact, setting it would cause
+       ;; reloading this file to deactivate all active features.
+       ;;
        ;; Register this feature
        (add-to-list 'company-coq-available-features (cons ',symbol ,doc) t)
        (company-coq-disabled-features--update-type)
-       ;; Mark it disabled, for now
-       (put ',toggle-function 'company-coq-feature-active nil)
        ;; Define the actual function
        (defun ,toggle-function (,arg)
          ,docs
