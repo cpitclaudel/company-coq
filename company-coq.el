@@ -2022,7 +2022,7 @@ FQN-FUNCTIONS: see `company-coq-locate-internal'."
     (find-file location))
    (t (user-error "Not found: %S" location)))
   (company-coq-recenter-on (company-coq-search-then-scroll-up target nil))
-  (pulse-momentary-highlight-one-line (point) 'next-error))
+  (pulse-momentary-highlight-one-line (point)))
 
 (defun company-coq-jump-to-definition (name &optional fqn-functions)
   "Jump to the definition of NAME, using FQN-FUNCTIONS to find it.
