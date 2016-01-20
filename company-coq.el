@@ -3935,13 +3935,17 @@ folding at the level of Proofs."
        (outline-minor-mode -1)))))
 
 (defconst company-coq-features/code-folding--bullet-regexp
-  "^\\s-*\\([*+-]+\\)\\s-"
-  "Regexp matching bullets.")
+  "^\\s-*\\([*+-]+\\)\\(?:[ \t]\\|$\\)"
+  "Regexp matching bullets.
+This uses $ instead of \n because \n would confuse hideshow into
+thinking that the line to fold from is the next one.")
 
 (defconst company-coq-features/code-folding--brace-regexp
-  "\\({\\)\\s-"
+  "\\({\\)\\(?:[ \t]\\|$\\)"
   "Regexp matching braces.
-Requiring a space helps with implicit args.")
+Requiring a space helps with implicit args.  See
+`company-coq-features/code-folding--bullet-regexp' about the use
+of $ instead of \n.")
 
 (defconst company-coq-features/code-folding--line-beginning-regexp
   "^[[:space:]*+-]*[*+{-]\\s-+"

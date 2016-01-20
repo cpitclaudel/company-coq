@@ -79,17 +79,19 @@ Definition InactiveBraces := "{{}}"%string. (* These braces shouldn't be active 
 
 Definition braces:
   forall {epsilon: nat}
-    {gamma: nat (* { *) } (* This brace should not be highlighted  (no space after it) *)
-    { mu: nat (* { *) } (* Neither should this one (closed on the same line *)
+    {gamma: nat (* { *) (* This brace should not be highlighted  (no space after it) *)
+              }
+    { mu: nat (* { *) }, (* Neither should this one (closed on the same line *)
     True \/ (True \/ True) -> True.
 (* is epsilon prettified in the goals buffer? *)
 Proof.
-  { intros.
+  {
+    intros.                     (* Does the bullet above unfold properly? *)
     destruct H.
     { (* Does this fold? Does the ellipsis look nice? *)
       apply I.
     }
-    { apply I. }
+    { apply I. }                (* This shouldn't be highlighted *)
   }
 Qed.
 
