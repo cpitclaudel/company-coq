@@ -2740,9 +2740,10 @@ order."
   (setq-local company-coq-enabled-backends (company-coq-sort-according-to-reference
                                  backends company-coq-sorted-backends)))
 
-(defun company-coq-put-exact-matches-on-top (prefix sorted-candidates)
+(defun company-coq--mark-and-move-exact-matches (prefix sorted-candidates)
   "Return a copy of SORTED-CANDIDATES with all exact matches at the front.
-PREFIX is the prefix that led to this completion session."
+PREFIX is the prefix that led to this completion session.  Exact
+matches are additionally marked with 'exact-match."
   (let ((exact-matches nil)
         (plain-matches nil)
         (fuzzy-matches nil)
@@ -2750,7 +2751,7 @@ PREFIX is the prefix that led to this completion session."
     (dolist (candidate sorted-candidates)
       (cond
        ((string= prefix candidate)
-        (push candidate exact-matches))
+        (push (propertize candidate 'exact-match t) exact-matches))
        ((and (eq (company-coq-get-prop 'match-beginning candidate) 0)
              (eq (company-coq-get-prop 'match-end candidate) prefix-length))
         (push candidate plain-matches))
@@ -2762,7 +2763,7 @@ PREFIX is the prefix that led to this completion session."
 
 (defun company-coq-candidates-master (prefix)
   "Compute all company-coq candidates for PREFIX."
-  (company-coq-put-exact-matches-on-top
+  (company-coq--mark-and-move-exact-matches
    prefix
    (cl-loop for backend in company-coq-enabled-backends
             nconc (company-coq-tagged-candidates backend prefix))))
@@ -2786,7 +2787,7 @@ that completion a newline will be inserted.
 Note that this only happens if the `company-defaults' feature
 is enabled."
   (unless (company-coq-delegate-to-backend 'post-completion arg)
-    (when (and (string= arg company-prefix)
+    (when (and (company-coq-get-prop 'exact-match arg)
                (company-coq-feature-active-p 'company-defaults))
       (call-interactively #'newline))))
 
