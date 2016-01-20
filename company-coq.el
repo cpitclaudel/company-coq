@@ -3939,11 +3939,12 @@ folding at the level of Proofs."
   "Regexp matching bullets.")
 
 (defconst company-coq-features/code-folding--brace-regexp
-  "{"
-  "Regexp matching braces.")
+  "\\({\\)\\s-"
+  "Regexp matching braces.
+Requiring a space helps with implicit args.")
 
 (defconst company-coq-features/code-folding--line-beginning-regexp
-  "^[[:space:]*+-]*[*+{-]\\s-*"
+  "^[[:space:]*+-]*[*+{-]\\s-+"
   "Regexp matching braces and bullets from the beginning of the line.")
 
 (defconst company-coq-features/code-folding--hs-regexp
@@ -4020,34 +4021,44 @@ fully populated."
                local-map ,(company-coq-features/code-folding--keymap)
                help-echo "Click (or press RET on) this bullet to hide or show its body.")))
 
-(defun company-coq-features/code-folding--really-on-bullet-p ()
-  "Check if previous regexp search really matched a bullet."
+(defun company-coq-features/code-folding--really-on-bullet-p (point)
+  "Check if POINT is on a bullet."
   (save-match-data
-    (let ((sx (syntax-ppss)))
-      (and
-       ;; Not in a string
-       (not (nth 3 sx))
-       ;; Not in a comment
-       (not (nth 4 sx))
-       ;; Not in the middle of a line
-       (-when-let* ((furthest-bullet (save-excursion
-                                       (beginning-of-line)
-                                       (when (looking-at company-coq-features/code-folding--line-beginning-regexp)
-                                         (match-end 0)))))
-         (<= (point) furthest-bullet))
-       ;; Really at the topelevel of a proof.
-       ;; NOTE: This check works very well, but it is too slow, so it's disabled
-       (or t (save-excursion
-               (backward-up-list)
-               (looking-back "Proof" (point-at-bol))))))))
+    (save-excursion
+      (goto-char point)
+      (let ((sx (syntax-ppss)))
+        (and
+         ;; Not in a string
+         (not (nth 3 sx))
+         ;; Not in a comment
+         (not (nth 4 sx))
+         ;; Not in the middle of a line
+         (-when-let* ((furthest-bullet (save-excursion
+                                         (beginning-of-line)
+                                         (when (looking-at company-coq-features/code-folding--line-beginning-regexp)
+                                           (match-end 0)))))
+           (<= (point) furthest-bullet))
+         ;; Not on a brace closed on the same line
+         (not (and (eq (char-after) ?{)
+                   (save-excursion
+                     ;; Parent depth goes to -1 iff we find the matching '}'
+                     (< (nth 6 (parse-partial-sexp (1+ point) (point-at-eol) -1)) 0))))
+         ;; Really at the toplevel of a proof.
+         ;; NOTE: This check works very well for bullets (but not for braces),
+         ;; but it is too slow, so it's disabled
+         (or t (save-excursion
+                 (backward-up-list)
+                 (looking-back "Proof" (point-at-bol)))))))))
 
 (defun company-coq-features/code-folding--search (search-fn regexp &optional bound)
   "Find a bullet matching REGEXP using SEARCH-FN.
-BOUND is as in `re-search-forward'."
+BOUND is as in `re-search-forward'.  SEARCH-FN must make it so
+that the first match group starts on the bullet."
   (let ((found nil))
     (save-excursion
       (while (and (setq found (funcall search-fn regexp bound t))
-                  (not (company-coq-features/code-folding--really-on-bullet-p)))))
+                  (not (company-coq-features/code-folding--really-on-bullet-p
+                        (match-beginning 1))))))
     (when found
       (goto-char found))))
 
@@ -4103,7 +4114,7 @@ interactive use."
 
 (defconst company-coq-features/code-folding--bullet-fl-spec
   `((,(apply-partially #'company-coq-features/code-folding--search #'re-search-forward company-coq-features/code-folding--brace-regexp)
-     0 company-coq-features/code-folding--bullet-fl-face nil)
+     1 company-coq-features/code-folding--bullet-fl-face nil)
     (,(apply-partially #'company-coq-features/code-folding--search #'re-search-forward company-coq-features/code-folding--bullet-regexp)
      1 company-coq-features/code-folding--bullet-fl-face nil))
   "Font-lock spec for bullets.

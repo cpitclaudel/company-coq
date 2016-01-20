@@ -34,8 +34,8 @@ with BBBCCC :=
      | BBB2 : AAABBB -> BBBCCC.
 
 Goal (nat + bool).
-  constructor (apply true).     (* Is constructor @{tactic} documented? *)
-Qed.
+  (* constructor (apply true).     (* Is constructor @{tactic} documented? *) *)
+Abort.
 
 (* Are symbols correctly prettified? *)
 
@@ -77,7 +77,12 @@ Definition InactiveBraces := "{{}}"%string. (* These braces shouldn't be active 
    +
    - *)
 
-Definition braces: forall epsilon: nat, True \/ (True \/ True) -> True.                     (* is epsilon prettified in the goals buffer? *)
+Definition braces:
+  forall {epsilon: nat}
+    {gamma: nat (* { *) } (* This brace should not be highlighted  (no space after it) *)
+    { mu: nat (* { *) } (* Neither should this one (closed on the same line *)
+    True \/ (True \/ True) -> True.
+(* is epsilon prettified in the goals buffer? *)
 Proof.
   { intros.
     destruct H.
