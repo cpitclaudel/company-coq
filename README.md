@@ -77,7 +77,7 @@ Loading `company-coq` also binds the following keys:
 * <kbd>C-c C-\\</kbd> unfolds the current code block, or all blocs in the file if repeated.
 * <kbd>C-c C-&</kbd> looks up (grep) the current word in files in the current directory subtree.
 * <kbd>C-c C-a C-e</kbd> tries to match the last output to a documented error message, and displays the relevant section of the manual if it finds one.
-* <kbd>M-x company-coq-diff-unification-error</kbd> parses the last unification error, and shows a diff of the two types that can't unify.
+* <kbd>C-c C-a C-d</kbd> parses the last unification error, and shows a diff of the two types that can't unify.
 
 ## Tips
 

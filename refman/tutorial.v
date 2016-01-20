@@ -201,7 +201,7 @@ Lemma LargeGoal : inhabited (Tt (@MkLarge Type 5 unit nat)).
 
   (* This message is not very readable, as the two terms are very similar.  It
      would be much nicer with just a diff of the two types.  Company-Coq supports
-     this: type ‘M-x company-coq-diff-unification-error’.  Type ‘q’ to exit. *)
+     this: try it with ‘C-c C-a C-d’.  Type ‘q’ to exit. *)
   
   Unset Printing All.
 Abort.

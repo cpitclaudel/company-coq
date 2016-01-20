@@ -267,7 +267,7 @@ assert (x := y).")
 
 ;; Error diffs | Documentation of errors
 
-(my/with-screenshot my/github-width/2 16 "west" "Diff of unification errors (M-x company-coq-diff-unification-errors)." "unification"
+(my/with-screenshot my/github-width/2 16 "west" "Diff of unification errors (C-c C-a C-d)." "unification"
   (my/start-pg-no-windows)
   (my/insert-with-point "Inductive Tree {T} :=
 | Leaf : T -> Tree
