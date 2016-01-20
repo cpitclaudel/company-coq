@@ -468,7 +468,7 @@ The result matches any symbol in HEADERS, followed by BODY."
 (defconst company-coq-error-regexp (concat "\\(" (mapconcat #'identity company-coq-error-regexps "\\|") "\\)")
   "Regexp used to detect invalid output.")
 
-(defconst company-coq-import-regexp (regexp-opt '("From" "Require" "Import" "Export"))
+(defconst company-coq-import-regexp (regexp-opt '("Require" "Import" "Export"))
   "Regexp used to detect signs that an import will be processed.")
 
 (defconst company-coq-tac-notation-regexp (regexp-opt '("Tactic Notation"))
