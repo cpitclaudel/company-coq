@@ -361,11 +361,11 @@ impossible, for example in `proof-shell-insert-hook'")
   "\\(?:^\\(subgoal .* is:\\|  ============================\\)$\\)"
   "Regexp indicating the beginning of a subgoal.")
 
-;; "\\(?:^  +\\|   +\\)\\([^:=]+\\)\\s-+\\(:=?\\)\\s-+"
+;; More powerful, but more tricky to match against:
+;; "\\(?:^  \\|[^[:space:]]   +\\)\\(\\(?:[^:=, \t\r\n]\\|, \\)+\\) \\(:=?\\) "
 (defconst company-coq--hypothesis-header-regexp
-  "^  \\(\\(?:[^:=,]\\|, \\)+\\) \\(:=?\\) "
-  "Regexp indicating the beginning of a hypothesis.
-The old version was too powerful; it had false positives.")
+  "^  \\(\\(?:[^:=, \t\r\n]\\|, \\)+\\) \\(:=?\\) "
+  "Regexp indicating the beginning of a hypothesis.")
 
 (defconst company-coq--hypotheses-block-opener "\n\\s-*\n"
   "Regexp matching the beginning of hypotheses.")
@@ -1520,7 +1520,7 @@ Matches will look like BOUND-RE ... BOUND-RE, though the second
 BOUND-RE is optional at the end of the buffer.  Spaces around the
 body of the match are ommitted.  The body is returned as a
 cons (BODY-TEXT . START).  Point is left at beginning of second
-match for BOUND-RE (or at end of buffer."
+match for BOUND-RE (or at end of buffer)."
   (when (re-search-forward bound-re nil t)
     (skip-chars-forward " \r\n\t")
     (let ((body-start (point)))
