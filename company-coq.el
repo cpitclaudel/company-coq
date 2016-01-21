@@ -361,9 +361,11 @@ impossible, for example in `proof-shell-insert-hook'")
   "\\(?:^\\(subgoal .* is:\\|  ============================\\)$\\)"
   "Regexp indicating the beginning of a subgoal.")
 
+;; "\\(?:^  +\\|   +\\)\\([^:=]+\\)\\s-+\\(:=?\\)\\s-+"
 (defconst company-coq--hypothesis-header-regexp
-  "\\(?:^  +\\|   +\\)\\([^:=]+\\)\\s-+\\(:=?\\)\\s-+"
-  "Regexp indicating the beginning of a hypothesis.")
+  "^  \\([^:= ]+\\) \\(:=?\\) "
+  "Regexp indicating the beginning of a hypothesis.
+The old version was too powerful; it had false positives.")
 
 (defconst company-coq--hypotheses-block-opener "\n\\s-*\n"
   "Regexp matching the beginning of hypotheses.")
@@ -1511,48 +1513,88 @@ Returns non-nil iff narrowing was successful."
     (narrow-to-region beg end)
     (goto-char (point-min))))
 
-(defun company-coq--bounded-re-search-forward (bound)
-  "Search forward for text enclosed in instances of BOUND.
-Matches will look like BOUND ... BOUND, though the second BOUND
-is optional at the end of the buffer.  Spaces surrounding the
-body of the match are ommitted.  The body of the match is
-reported in match group 10."
-  (let* ((body "\\(?10:[^\0]*?[^ ]\\)")   ;; Body must end with non-space
-         (re (concat bound "\\s-*" body "\\s-*" "\\(?:" bound "\\|\\'\\)")))
-    (re-search-forward re nil t)))
+(defun company-coq--bounded-re-search-forward (bound-re)
+  "Search forward for text enclosed in instances of BOUND-RE.
+Matches will look like BOUND-RE ... BOUND-RE, though the second
+BOUND-RE is optional at the end of the buffer.  Spaces around the
+body of the match are ommitted.  The body is returned as a
+cons (BODY-TEXT . START).  Point is left at beginning of second
+match for BOUND-RE (or at end of buffer."
+  (when (re-search-forward bound-re nil t)
+    (skip-chars-forward " \r\n\t")
+    (let ((body-start (point)))
+      (save-match-data
+        (if (re-search-forward bound-re nil t)
+            (goto-char (match-beginning 0))
+          (goto-char (point-max)))
+        (save-excursion
+          (skip-chars-backward " \r\n\t" body-start)
+          (cons (buffer-substring-no-properties body-start (point)) body-start))))))
 
-(defun company-coq--parse-hypothesis-match ()
-  "Construct an hypothesis entry out of current match data.
-See ‘company-coq-features/latex--collect-hypotheses’ for informations on the format."
-  (let ((names (match-string-no-properties 1))
-        (sep (match-string-no-properties 2))
-        (type (match-string-no-properties 10))
-        (names-beg (match-beginning 1))
-        (names-end (match-end 1))
-        (type-beg (match-beginning 10))
-        (type-end (match-end 10)))
-    (list names sep type names-beg names-end type-beg type-end)))
+(cl-defstruct company-coq-hypothesis
+  names separator type names-position type-position)
+
+(defun company-coq--parse-hypothesis-match (pair)
+  "Construct an hypothesis entry out of PAIR and match data."
+  (make-company-coq-hypothesis
+   :names (match-string-no-properties 1)
+   :separator (match-string-no-properties 2)
+   :type (car pair)
+   :names-position (match-beginning 1)
+   :type-position (cdr pair)))
 
 (defun company-coq--collect-hypotheses ()
   "Find hypotheses in current buffer.
-Returns a list of lists of the following form:
-  (NAMES SEP TYPE NAMES-FROM NAMES-TO TYPE-FROM TYPE-TO)
-where SEP is ‘:’ or ‘:=’, and FROM and TO entries indicate buffer positions
-bounding NAME and TYPE."
+Return a `company-coq-hypothesis'.  SEP is ‘:’ or ‘:=’.  NAMES
+may contain multiple names."
   (save-restriction
     (when (company-coq--narrow-to-matches company-coq--hypotheses-block-opener
                                company-coq--hypotheses-block-closer)
-      (cl-loop while (company-coq--bounded-re-search-forward company-coq--hypothesis-header-regexp)
-               collect (company-coq--parse-hypothesis-match)
-               do (goto-char (match-end 10))))))
+      (cl-loop for match = (company-coq--bounded-re-search-forward company-coq--hypothesis-header-regexp)
+               while match collect (company-coq--parse-hypothesis-match match)))))
 
-(defun company-coq--parse-subgoal-match ()
-  "Construct an subgoal entry out of current match data.
-See ‘company-coq-features/latex--collect-subgoals’ for informations on the format."
-  (let ((type (match-string-no-properties 10))
-        (type-beg (match-beginning 10))
-        (type-end (match-end 10)))
-    (list type type-beg type-end)))
+(defun company-coq--collect-hypothesis-names ()
+  "Return names of all hypotheses in the current buffer."
+  (cl-loop for entry in (company-coq--collect-hypotheses)
+           append (split-string (company-coq-hypothesis-names entry) "\\s-*,\\s-*")))
+
+(defun company-coq--split-string-with-positions-1 (prev-end end)
+  "Construct a value for `company-coq--split-string-with-positions'.
+See that function for from PREV-END and END."
+  (cons (buffer-substring-no-properties prev-end end)
+        (1- prev-end)))
+
+(defun company-coq--split-string-with-positions (str regexp)
+  "Split STR at instances of REGEXP.
+Return values are in the form (STR FROM TO)."
+  (with-temp-buffer
+    (insert str)
+    (goto-char (point-min))
+    (let ((matches nil)
+          (prev-end 1))
+      (while (re-search-forward regexp nil t)
+        (push (company-coq--split-string-with-positions-1
+               prev-end (match-beginning 0))
+              matches)
+        (setq prev-end (match-end 0)))
+      (push (company-coq--split-string-with-positions-1
+             prev-end (1+ (length str)))
+            matches)
+      (nreverse matches))))
+
+(defun company-coq--split-merged-hypothesis (hyp)
+  "Split HYP into multiple hypotheses with one name per entry."
+  (save-match-data
+    (cl-loop for (name . offset) in (company-coq--split-string-with-positions
+                                     (company-coq-hypothesis-names hyp) "\\s-*,\\s-*")
+             collect (let ((copy (copy-company-coq-hypothesis hyp)))
+                       (setf (company-coq-hypothesis-names copy) name)
+                       (cl-incf (company-coq-hypothesis-names-position copy) offset)
+                       copy))))
+
+(defun company-coq--split-merged-hypotheses (hypotheses)
+  "Compute a copy of HYPOTHESES with a single name per entry."
+  (-mapcat #'company-coq--split-merged-hypothesis hypotheses))
 
 (defun company-coq--collect-subgoals ()
   "Find subgoals in current buffer.
@@ -1560,21 +1602,28 @@ Returns a list of lists of the following form:
   (TYPE TYPE-FROM TYPE-TO)
 where FROM and TO indicate buffer positions bounding TYPE."
   (goto-char (point-min))
-  (cl-loop while (company-coq--bounded-re-search-forward company-coq--subgoal-header-regexp)
-           collect (company-coq--parse-subgoal-match)
-           do (goto-char (match-end 10))))
+  (cl-loop for match = (company-coq--bounded-re-search-forward company-coq--subgoal-header-regexp)
+           ;; match is already in the form body . body-pos
+           while match collect match))
 
-(defun company-coq--parse-context-and-goal (response)
+(defun company-coq--parse-context-and-goals (response)
+  "Extract a full parse of the context and the goal from RESPONSE."
+  (with-temp-buffer
+    (insert response)
+    (list (company-coq--split-merged-hypotheses (company-coq--collect-hypotheses))
+          (company-coq--collect-subgoals))))
+
+(defun company-coq--collect-hypotheses-and-goal (response)
   "Extract a list of hypothesis names and a goal from RESPONSE."
   (with-temp-buffer
     (insert response)
-    (list (mapcar #'car (company-coq--collect-hypotheses))
+    (list (company-coq--collect-hypothesis-names)
           (caar (company-coq--collect-subgoals)))))
 
-(defun company-coq-run-then-parse-context-and-goal (command)
+(defun company-coq-run-then-collect-hypotheses-and-goal (command)
   "Send COMMAND to the prover, and return the new context and goal."
   (-if-let* ((output (company-coq-ask-prover-swallow-errors command)))
-      (company-coq--parse-context-and-goal (replace-regexp-in-string "\n\n[^\0]*\\'" "" output))
+      (company-coq--collect-hypotheses-and-goal (replace-regexp-in-string "\n\n[^\0]*\\'" "" output))
     (error (format "company-coq-parse-context: failed with message %s" output))))
 
 (defun company-coq-maybe-reload-context (&optional end-of-proof)
@@ -3033,7 +3082,7 @@ With prefix ARG, insert an inductive constructor with arguments."
   "Interactively collect a lemma name and hypothesis names."
   (let ((hyps       nil)
         (lemma-name "")
-        (candidates (cons "" (car (company-coq-run-then-parse-context-and-goal "Show")))))
+        (candidates (cons "" (car (company-coq-run-then-collect-hypotheses-and-goal "Show")))))
     (while (string-equal lemma-name "")
       (setq lemma-name (read-string "Lemma name? ")))
     (while (> (length candidates) 1) ;; "" is always in there
@@ -3055,7 +3104,7 @@ of these hypotheses are also added to the lemma."
       (unwind-protect
           (let* ((gen-cmds (mapcar (lambda (hyp) (concat "generalize dependent " hyp)) hyps))
                  (full-cmd (mapconcat 'identity (nconc gen-cmds company-coq-lemma-introduction-forms) ";")))
-            (-if-let* ((lemma (cadr (company-coq-run-then-parse-context-and-goal full-cmd))))
+            (-if-let* ((lemma (cadr (company-coq-run-then-collect-hypotheses-and-goal full-cmd))))
                 (company-coq-insert-indented (format "Lemma %s:\n%s.\nProof.\n" lemma-name lemma))
               (error "Lemma extraction failed")))
         (company-coq-ask-prover (format "BackTo %d." statenum)))
