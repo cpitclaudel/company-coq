@@ -3136,6 +3136,7 @@ function."
 (defun company-coq-insert-as-clause ()
   "Insert an as clause for the command at point.
 This is experimental, and only supported in 8.5."
+  (interactive)
   (unless (company-coq-ask-prover-swallow-errors "infoH idtac.")
     (user-error "This features requires Coq 8.5"))
   (unless (and (fboundp 'coq-hack-cmd-for-infoH)
