@@ -16,7 +16,7 @@ sandbox: elc
 	$(EMACS) --debug-init -L . $(COMPANY_COQ_ARGS) tests.v
 
 emacs24:
-	$(eval EMACS := /usr/bin/emacs24)
+	$(eval EMACS := /build/emacs-24.5/src/emacs)
 
 test: elc
 	$(CASK) exec $(EMACS) --debug-init -Q \
@@ -83,3 +83,6 @@ symbols:
 	awk -F'\\s+' -v NL=$$(wc -l < etc/symbols) -f etc/symbols.awk < etc/symbols
 	awk -F'\\s+' -v NL=$$(wc -l < etc/more-symbols) -f etc/symbols.awk < etc/more-symbols
 	awk -F'\\s+' -v NL=$$(wc -l < etc/greek-symbols) -f etc/symbols.awk < etc/greek-symbols
+
+check-patches:
+	etc/check-patches.sh
