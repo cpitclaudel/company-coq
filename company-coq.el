@@ -1127,7 +1127,8 @@ not lend themselves well to autocompletion, and deduplication was
 not fast."
   (let ((abbrevs (append '(("Module! (interactive)" nil "Module # : #.\n#\nEnd #." nil nil coq-insert-section-or-module)
                            ("match! (from type)" nil "" nil "match" company-coq-insert-match-construct)
-                           ("intros! (guess names)" nil "intros #" nil nil coq-insert-intros))
+                           ("intros! (guess names)" nil "intros #" nil nil coq-insert-intros)
+                           ("as! (guess pattern)" nil "as #" nil nil company-coq-insert-as-clause))
                          coq-user-cheat-tactics-db
                          coq-user-commands-db
                          coq-user-reserved-db
@@ -3131,6 +3132,28 @@ function."
                  (snippet (replace-regexp-in-string "=>$" "=> #" cleaned)))
             (yas-expand-snippet (company-coq-dabbrev-to-yas snippet)))
         (error response)))))
+
+(defun company-coq-insert-as-clause ()
+  "Insert an as clause for the command at point.
+This is experimental, and only supported in 8.5."
+  (unless (company-coq-ask-prover-swallow-errors "infoH idtac.")
+    (user-error "This features requires Coq 8.5"))
+  (let* ((pt (point))
+         (clause (save-excursion
+                   (re-search-backward "[;.]" (point-at-eol) t)
+                   (coq-find-real-start)
+                   (when (> pt (point))
+                     (let* ((infoh (coq-hack-cmd-for-infoH
+                                    (replace-regexp-in-string
+                                     "^\\s-*\|\\s-*$" "" (buffer-substring-no-properties
+                                                        (point) pt))))
+                            (response (company-coq-ask-prover infoh)))
+                       (when (string-match "<infoH>\\([^<]*\\)</infoH>" response)
+                         (let ((match-form (match-string 1 response)))
+                           (if (string-match-p "^[| ]*$" match-form)
+                               (user-error "No names to introduce!")
+                             (concat "as [" match-form "]")))))))))
+    (insert clause)))
 
 (defun company-coq-normalize-error (msg)
   "Normalize error MSG to look it up in a list of errors."
