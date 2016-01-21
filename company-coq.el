@@ -1630,14 +1630,15 @@ where FROM and TO indicate buffer positions bounding TYPE."
   "Update `company-coq-current-context'.
 With END-OF-PROOF, clear the current context."
   (company-coq-dbg "company-coq-maybe-reload-context: Called")
-  (let* ((output        proof-shell-last-goals-output)
-         (is-new-output (not (string-equal output company-coq-last-goals-output))))
-    (cond (end-of-proof  (company-coq-dbg "company-coq-maybe-reload-context: Clearing context")
-                         (setq company-coq-current-context nil)
-                         (setq output nil))
-          (is-new-output (company-coq-dbg "company-coq-maybe-reload-context: Reloading context")
-                         (setq company-coq-current-context (car (company-coq--parse-context-and-goal output)))))
-    (setq company-coq-last-goals-output output)))
+  (when (company-coq-feature-active-p 'context-backend)
+    (let* ((output        proof-shell-last-goals-output)
+           (is-new-output (not (string-equal output company-coq-last-goals-output))))
+      (cond (end-of-proof  (company-coq-dbg "company-coq-maybe-reload-context: Clearing context")
+                           (setq company-coq-current-context nil)
+                           (setq output nil))
+            (is-new-output (company-coq-dbg "company-coq-maybe-reload-context: Reloading context")
+                           (setq company-coq-current-context (car (company-coq--collect-hypotheses-and-goal output)))))
+      (setq company-coq-last-goals-output output))))
 
 (defun company-coq-maybe-proof-output-reload-things ()
   "Parse output of prover, looking for signals that things need to be reloaded, and reload them."
