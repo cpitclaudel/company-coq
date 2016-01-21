@@ -3138,10 +3138,10 @@ function."
 This is experimental, and only supported in 8.5."
   (interactive)
   (unless (company-coq-ask-prover-swallow-errors "infoH idtac.")
-    (user-error "This features requires Coq 8.5"))
+    (user-error "This features requires Coq 8.5 (for the infoH tactic)"))
   (unless (and (fboundp 'coq-hack-cmd-for-infoH)
                (fboundp 'coq-find-real-start))
-    (error "This feature requires a recent version of Proof General"))
+    (error "This feature requires a recent version of Proof General (it's on GitHub now)"))
   (let* ((pt (point))
          (clause (save-excursion
                    (re-search-backward "[;.]" (point-at-eol) t)
@@ -3156,7 +3156,7 @@ This is experimental, and only supported in 8.5."
                        (when (string-match "<infoH>\\([^<]*\\)</infoH>" response)
                          (let ((match-form (match-string 1 response)))
                            (if (string-match-p "^[| ]*$" match-form)
-                               (user-error "No names to introduce!")
+                               (user-error "Couldn't find names to introduce; this feature is still pretty experimental")
                              (concat "as [" match-form "]")))))))))
     (insert clause)))
 
