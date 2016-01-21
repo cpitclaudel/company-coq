@@ -363,7 +363,7 @@ impossible, for example in `proof-shell-insert-hook'")
 
 ;; "\\(?:^  +\\|   +\\)\\([^:=]+\\)\\s-+\\(:=?\\)\\s-+"
 (defconst company-coq--hypothesis-header-regexp
-  "^  \\([^:= ]+\\) \\(:=?\\) "
+  "^  \\(\\(?:[^:=,]\\|, \\)+\\) \\(:=?\\) "
   "Regexp indicating the beginning of a hypothesis.
 The old version was too powerful; it had false positives.")
 
@@ -1611,7 +1611,7 @@ where FROM and TO indicate buffer positions bounding TYPE."
   "Extract a full parse of the context and the goal from RESPONSE."
   (with-temp-buffer
     (insert response)
-    (list (company-coq--split-merged-hypotheses (company-coq--collect-hypotheses))
+    (list (company-coq--collect-hypotheses)
           (company-coq--collect-subgoals))))
 
 (defun company-coq--collect-hypotheses-and-goal (response)
@@ -2410,7 +2410,7 @@ Before calling INSERT-FUN, delete BEG .. END."
   (delete-region beg end)
   (condition-case err
       (if (company-coq-prover-available-p)
-          (funcall insert-fun)
+          (call-interactively insert-fun)
         (user-error "Please ensure that the prover is started and idle before using smart completions"))
     (error (message "%s" (error-message-string err)))))
 
