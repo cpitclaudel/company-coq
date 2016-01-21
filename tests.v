@@ -58,6 +58,36 @@ Proof.
     + idtac.                    (* and this? *)
       apply I.
       (* Do folded sections automatically unfold when stepping in? *)
+      Show Script.
+Qed.
+
+Inductive LongTypeName := II.
+Goal False.
+  pose proof I.
+  pose (fix test (arg0 arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8
+                       arg9 arg10 arg11 arg12 : nat) {struct arg0} : LongTypeName
+        := match arg0 with      (* LongTypeName := is not a hypothesis *)
+           | 0 => II
+           | S n => II
+           end).
+   (* Try (company-coq--parse-context-and-goals proof-shell-last-goals-output) here *)
+Abort.
+
+Definition more_bullets: (True \/ (True \/ (True \/ (True \/ True)))) \/ (True \/ True) -> True.
+Proof.
+  intros.                       (* 1- *)
+  destruct H.                   (* 2- *)
+  - destruct H.                   (* 3- *)
+    + apply I.                      (* 2- *)
+    + destruct H.                   (* 2- *)
+      * apply I.                      (* 2- *)
+      * destruct H.                   (*  *)
+        apply I.
+        apply I.
+  - destruct H.
+    + apply I.
+    + destruct H.
+      apply I.
 Qed.
 
 (* How are HintResolve candidates ordered? *)
@@ -81,13 +111,16 @@ Definition braces:
   forall {epsilon: nat}
     {gamma: nat (* { *) (* This brace should not be highlighted  (no space after it) *)
               }
-    { mu: nat (* { *) }, (* Neither should this one (closed on the same line *)
+    { mu: id nat (* { *) }, (* Neither should this one (closed on the same line *)
     True \/ (True \/ True) -> True.
 (* is epsilon prettified in the goals buffer? *)
 Proof.
   {
     intros.                     (* Does the bullet above unfold properly? *)
     destruct H.
+    compute in mu.
+    clear epsilon.
+    pose proof I.
     { (* Does this fold? Does the ellipsis look nice? *)
       apply I.
     }
@@ -142,8 +175,27 @@ Proof.
   | [ H: ?a |- _ ] => eauto (* Is the variable name highlighted? But not in comments: ?a *)
   end.
   Undo 1.
+  
   congruence.
 Qed.
+
+Inductive BlahI :=
+| constructor0: forall x1 x2 x3 x4: nat, BlahI
+| constructor1: forall x1 x2 x3 x4: nat, BlahI
+| constructor2: forall x1 x2 x3 x4: nat, BlahI
+| constructor3: forall x1 x2 x3 x4: nat, BlahI
+| constructor4: forall x1 x2 x3 x4: nat, BlahI
+| constructor5: forall x1 x2 x3 x4: nat, BlahI
+| constructor6: forall x1 x2 x3 x4: nat, BlahI
+| constructor7: forall x1 x2 x3 x4: nat, BlahI.
+
+Lemma AutoAs (n: BlahI) : True.
+Proof.
+  destruct n.                   (* Does an automatic as clause here work? *)
+  - destruct x1.
+    + admit.
+    + 
+Abort.
 
 Lemma TestSubscripts :
   forall x: True, True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> nat -> nat.
@@ -232,7 +284,7 @@ Section TestSectionName.
 
     Lemma t: True -> 1 + 1 = 2.
     Proof.
-      intros. 
+      intros.
       (* Try extract-lemma-from-goal C-c C-a C-x here *)
     Abort.
   End OtherSection. (* These names should autocomplete *)
@@ -271,6 +323,10 @@ Qed.
 Require Import Utf8.
 Lemma MathCompletion : ∀ x, x > 1 → x > 0. (* This can be typed using \forall *)
   intros x H.
+  Lemma asd:
+    ∀ x : nat, x > 1 → x > 0.
+  Proof.
+    
   info_auto with arith.
 Qed.
 
@@ -357,6 +413,12 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma GoalDiffs : forall n1 n2 n3: (id Qc), n1 + n2 + n3 = n3 + n2 + n1.
+Proof.
+  intros.
+  unfold id in n1.
+
+  
 (* vvv shouldn't be available here *)
 
 Require Import Omega.
