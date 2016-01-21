@@ -176,22 +176,25 @@ Uses the LaTeX template at ‘company-coq-features/latex--template-path’."
     (let ((inhibit-read-only t))
       (add-text-properties beg end (company-coq-features/latex--img-plist png-name str)))))
 
-  (defun company-coq-features/latex--render-goal ()
-    "Parse and LaTeX-render the contents of the goals buffer.
+(defun company-coq-features/latex--render-goal ()
+  "Parse and LaTeX-render the contents of the goals buffer.
 Does not run when output is silenced."
-    (unless (or (memq 'no-goals-display proof-shell-delayed-output-flags)
-                (null proof-script-buffer)
-                (not (display-graphic-p)))
-      (condition-case-unless-debug err
-          (company-coq-with-current-buffer-maybe proof-goals-buffer
-            (company-coq-features/latex--evict-cache)
-            (pcase-dolist (`(_ _ ,type _ _ ,beg ,end) (company-coq--collect-hypotheses))
-              (company-coq-features/latex--render-string beg end))
-            (pcase-dolist (`(,type ,beg ,end) (company-coq--collect-subgoals))
-              (company-coq-features/latex--render-string beg end)))
-        (error (company-coq-features/latex--evict-cache)
-               (remove-list-of-text-properties (point-min) (point-max) 'display)
-               (message "Error while rendering goals buffers: %S" (error-message-string err))))))
+  (unless (or (memq 'no-goals-display proof-shell-delayed-output-flags)
+              (null proof-script-buffer)
+              (not (display-graphic-p)))
+    (condition-case-unless-debug err
+        (company-coq-with-current-buffer-maybe proof-goals-buffer
+          (company-coq-features/latex--evict-cache)
+          (dolist (hyp (company-coq--collect-hypotheses))
+            (company-coq-features/latex--render-string
+             (company-coq-hypothesis-type-position hyp)
+             (+ (company-coq-hypothesis-type-position hyp)
+                (length (company-coq-hypothesis-type hyp)))))
+          (pcase-dolist (`(,type . ,beg) (company-coq--collect-subgoals))
+            (company-coq-features/latex--render-string beg (+ beg (length type)))))
+      (error (company-coq-features/latex--evict-cache)
+             (remove-list-of-text-properties (point-min) (point-max) 'display)
+             (message "Error while rendering goals buffers: %S" (error-message-string err))))))
 
 (define-minor-mode company-coq-LaTeX
   "Render Coq goals using LaTeX."
