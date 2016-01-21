@@ -2485,8 +2485,9 @@ Before calling INSERT-FUN, delete BEG .. END."
     (let ((inhibit-read-only t))
       (save-excursion ;; Prettify buffer title
         (goto-char (point-min))
-        (when (re-search-forward "\\`[^\0]*?find.*" (point-max) t)
-          (replace-match (replace-quote (format "Searching for [%s] in [%s]\n" regexp default-directory)))
+        (when (search-forward "find" nil t)
+          (delete-region (point-min) (point-at-eol))
+          (insert (format "Searching for [%s] in [%s]\n" regexp default-directory))
           (goto-char (point-min))
           (company-coq-make-title-line 'company-coq-doc-header-face-about))))))
 
@@ -3937,7 +3938,7 @@ markers of decreasing importance."
     (company-coq-request-refontification)))
 
 (defconst company-coq-features/coqdoc--spec
-  '(("^\\s-*\\(?1:(\\*\\*\\s-\\)\\s-*\\(?2:\\*+\\)\\s-*\\(?3:.*?\\)\\(?:\\s-*\\**)\\)?$"
+  '(("^\\s-*\\(?1:(\\*\\*\\s-\\)\\s-*\\(?2:\\*+\\)\\s-*\\(?3:.*?\\)\\(?:\\s-*\\**)\\)?\\s-*$"
      (3 (let ((depth (length (match-string 2))))
           (pcase depth
             (1 'company-coq-coqdoc-h1-face)
