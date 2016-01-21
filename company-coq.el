@@ -3138,15 +3138,19 @@ function."
 This is experimental, and only supported in 8.5."
   (unless (company-coq-ask-prover-swallow-errors "infoH idtac.")
     (user-error "This features requires Coq 8.5"))
+  (unless (and (fboundp 'coq-hack-cmd-for-infoH)
+               (fboundp 'coq-find-real-start))
+    (error "This feature requires a recent version of Proof General"))
   (let* ((pt (point))
          (clause (save-excursion
                    (re-search-backward "[;.]" (point-at-eol) t)
-                   (coq-find-real-start)
+                   (with-no-warnings (coq-find-real-start))
                    (when (> pt (point))
-                     (let* ((infoh (coq-hack-cmd-for-infoH
-                                    (replace-regexp-in-string
-                                     "^\\s-*\|\\s-*$" "" (buffer-substring-no-properties
-                                                        (point) pt))))
+                     (let* ((infoh (with-no-warnings
+                                     (coq-hack-cmd-for-infoH
+                                      (replace-regexp-in-string
+                                       "^\\s-*\|\\s-*$" "" (buffer-substring-no-properties
+                                                          (point) pt)))))
                             (response (company-coq-ask-prover infoh)))
                        (when (string-match "<infoH>\\([^<]*\\)</infoH>" response)
                          (let ((match-form (match-string 1 response)))
