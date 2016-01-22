@@ -1128,13 +1128,7 @@ not fast."
   (let ((abbrevs (append '(("Module! (interactive)" nil "Module # : #.\n#\nEnd #." nil nil coq-insert-section-or-module)
                            ("match! (from type)" nil "" nil "match" company-coq-insert-match-construct)
                            ("intros! (guess names)" nil "intros #" nil nil coq-insert-intros)
-                           ("as! (guess pattern)" nil "as #" nil nil company-coq-insert-as-clause))
-                         coq-user-cheat-tactics-db
-                         coq-user-commands-db
-                         coq-user-reserved-db
-                         coq-user-solve-tactics-db
-                         coq-user-tacticals-db
-                         coq-user-tactics-db)))
+                           ("as! (guess pattern)" nil "as #" nil nil company-coq-insert-as-clause)))))
     (-keep #'company-coq-parse-abbrevs-pg-entry abbrevs)))
 
 (defvar company-coq--pg-abbrevs-cache nil
