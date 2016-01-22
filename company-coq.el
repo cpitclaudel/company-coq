@@ -311,17 +311,17 @@ them).  To disable backends, customize `company-coq-disabled-features'."
 (defvar company-coq-talking-to-prover nil
   "Indicates whether a interaction has been initiated with the prover, to disable the input and output hooks.")
 
-(defvar company-coq-symbols-reload-needed nil
+(defvar company-coq-symbols-reload-needed t
   "Indicates whether the dynamic list of symbols is outdated.
 This variable is set from places where immediate reloading is
 impossible, for example in `proof-shell-insert-hook'")
 
-(defvar company-coq-tactics-reload-needed nil
+(defvar company-coq-tactics-reload-needed t
   "Indicates whether the dynamic list of tactics is outdated.
 This variable is set from places where immediate reloading is
 impossible, for example in `proof-shell-insert-hook'")
 
-(defvar company-coq-modules-reload-needed nil
+(defvar company-coq-modules-reload-needed t
   "Indicates whether the dynamic list of modules is outdated.
 This variable is set from places where immediate reloading is
 impossible, for example in `proof-shell-insert-hook'")
@@ -922,7 +922,7 @@ Returns a cons of what remains"
   (and (proof-shell-live-buffer)
        (not (company-coq-prover-available-p))))
 
-(defun company-coq-reload-db (db init-fun track-symbol needs-prover force)
+(defun company-coq-reload-db (db init-fun track-symbol allow-nil needs-prover force)
   "Initialize DB using INIT-FUN if needed (or FORCE'd).
 If NEEDS-PROVER is non-nil, ensure that the prover is available
 before reloading.  If TRACK-SYMBOL is non-nil, use it to track
@@ -931,7 +931,7 @@ whether the database is up-to-date."
   (unless (and needs-prover (not (company-coq-prover-available-p)))
     (let ((non-nil (symbol-value db))
           (non-stale (or (null track-symbol) (not (symbol-value track-symbol)))))
-      (unless (and non-nil non-stale (not force))
+      (unless (and (or non-nil allow-nil) non-stale (not force))
         (when track-symbol (set track-symbol nil))
         (set db (funcall init-fun)))))
   (symbol-value db))
@@ -1022,13 +1022,13 @@ lest duplicates pop up."
   (interactive '(t))
   (when (company-coq-feature-active-p 'dynamic-symbols-backend)
     (company-coq-dbg "company-coq-init-symbols: Loading symbols (if never loaded)")
-    (company-coq-reload-db 'company-coq-dynamic-symbols #'company-coq-get-symbols 'company-coq-symbols-reload-needed t force)))
+    (company-coq-reload-db 'company-coq-dynamic-symbols #'company-coq-get-symbols 'company-coq-symbols-reload-needed t t force)))
 
 (defun company-coq-init-tactics (&optional force)
   "Load tactics if needed of FORCE'd, by querying the prover."
   (interactive '(t))
   (when (company-coq-feature-active-p 'dynamic-tactics-backend)
-    (company-coq-reload-db 'company-coq-dynamic-tactics #'company-coq-get-tactics 'company-coq-tactics-reload-needed t force)))
+    (company-coq-reload-db 'company-coq-dynamic-tactics #'company-coq-get-tactics 'company-coq-tactics-reload-needed t t force)))
 
 (defun company-coq-find-all (re beg end)
   "Find all occurences of RE between BEG and END.
@@ -1118,7 +1118,7 @@ Do not call if the prover process is busy."
   (interactive '(t))
   (when (company-coq-feature-active-p 'modules-backend)
     (company-coq-dbg "company-coq-init-modules: Loading modules (if never loaded)")
-    (company-coq-reload-db 'company-coq-path-specs-cache #'company-coq-get-path-specs 'company-coq-modules-reload-needed t force)))
+    (company-coq-reload-db 'company-coq-path-specs-cache #'company-coq-get-path-specs 'company-coq-modules-reload-needed t t force)))
 
 (defun company-coq-collect-pg-abbrevs ()
   "Collect and parse abbrevs known by Proof General.
@@ -1138,7 +1138,7 @@ not fast."
   "Load pg abbrevs if needed or FORCE'd."
   (interactive '(t))
   (company-coq-dbg "company-coq-init-pg-abbrevs: Loading abbrevs (if never loaded)")
-  (company-coq-reload-db 'company-coq--pg-abbrevs-cache 'company-coq-collect-pg-abbrevs nil nil force))
+  (company-coq-reload-db 'company-coq--pg-abbrevs-cache 'company-coq-collect-pg-abbrevs nil nil nil force))
 
 (defface company-coq-snippet-hole-face
   '((t :slant italic :weight bold))
@@ -4514,7 +4514,7 @@ Complete FROM into TO."
          (interactive '(t))
          ,(format "Load %s abbrevs from refman if needed or FORCE'd." name)
          (company-coq-dbg "%s: Loading abbrevs (if never loaded)" ,(symbol-name init-sym))
-         (company-coq-reload-db ',cache-sym (lambda () (mapcar #'company-coq-parse-man-db-entry ,repo-sym)) nil nil force))
+         (company-coq-reload-db ',cache-sym (lambda () (mapcar #'company-coq-parse-man-db-entry ,repo-sym)) nil nil nil force))
 
        (defun ,backend-sym (command &optional arg &rest ignored)
          ,(format "`company-mode' backend for documented Coq %ss.
