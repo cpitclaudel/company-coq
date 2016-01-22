@@ -3552,7 +3552,7 @@ time a new feature is added."
   "Whether to enable experimental features of company-coq.
 See also `company-coq-disabled-features'."
   :group 'company-coq
-  :type 'booleanp)
+  :type 'boolean)
 
 (defun company-coq-feature-active-p (feature)
   "Check if company-coq feature FEATURE is active."
@@ -4209,7 +4209,7 @@ that it adds after processing a buffer section.")
 (defcustom company-coq-features/code-folding-ellipsis " […]"
   "Ellipsis used for code folding.
 Suggested values: […] [⤶] [↲] [▶] [⏩] [▸]."
-  :type #'stringp
+  :type 'string
   :group 'company-coq)
 
 (defface company-coq-features/code-folding-ellipsis-face
