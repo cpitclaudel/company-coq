@@ -4206,7 +4206,7 @@ The spec uses local-map instead of keymap, because it needs to
 take precedence over PG's own keymaps, introduced by the overlays
 that it adds after processing a buffer section.")
 
-(defcustom company-coq-features/code-folding-ellipsis " […]"
+(defcustom company-coq-features/code-folding-ellipsis " […]"
   "Ellipsis used for code folding.
 Suggested values: […] [⤶] [↲] [▶] [⏩] [▸]."
   :type #'stringp
