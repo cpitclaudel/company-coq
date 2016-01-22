@@ -3133,6 +3133,23 @@ function."
             (yas-expand-snippet (company-coq-dabbrev-to-yas snippet)))
         (error response)))))
 
+(defun company-coq-insert-as-clause-1 ()
+  "Compute the as clause at point."
+  (save-excursion
+    (let* ((pt (point)))
+      (re-search-backward "[;.]" (point-at-bol) t)
+      (with-no-warnings (coq-find-real-start))
+      (if (<= pt (point))
+          (error "Cannot find a command to as an as clause to.  Try destruct [name] as!")
+        (let* ((command (company-coq-trim (buffer-substring-no-properties (point) pt)))
+               (infoh (with-no-warnings (coq-hack-cmd-for-infoH (concat command "."))))
+               (response (company-coq-ask-prover infoh)))
+          (when (string-match "<infoH>\\([^<]*\\)</infoH>" response)
+            (let* ((match-form (match-string 1 response)))
+              (if (string-match-p "^[| ]*$" match-form)
+                  (user-error "Couldn't find names to introduce; this feature is still pretty experimental")
+                (concat "as [" (replace-regexp-in-string "  +" " " (company-coq-trim match-form) t t) "]")))))))))
+
 (defun company-coq-insert-as-clause ()
   "Insert an as clause for the command at point.
 This is experimental, and only supported in 8.5."
@@ -3142,23 +3159,7 @@ This is experimental, and only supported in 8.5."
   (unless (and (fboundp 'coq-hack-cmd-for-infoH)
                (fboundp 'coq-find-real-start))
     (error "This feature requires a recent version of Proof General (it's on GitHub now)"))
-  (let* ((pt (point))
-         (clause (save-excursion
-                   (re-search-backward "[;.]" (point-at-eol) t)
-                   (with-no-warnings (coq-find-real-start))
-                   (when (> pt (point))
-                     (let* ((infoh (with-no-warnings
-                                     (coq-hack-cmd-for-infoH
-                                      (replace-regexp-in-string
-                                       "^\\s-*\|\\s-*$" "" (buffer-substring-no-properties
-                                                          (point) pt)))))
-                            (response (company-coq-ask-prover infoh)))
-                       (when (string-match "<infoH>\\([^<]*\\)</infoH>" response)
-                         (let ((match-form (match-string 1 response)))
-                           (if (string-match-p "^[| ]*$" match-form)
-                               (user-error "Couldn't find names to introduce; this feature is still pretty experimental")
-                             (concat "as [" match-form "]")))))))))
-    (insert clause)))
+  (insert (company-coq-insert-as-clause-1)))
 
 (defun company-coq-normalize-error (msg)
   "Normalize error MSG to look it up in a list of errors."
