@@ -1613,7 +1613,7 @@ where FROM and TO indicate buffer positions bounding TYPE."
   "Send COMMAND to the prover, and return the new context and goal."
   (-if-let* ((output (company-coq-ask-prover-swallow-errors command)))
       (company-coq--collect-hypotheses-and-goal (replace-regexp-in-string "\n\n[^\0]*\\'" "" output))
-    (error (format "company-coq-parse-context: failed with message %s" output))))
+    (error (format "company-coq-parse-context: No context to parse."))))
 
 (defvar company-coq--previous-context nil
   "Last context displayed to the user.")
