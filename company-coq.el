@@ -332,14 +332,8 @@ impossible, for example in `proof-shell-insert-hook'")
 (defvar company-coq-dynamic-tactics nil
   "Keeps track of defined tactics.")
 
-(defvar company-coq-current-context nil
-  "Cache tracking the context while proofs are ongoing.")
-
 (defvar company-coq-path-specs-cache nil
   "Cache tracking paths specs in Coq's load path.")
-
-(defvar company-coq-last-goals-output nil
-  "Cache tracking `proof-shell-last-goals-output'.")
 
 (defvar company-coq-last-search-results nil
   "Cache tracking symbols mentionned in search results.")
@@ -1621,19 +1615,44 @@ where FROM and TO indicate buffer positions bounding TYPE."
       (company-coq--collect-hypotheses-and-goal (replace-regexp-in-string "\n\n[^\0]*\\'" "" output))
     (error (format "company-coq-parse-context: failed with message %s" output))))
 
-(defun company-coq-maybe-reload-context (&optional end-of-proof)
-  "Update `company-coq-current-context'.
-With END-OF-PROOF, clear the current context."
-  (company-coq-dbg "company-coq-maybe-reload-context: Called")
-  (when (company-coq-feature-active-p 'context-backend)
-    (let* ((output        proof-shell-last-goals-output)
-           (is-new-output (not (string-equal output company-coq-last-goals-output))))
-      (cond (end-of-proof  (company-coq-dbg "company-coq-maybe-reload-context: Clearing context")
-                           (setq company-coq-current-context nil)
-                           (setq output nil))
-            (is-new-output (company-coq-dbg "company-coq-maybe-reload-context: Reloading context")
-                           (setq company-coq-current-context (car (company-coq--collect-hypotheses-and-goal output)))))
-      (setq company-coq-last-goals-output output))))
+(defvar company-coq--previous-context nil
+  "Last context displayed to the user.")
+
+(defvar company-coq--current-context nil
+  "Last context displayed to the user.")
+
+(defvar company-coq--previous-context-parse nil
+  "Parsed version of `company-coq--previous-context'.")
+
+(defvar company-coq--current-context-parse nil
+  "Parsed version of `company-coq--current-context'.")
+
+(defvar company-coq--hyp-names nil
+  "Names of hypotheses currently in context.")
+
+(defun company-coq--update-context (&optional clear)
+  "Update caches tracking the current goal.
+If CLEAR is non-nil, clear all caches."
+  (company-coq-dbg "company-coq--update-context: Called")
+  (when (or (company-coq-feature-active-p 'goals-diff)
+            (company-coq-feature-active-p 'context-backend))
+    (let* ((new-context (or proof-shell-last-goals-output ""))
+           (is-empty (string= new-context ""))
+           (is-old (string= company-coq--current-context new-context)))
+      (if (or clear is-empty)
+          (setq company-coq--previous-context nil
+                company-coq--current-context nil
+                company-coq--previous-context-parse nil
+                company-coq--current-context-parse nil
+                company-coq--hyp-names nil)
+        (unless is-old
+          (setq company-coq--previous-context company-coq--current-context
+                company-coq--current-context new-context
+                company-coq--previous-context-parse company-coq--current-context-parse
+                company-coq--current-context-parse (company-coq--parse-context-and-goals new-context)
+                company-coq--hyp-names (mapcar #'company-coq-hypothesis-names
+                                    (company-coq--split-merged-hypotheses
+                                     (car company-coq--current-context-parse)))))))))
 
 (defun company-coq-maybe-proof-output-reload-things ()
   "Parse output of prover, looking for signals that things need to be reloaded, and reload them."
@@ -1647,7 +1666,7 @@ With END-OF-PROOF, clear the current context."
       (when is-end-of-def   (company-coq-dbg "company-coq-maybe-proof-output-reload-things: At end of definition"))
       (setq company-coq-symbols-reload-needed (or company-coq-symbols-reload-needed is-end-of-def is-end-of-proof))
       (setq company-coq-tactics-reload-needed (or company-coq-tactics-reload-needed is-end-of-def))
-      (company-coq-maybe-reload-context (or is-end-of-def is-end-of-proof))
+      (company-coq--update-context (or is-end-of-def is-end-of-proof))
       (if is-error (company-coq-dbg "Last output was an error; not reloading")
         ;; Delay call until after we have returned to the command loop
         (company-coq-dbg "This could be a good time to reload things?")
@@ -1670,7 +1689,7 @@ Nothing is reloaded immediately; instead the relevant flags are set."
       (setq company-coq-symbols-reload-needed (or company-coq-symbols-reload-needed is-import)) ;; is-retracting
       (setq company-coq-tactics-reload-needed (or company-coq-tactics-reload-needed is-import is-tac-not))
       (setq company-coq-modules-reload-needed (or company-coq-modules-reload-needed is-import is-load))
-      (when is-retracting (company-coq-maybe-reload-context t)))))
+      (when is-retracting (company-coq--update-context t)))))
 
 (defvar company-coq-goals-window nil
   "Window originally dedicated to Coq goals.")
@@ -2056,8 +2075,6 @@ FQN-FUNCTIONS: see `company-coq-locate-internal'."
 ;;                            nil nil 'company-coq-location-history (company-coq-symbol-at-point) t)
 ;;           t)))
 
-;; TODO jump to module Locate Module
-
 (defun company-coq-jump-to-definition-1 (target location)
   "Jump to TARGET in LOCATION."
   (cond
@@ -2298,7 +2315,7 @@ Database is generated by calling INIT-FUNCTION."
 
 (defun company-coq-candidates-context (prefix)
   "Find hypotheses matching PREFIX."
-  (company-coq-complete-prefix-substring prefix company-coq-current-context))
+  (company-coq-complete-prefix-substring prefix company-coq--hyp-names))
 
 (defun company-coq-candidates-modules (prefix)
   "Find modules matching PREFIX."
@@ -3729,7 +3746,7 @@ Do not disable this feature"
      (add-hook 'proof-state-change-hook #'company-coq-state-change)
      (add-hook 'proof-shell-insert-hook #'company-coq-maybe-proof-input-reload-things)
      (add-hook 'proof-shell-handle-delayed-output-hook #'company-coq-maybe-proof-output-reload-things)
-     (add-hook 'proof-shell-handle-error-or-interrupt-hook #'company-coq-maybe-reload-context)
+     (add-hook 'proof-shell-handle-error-or-interrupt-hook #'company-coq--update-context)
      (add-hook 'yas-after-exit-snippet-hook #'company-coq-forget-choices))
     (`off
      (yas-minor-mode -1)
@@ -3738,7 +3755,7 @@ Do not disable this feature"
      (remove-hook 'proof-state-change-hook #'company-coq-state-change)
      (remove-hook 'proof-shell-insert-hook #'company-coq-maybe-proof-input-reload-things)
      (remove-hook 'proof-shell-handle-delayed-output-hook #'company-coq-maybe-proof-output-reload-things)
-     (remove-hook 'proof-shell-handle-error-or-interrupt-hook #'company-coq-maybe-reload-context)
+     (remove-hook 'proof-shell-handle-error-or-interrupt-hook #'company-coq--update-context)
      (remove-hook 'yas-after-exit-snippet-hook #'company-coq-forget-choices))))
 
 (defun company-coq--hello ()
