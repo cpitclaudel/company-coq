@@ -2562,8 +2562,8 @@ proofs and definitions."
   (company-coq-error-unless-feature-active 'outline)
   (when outline-minor-mode
     (if (or (eq last-command #'company-coq-unfold) (company-coq-cant-fold-unfold))
-        (company-coq-call-compat #'outline-show-all 'show-all)
-      (company-coq-call-compat #'outline-show-subtree 'show-subtree))))
+        (company-coq-call-compat 'outline-show-all 'show-all)
+      (company-coq-call-compat 'outline-show-subtree 'show-subtree))))
 
 (defun company-coq-dynamic-symbols-backend (command &optional arg &rest ignored)
   "`company-mode' backend for dynamically known Coq symbols.
