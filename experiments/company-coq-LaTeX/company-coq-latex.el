@@ -130,7 +130,7 @@ to PNG-FNAME with resolution DPI."
 (defun company-coq-features/latex--compute-width ()
   "Compute a good width to display the current buffer as LaTeX."
   (ceiling (-if-let* ((win (get-buffer-window)))
-               (* (window-width win t) 0.90)
+               (* (window-width win t) 0.85)
              (* 0.5 (or (when (fboundp 'x-display-pixel-width)
                           (x-display-pixel-width))
                         1024)))))

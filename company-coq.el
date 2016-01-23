@@ -920,7 +920,10 @@ Returns a cons of what remains"
   "Initialize DB using INIT-FUN if needed (or FORCE'd).
 If NEEDS-PROVER is non-nil, ensure that the prover is available
 before reloading.  If TRACK-SYMBOL is non-nil, use it to track
-whether the database is up-to-date."
+whether the database is up-to-date.  Reloading happens if the
+reloading symbol has a non-nil value, or if the db has a nil
+value.  A non-nil value for ALLOW-NIL strengthens the condition:
+the second clause is ignored."
   (company-coq-dbg "company-coq-reload-db: Initializing %S (currently has %s elems)" db (length (symbol-value db)))
   (unless (and needs-prover (not (company-coq-prover-available-p)))
     (let ((non-nil (symbol-value db))
@@ -3166,7 +3169,7 @@ function."
 This is experimental, and only supported in 8.5."
   (interactive)
   (unless (company-coq-ask-prover-swallow-errors "infoH idtac.")
-    (user-error "This features requires Coq 8.5 (for the infoH tactic)"))
+    (user-error "This features requires Coq 8.5 (for infoH) and works in proof context only"))
   (unless (and (fboundp 'coq-hack-cmd-for-infoH)
                (fboundp 'coq-find-real-start))
     (error "This feature requires a recent version of Proof General (it's on GitHub now)"))

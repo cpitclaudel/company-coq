@@ -46,7 +46,7 @@ Definition PrettySymbols : (nat -> nat -> Prop) :=
 (* Does constructor sort before constructor @{num}? What about intuition? *)
 
 Definition SLD := False.
-(* Type SLD RET here. Does this add a newline after introducing SLD? *)
+(* Type SLD RET here. Does this add a newline after introducing SLD (it should)? *)
 
 Definition bullets: True \/ (True \/ True) -> True.
 Proof.
@@ -413,13 +413,20 @@ Proof.
   reflexivity.
 Qed.
 
+(* vvv shouldn't be available here *)
+
 Lemma GoalDiffs : forall n1 n2 n3: (id Qc), n1 + n2 + n3 = n3 + n2 + n1.
 Proof.
-  intros.
-  unfold id in n1.
+  intro.
+  intro.
+  intro.
+  unfold id in n1; generalize dependent n2;
+    pose proof I.
+  pose proof 3.
+  move H0 at top.
+  destruct n1.
+  destruct this.
 
-  
-(* vvv shouldn't be available here *)
 
 Require Import Omega.
 
