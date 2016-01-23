@@ -382,7 +382,7 @@ May return incorrect results at end of slide."
 
 (define-minor-mode presenter-design-mode
   "Work on the current buffer for presentations."
-  :lighter " 🎥-design"
+  :lighter " 🎥 -design"
   :map 'presenter-design-mode-map
   (when presenter-design-mode
     (presenter-mode -1)))
