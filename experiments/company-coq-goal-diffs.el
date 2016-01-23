@@ -57,6 +57,7 @@ display of the goal."
     (let* ((start (company-coq-hypothesis-names-position hyp))
            (end (+ start (length (company-coq-hypothesis-names hyp))))
            (ov (make-overlay start end)))
+      (overlay-put ov 'company-coq t)
       (overlay-put ov 'face 'company-coq-features/goal-diffs-hyp-highlight-face))))
 
 (defun company-coq-features/goal-diffs--annotate ()
@@ -66,6 +67,9 @@ Assumes that both `company-coq--current-context-parse' and
   (when (and (consp company-coq--previous-context-parse)
              (consp company-coq--current-context-parse))
     (company-coq-with-current-buffer-maybe proof-goals-buffer
+      (dolist (ov (overlays-in (point-min) (point-max)))
+        (when (overlay-get ov 'company-coq)
+          (delete-overlay ov)))
       (pcase-let* ((`(,old-multi-hyps . ,old-goals) company-coq--previous-context-parse)
                    (`(,multi-hyps . ,goals) company-coq--current-context-parse)
                    (old-hyps (company-coq--split-merged-hypotheses old-multi-hyps))
@@ -83,7 +87,8 @@ Assumes that both `company-coq--current-context-parse' and
   :lighter " ⁺∕₋"
   (if company-coq-goal-diffs
       (add-hook 'proof-shell-handle-delayed-output-hook
-                #'company-coq-features/goal-diffs--annotate)
+                ;; Must append to ensure we run after the context update code
+                #'company-coq-features/goal-diffs--annotate t)
     (remove-hook 'proof-shell-handle-delayed-output-hook
                  #'company-coq-features/goal-diffs--annotate)))
 
