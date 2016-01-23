@@ -1320,10 +1320,16 @@ With IGNORE-CASE, search case-insensitive."
              if (string-match prefix-re completion)
              collect (company-coq-propertize-match completion (match-beginning 0) (match-end 0)))))
 
+(defun company-coq--make-fuzzy-regexp (prefix)
+  "Create a REGEXP for fuzzy matching of PREFIX."
+  ;; The regexp says: skip stuff before beginning a new word, or skip nothing
+  (concat "\\`\\W*" ;; Skip leading symbols (e.g. @)
+          (mapconcat (lambda (c) (regexp-quote (char-to-string c)))
+                     (string-to-list prefix) "\\(?:\\|[^\0]+?\\_<\\)")))
+
 (defun company-coq-complete-sub-re (prefix candidates)
   "Find fuzzy candidates for PREFIX in CANDIDATES."
-  (let* ((chars (string-to-list prefix)) ;; The regexp says: skip stuff before beginning a new word, or skip nothing
-         (re    (concat "\\`\\W*" (mapconcat (lambda (c) (regexp-quote (char-to-string c))) chars "\\(?:\\|\\(?:.\\|\n\\)+?\\_<\\)")))
+  (let* ((re (company-coq--make-fuzzy-regexp prefix))
          (case-fold-search nil))
     (save-match-data
       (cl-loop for     candidate
