@@ -45,8 +45,9 @@ If UNDO-STATE is non-nil, go back to that Coq state before throwing."
   (with-current-buffer (get-buffer-create company-coq--extraction-buffer-name)
     (erase-buffer)
     (insert extraction)
-    (coq-mode)
-    (company-coq-fontify-buffer)
+    ;; (coq-mode) ; too slow
+    (when proof-script-buffer
+      (company-coq--fontify-buffer-with proof-script-buffer))
     (company-coq--setup-doc-buffer)
     (unless (get-buffer-window (current-buffer))
       (-when-let* ((script-buf proof-script-buffer)
