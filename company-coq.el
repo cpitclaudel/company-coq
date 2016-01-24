@@ -3883,7 +3883,15 @@ use a box character there.  Suggested values: `═' or `─'.")
 (defface company-coq-goal-line-face
   '((((type tty)) ())
     (t (:strike-through t)))
-  "Face used to highlight the goal line."
+  "Face used to highlight the goal line.
+This face is made to inherit the height of the default face,
+every time it is used, to prevent the face-remapping-alist from
+wrapping the line."
+  :group 'company-coq-faces)
+
+(defface company-coq-goal-line-space-face
+  '((t ()))
+  "Face used to spaces before the goal line."
   :group 'company-coq-faces)
 
 (defun company-coq-features/pg-improvements--update-display-table ()
@@ -3893,11 +3901,15 @@ Inspired by the excellent ‘page-break-lines-mode’."
     (-when-let* ((win (get-buffer-window (current-buffer))))
       (unless buffer-display-table
         (setq buffer-display-table (make-display-table)))
-      (let* ((line-width (max 1 (- (window-width win) 3)))
-             (glyph (make-glyph-code company-coq-goal-line-character 'company-coq-goal-line-face))
-             (display-entry (vconcat "  " (make-list line-width glyph))))
-        (unless (equal display-entry (elt buffer-display-table ?\^K))
-          (aset buffer-display-table ?\^K display-entry))))))
+      (let ((default-height (face-attribute 'default :height nil 'default)))
+        (set-face-attribute 'company-coq-goal-line-face nil :height default-height)
+        (set-face-attribute 'company-coq-goal-line-space-face nil :height default-height)
+        (let* ((line-width (max 1 (- (window-width win) 3)))
+               (space (make-glyph-code ?\s 'company-coq-goal-line-space-face))
+               (dash (make-glyph-code company-coq-goal-line-character 'company-coq-goal-line-face))
+               (display-entry (vconcat (make-list 2 space) (make-list line-width dash))))
+          (unless (equal display-entry (elt buffer-display-table ?\^K))
+            (aset buffer-display-table ?\^K display-entry)))))))
 
 (defun company-coq-features/pg-improvements--clear-display-table ()
   "Remove prettification of ^K in the current buffer."
