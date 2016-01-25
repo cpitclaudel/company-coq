@@ -36,14 +36,24 @@ of HYP wrt HYPS."
           (throw 'found 'changed))))
     (throw 'found 'added)))
 
+(defun company-coq-features/goal-diffs--make-annot-1 (str face status)
+  "Annotate STR with FACE and a help message based on STATUS."
+  (propertize
+   str 'face face
+   'help-echo (format "A hypothesis on this line was just %s." status)))
+
 (defun company-coq-features/goal-diffs--make-annot (statuses)
   "Construct an annotation from STATUSES.
 This annotation is then prepended to the hypotheses in the
 display of the goal."
   (concat (if (memq 'added statuses)
-              (propertize "+" 'face 'company-coq-features/goal-diffs-added-face) "")
+              (company-coq-features/goal-diffs--make-annot-1
+               "+" 'company-coq-features/goal-diffs-added-face 'added)
+            "")
           (if (memq 'changed statuses)
-              (propertize "!" 'face 'company-coq-features/goal-diffs-changed-face) "")))
+              (company-coq-features/goal-diffs--make-annot-1
+               "!" 'company-coq-features/goal-diffs-changed-face 'changed)
+            "")))
 
 (defun company-coq-features/goal-diffs--annotate-1 (multi-hyp statuses)
   "Annotate MULTI-HYP based on the STATUSES of its sub-hypotheses."
@@ -60,7 +70,8 @@ display of the goal."
            (end (+ start (length (company-coq-hypothesis-names hyp))))
            (ov (make-overlay start end)))
       (overlay-put ov 'company-coq t)
-      (overlay-put ov 'face 'company-coq-features/goal-diffs-hyp-highlight-face))))
+      (overlay-put ov 'face 'company-coq-features/goal-diffs-hyp-highlight-face)
+      (overlay-put ov 'help-echo (format "This hypothesis was just %s." status)))))
 
 (defun company-coq-features/goal-diffs-hyperlink-action (_btn)
   "Handle a click on the “full diff” button."
