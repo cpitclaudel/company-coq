@@ -874,17 +874,6 @@ Ensures that the inserted text starts on a blank line."
      (with-current-buffer buf
        ,@body)))
 
-(defun company-coq-insert-match-in-buffer (bufname subgroup &optional prefix postprocess)
-  "Insert PREFIX and the SUBGROUP -th regexp match into BUFNAME, optionally calling POSTPROCESS."
-  (let ((str (match-string-no-properties subgroup)))
-    (with-current-buffer (get-buffer-create bufname)
-      (let ((inhibit-read-only t))
-        (erase-buffer)
-        (when prefix (insert prefix))
-        (insert str)
-        (when postprocess (funcall postprocess)))
-      (current-buffer))))
-
 (defun company-coq-extend-path (path components)
   "Extend PATH with each element of COMPONENTS."
   (if components
@@ -2512,33 +2501,61 @@ Before calling INSERT-FUN, delete BEG .. END."
           (goto-char (point-min))
           (company-coq-make-title-line 'company-coq-doc-header-face-about))))))
 
+(defun company-coq--make-diff-temp-buffer (bufname string prefix)
+  "Insert STRING into BUFNAME, with optional PREFIX."
+  (with-current-buffer (get-buffer-create bufname)
+    (let ((inhibit-read-only t))
+      (erase-buffer)
+      (when prefix (insert prefix))
+      (insert string)
+      (newline))
+    (current-buffer)))
+
+(defun company-coq-diff-strings (s1 s2 prefix label context)
+  "Compare S1 and S2, with PREFIX.
+Use LABEL to name temporary buffers.  Display CONTEXT lines of
+context around differences."
+  (let ((same-window-buffer-names '("*Diff*"))
+        (b1 (company-coq--make-diff-temp-buffer (format "*company-coq-%s-A*" label) s1 prefix))
+        (b2 (company-coq--make-diff-temp-buffer (format "*company-coq-%s-B*" label) s2 prefix)))
+    (unwind-protect
+        (diff b1 b2 `(,(format "--unified=%d" context) "--minimal" "--ignore-all-space") 'noasync)
+      (kill-buffer b1)
+      (kill-buffer b2))
+    (company-coq-with-current-buffer-maybe "*Diff*"
+      (diff-refine-hunk)
+      (goto-char (point-min))
+      (when (re-search-forward "^@@" nil t)
+        (let ((inhibit-read-only t))
+          (delete-region (point-min) (match-beginning 0)))))))
+
 (defun company-coq-diff-unification-error (&optional context)
   "Compare two terms of a unification error, highlighting differences.
 With prefix CONTEXT, display that many lines of context around
-difference."
+differences."
   (interactive "P")
-  (unless (numberp context) (setq context 10))
+  (unless (numberp context) )
   (with-current-buffer proof-response-buffer
     (save-match-data
       (save-excursion
         (goto-char (point-min))
         (if (re-search-forward company-coq-unification-error-message nil t)
-            (let ((same-window-buffer-names '("*Diff*"))
-                  (b1 "*company-coq-unification-A*")
-                  (b2 "*company-coq-unification-B*"))
-              (diff (company-coq-insert-match-in-buffer b1 1 " " #'newline)
-                    (company-coq-insert-match-in-buffer b2 2 " " #'newline)
-                    (list (concat "--unified=" (int-to-string context)) "--minimal" "--ignore-all-space")
-                    'noasync)
-              (company-coq-with-current-buffer-maybe "*Diff*"
-                (diff-refine-hunk)
-                (goto-char (point-min))
-                (when (re-search-forward "^@@" nil t)
-                  (let ((inhibit-read-only t))
-                    (delete-region (point-min) (match-beginning 0)))))
-              (kill-buffer b1)
-              (kill-buffer b2))
+            (company-coq-diff-strings (match-string-no-properties 1)
+                           (match-string-no-properties 2)
+                           " " "unification" (or context 10))
           (error "Buffer *response* does not match the format of a unification error message"))))))
+
+(defun company-coq-diff-goals (&optional context)
+  "Compare two terms of a unification error, highlighting differences.
+With prefix CONTEXT, display that many lines of context around
+differences."
+  (interactive "P")
+  (unless company-coq--current-context
+    (error "Current context unknown"))
+  (unless company-coq--previous-context
+    (error "Previous context unknown"))
+  (company-coq-diff-strings company-coq--previous-context company-coq--current-context
+                 " " "goals" (or context 10)))
 
 (defun company-coq-cant-fold-unfold ()
   "Return nil iff folding is possible at current point."
