@@ -2511,30 +2511,49 @@ Before calling INSERT-FUN, delete BEG .. END."
       (newline))
     (current-buffer)))
 
+(defun company-coq-diff-buffer-name (prefix)
+  "Compute a name for the diff buffer using PREFIX."
+  (format "*%s-diff*" prefix))
+
+(defun company-coq--close-diff-window (label)
+  "Close existing diff window with LABEL, if any.
+Return non-nil iff such a window was found."
+  (-if-let* ((buf (company-coq-diff-buffer-name label))
+             (win (get-buffer-window buf)))
+      (save-selected-window
+        (quit-window nil win)
+        t)
+    nil))
+
 (defun company-coq-diff-strings (s1 s2 prefix label context)
   "Compare S1 and S2, with PREFIX.
-Use LABEL to name temporary buffers.  Display CONTEXT lines of
-context around differences."
+Use LABEL to name newly created buffers.  Display CONTEXT lines
+of context around differences."
   (let ((same-window-buffer-names '("*Diff*"))
+        (diff-buffer-name (company-coq-diff-buffer-name label))
         (b1 (company-coq--make-diff-temp-buffer (format "*company-coq-%s-A*" label) s1 prefix))
         (b2 (company-coq--make-diff-temp-buffer (format "*company-coq-%s-B*" label) s2 prefix)))
+    (set-window-dedicated-p (selected-window) nil)
+    (company-coq-with-current-buffer-maybe diff-buffer-name
+      (kill-buffer))
     (unwind-protect
         (diff b1 b2 `(,(format "--unified=%d" context) "--minimal" "--ignore-all-space") 'noasync)
       (kill-buffer b1)
       (kill-buffer b2))
     (company-coq-with-current-buffer-maybe "*Diff*"
       (diff-refine-hunk)
-      (goto-char (point-min))
-      (when (re-search-forward "^@@" nil t)
-        (let ((inhibit-read-only t))
-          (delete-region (point-min) (match-beginning 0)))))))
+      (rename-buffer diff-buffer-name)
+      (save-excursion
+        (goto-char (point-min))
+        (when (re-search-forward "^@@" nil t)
+          (let ((inhibit-read-only t))
+            (delete-region (point-min) (match-beginning 0))))))))
 
 (defun company-coq-diff-unification-error (&optional context)
   "Compare two terms of a unification error, highlighting differences.
 With prefix CONTEXT, display that many lines of context around
 differences."
   (interactive "P")
-  (unless (numberp context) )
   (with-current-buffer proof-response-buffer
     (save-match-data
       (save-excursion
@@ -2543,19 +2562,28 @@ differences."
             (company-coq-diff-strings (match-string-no-properties 1)
                            (match-string-no-properties 2)
                            " " "unification" (or context 10))
-          (error "Buffer *response* does not match the format of a unification error message"))))))
+          (user-error "Buffer *response* does not match the format of a unification error message"))))))
 
 (defun company-coq-diff-goals (&optional context)
   "Compare two terms of a unification error, highlighting differences.
 With prefix CONTEXT, display that many lines of context around
 differences."
   (interactive "P")
-  (unless company-coq--current-context
-    (error "Current context unknown"))
-  (unless company-coq--previous-context
-    (error "Previous context unknown"))
-  (company-coq-diff-strings company-coq--previous-context company-coq--current-context
-                 " " "goals" (or context 10)))
+  (unless company-coq--current-context (user-error "Current goal unknown"))
+  (unless company-coq--previous-context (user-error "Previous goal unknown"))
+  (with-selected-window (or (company-coq-get-goals-window) (selected-window))
+    (company-coq-diff-strings company-coq--previous-context company-coq--current-context
+                   " " "goals" (or context 5))))
+
+(defun company-coq-diff-dwim ()
+  "Compare unification error messages (if any) or goals."
+  (interactive)
+  (unless (company-coq--close-diff-window "goals")
+    (condition-case nil
+        (company-coq-diff-unification-error)
+      (user-error
+       (company-coq-diff-goals)
+       (message "%s" (substitute-command-keys "Use \\[company-coq-diff-dwim] to hide the diff."))))))
 
 (defun company-coq-cant-fold-unfold ()
   "Return nil iff folding is possible at current point."
@@ -2977,7 +3005,7 @@ Do not edit this keymap: instead, edit `company-coq-map'.")
     (define-key cc-map (kbd "C-c C-&")          #'company-coq-grep-symbol)
     (define-key cc-map (kbd "C-c C-d")          #'company-coq-doc)
     (define-key cc-map (kbd "C-<return>")       #'company-manual-begin)
-    (define-key cc-map (kbd "C-c C-a C-d")      #'company-coq-diff-unification-error)
+    (define-key cc-map (kbd "C-c C-a C-d")      #'company-coq-diff-dwim)
     (define-key cc-map (kbd "C-c C-a C-e")      #'company-coq-document-error)
     (define-key cc-map (kbd "C-c C-a C-x")      #'company-coq-lemma-from-goal)
     (define-key cc-map (kbd "C-c C-e")          #'company-coq-eval-last-sexp)

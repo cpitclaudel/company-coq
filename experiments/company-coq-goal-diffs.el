@@ -1,3 +1,5 @@
+(require 'button)
+
 (defface company-coq-features/goal-diffs-added-face
   '((t :foreground "green"))
   "Face used to highlight the ‘new hypothesis’ marker."
@@ -16,8 +18,8 @@
 (defun company-coq-features/goal-diffs--type= (t1 t2)
   "Check if two strings T1 and T2 represent the same Coq type."
   (or (string= t1 t2)
-      (string= (replace-regexp-in-string "  +" " " t1)
-               (replace-regexp-in-string "  +" " " t2))))
+      (string= (replace-regexp-in-string "[ \r\n\t]+" " " t1)
+               (replace-regexp-in-string "[ \r\n\t]+" " " t2))))
 
 (defun company-coq-features/goal-diffs--hyp-status (hyps hyp)
   "Compute the status of HYP against a collection of HYPS.
@@ -60,6 +62,25 @@ display of the goal."
       (overlay-put ov 'company-coq t)
       (overlay-put ov 'face 'company-coq-features/goal-diffs-hyp-highlight-face))))
 
+(defun company-coq-features/goal-diffs-hyperlink-action (_btn)
+  "Handle a click on the “full diff” button."
+  (company-coq-diff-goals)
+  (message "%s" (substitute-command-keys "Press q to close this diff. Next time, you can use \\<company-coq-map>\\[company-coq-diff-dwim] to open it faster.")))
+
+(defun company-coq-features/goal-diffs--add-hyperlink ()
+  "Add hyperlink to full goal diff after (ID ...)."
+  (save-excursion
+    (goto-char (point-min))
+    (when (re-search-forward "(ID \\([0-9]+\\))" nil t)
+      (goto-char (match-end 1))
+      (let ((inhibit-read-only t))
+        (insert "; ")
+        (insert-text-button
+         "diff to previous"
+         'follow-link t
+         'action #'company-coq-features/goal-diffs-hyperlink-action
+         'help-echo "Compare this goal to the previous one in a separate diff buffer")))))
+
 (defun company-coq-features/goal-diffs--annotate ()
   "Annotate the goals in the proof buffer.
 Assumes that both `company-coq--current-context-parse' and
@@ -79,8 +100,8 @@ Assumes that both `company-coq--current-context-parse' and
                  (statuses (mapcar (apply-partially #'company-coq-features/goal-diffs--hyp-status old-hyps) hyps)))
             (company-coq-features/goal-diffs--annotate-1 multi-hyp statuses)
             (pcase-dolist (`(,hyp . ,status) (-zip-pair hyps statuses))
-              (company-coq-features/goal-diffs--highlight-1 hyp status))))))))
-
+              (company-coq-features/goal-diffs--highlight-1 hyp status)))))
+      (company-coq-features/goal-diffs--add-hyperlink))))
 
 (define-minor-mode company-coq-goal-diffs
   "Render Coq goals using LaTeX."

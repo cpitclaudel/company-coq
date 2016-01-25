@@ -200,11 +200,6 @@ Proof.
   constructor.
 Qed.
 
-(* (setq alert-default-style 'libnotify) *)
-Goal True.
-  Fail timeout 6 repeat pose 1.
-Abort.
-
 Goal 1 = 1.
   (* Are the two numbers displaying properly? *)
   reflexivity.
@@ -411,6 +406,7 @@ Qed.
 
 (* vvv shouldn't be available here *)
 
+(* (load "company-coq-goal-diffs.el") *)
 Lemma GoalDiffs : forall n1 n2 n3: (id Qc), n1 + n2 + n3 = n3 + n2 + n1.
 Proof.
   intro.
@@ -422,6 +418,7 @@ Proof.
   move H0 at top.
   destruct n1.
   destruct this.
+  destruct H0.
 Abort.
 
 Require Import Omega.
@@ -442,6 +439,11 @@ Fixpoint ABC n :=
   | 2 => 0
   | _ => 0
   end.
+
+(* (setq alert-default-style 'libnotify) *)
+Goal True.
+  Fail timeout 6 repeat pose 1.
+Abort.
 
 Require Import Bvector.
 Require Import DecBool.
