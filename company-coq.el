@@ -1779,7 +1779,7 @@ return the starting point as well."
 
 (defun company-coq-trim (str)
   "Trim STR."
-  (replace-regexp-in-string "\\` *" "" (replace-regexp-in-string " *\\'" "" str)))
+  (replace-regexp-in-string "\\`[ \r\n\t]+\\|[ \r\n\t]+\\'" "" str t t))
 
 (defun company-coq-truncate-to-minibuf (str)
   "Truncate STR for display in minibuffer."
