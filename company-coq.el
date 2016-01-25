@@ -3161,6 +3161,13 @@ With prefix ARG, insert an inductive constructor with arguments."
           (push hyp hyps))))
     (list lemma-name hyps)))
 
+(defcustom company-coq-lemma-from-goal-adds-intros nil
+  "If non-nil, add an ‘intros’ line to extracted lemmas.
+This extra line ensures that the new proof inherits hypothesis
+names from previous proof."
+  :group 'company-coq
+  :type 'boolean)
+
 (defun company-coq-lemma-from-goal (lemma-name hyps)
   "Create a new lemma LEMMA-NAME and insert it.
 Interactively, prompt the user for LEMMA-NAME, as well as
@@ -3172,8 +3179,12 @@ of these hypotheses are also added to the lemma."
       (unwind-protect
           (let* ((gen-cmds (mapcar (lambda (hyp) (concat "generalize dependent " hyp)) hyps))
                  (full-cmd (mapconcat 'identity (nconc gen-cmds company-coq-lemma-introduction-forms) ";")))
-            (-if-let* ((lemma (cadr (company-coq-run-then-collect-hypotheses-and-goal full-cmd))))
-                (company-coq-insert-indented (format "Lemma %s:\n%s.\nProof.\n" lemma-name lemma))
+            (-if-let* ((lemma (cadr (company-coq-run-then-collect-hypotheses-and-goal full-cmd)))
+                       (intros (-if-let* ((enabled company-coq-lemma-from-goal-adds-intros)
+                                          (vars (company-coq-ask-prover-swallow-errors "Show Intros.")))
+                                   (format "intros %s.\n  " (company-coq-trim vars)) "")))
+                (company-coq-insert-indented (format "Lemma %s:\n%s.\nProof.\n  %s"
+                                          lemma-name lemma intros))
               (error "Lemma extraction failed")))
         (company-coq-ask-prover (format "BackTo %d." statenum)))
     (user-error "Please start a proof before extracting a lemma")))

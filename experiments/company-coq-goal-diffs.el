@@ -92,10 +92,11 @@ display of the goal."
          'action #'company-coq-features/goal-diffs-hyperlink-action
          'help-echo "Compare this goal to the previous one in a separate diff buffer")))))
 
-(defun company-coq-features/goal-diffs--annotate ()
+(defun company-coq-features/goal-diffs-annotate ()
   "Annotate the goals in the proof buffer.
 Assumes that both `company-coq--current-context-parse' and
 `company-coq--current-context-parse' are up-to-date."
+  (interactive)
   (when (and (consp company-coq--previous-context-parse)
              (consp company-coq--current-context-parse))
     (company-coq-with-current-buffer-maybe proof-goals-buffer
@@ -114,15 +115,20 @@ Assumes that both `company-coq--current-context-parse' and
               (company-coq-features/goal-diffs--highlight-1 hyp status)))))
       (company-coq-features/goal-diffs--add-hyperlink))))
 
+(defun company-coq-features/goal-diffs--annotate-new-output ()
+  "Annotate contents of goals buffer if appropriate."
+  (unless (memq 'no-goals-display proof-shell-delayed-output-flags)
+    (company-coq-features/goal-diffs-annotate)))
+
 (define-minor-mode company-coq-goal-diffs
   "Render Coq goals using LaTeX."
   :lighter " ⁺∕₋"
   (if company-coq-goal-diffs
       (add-hook 'proof-shell-handle-delayed-output-hook
                 ;; Must append to ensure we run after the context update code
-                #'company-coq-features/goal-diffs--annotate t)
+                #'company-coq-features/goal-diffs--annotate-new-output t)
     (remove-hook 'proof-shell-handle-delayed-output-hook
-                 #'company-coq-features/goal-diffs--annotate)))
+                 #'company-coq-features/goal-diffs--annotate-new-output)))
 
 (company-coq-goal-diffs)
 (provide 'company-coq-goal-diffs)
