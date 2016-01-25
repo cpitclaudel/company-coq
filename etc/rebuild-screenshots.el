@@ -306,7 +306,8 @@ exact pr.")
     (with-selected-window (split-window-vertically 6)
       (set-window-buffer-with-search proof-response-buffer "The term")
       (with-selected-window (split-window-vertically 5)
-        (set-window-buffer nil "*Diff*")))))
+        (set-window-buffer nil "*unification-diff*")
+        (message nil)))))
 
 (my/with-screenshot my/github-width/2 16 "east" "Documentation of errors (C-c C-a C-e)." "errors-doc"
   (my/start-pg-no-windows)
