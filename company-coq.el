@@ -2546,7 +2546,7 @@ difference."
   (save-excursion
     (condition-case nil
         (progn (outline-back-to-heading) nil)
-      ('error t))))
+      (error t))))
 
 (defun company-coq-fold ()
   "Hide the body of the current proof or definition.

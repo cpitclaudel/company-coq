@@ -3,18 +3,13 @@ Require Import Utf8.
 (* Global folding should work here *)
 Ltac SimpleLtac a b cde := idtac.
 
-(*
-(progn
-  (setq coq-prog-name "/build/coq-trunk-pr/bin/coqtop")
-  (setq coq-prog-args '("-emacs-U" "-coqlib" "/build/coq-trunk-pr/")))
- *)
-
 Goal True = False -> False.
   intros.
   rewrite <- ?H. (* Is this colored? Ideally it should not be colored at all *)
   (* Are contents of goal buffer prettified? *)
   apply I.
 Qed.
+
 (* This should be underlined. *)
 Unset Undo. (* Putting cursor or point on error should show help-echo *)
 
@@ -46,7 +41,7 @@ Definition PrettySymbols : (nat -> nat -> Prop) :=
 (* Does constructor sort before constructor @{num}? What about intuition? *)
 
 Definition SLD := False.
-(* Type SLD RET here. Does this add a newline after introducing SLD (it should)? *)
+(* Type SLD RET here. Does this add a newline after introducing SLD? (it should) *)
 
 Definition bullets: True \/ (True \/ True) -> True.
 Proof.
@@ -374,6 +369,7 @@ Proof.
   simpl in *.
 
   Fail exact pr.
+  
   (* (company-coq-diff-unification-error) *)
   Unset Printing All.
 
@@ -426,7 +422,7 @@ Proof.
   move H0 at top.
   destruct n1.
   destruct this.
-
+Abort.
 
 Require Import Omega.
 
@@ -851,4 +847,3 @@ Require Import RelationPairs.
 (* Loaded 8092 symbols (0.136 seconds) With plain proof-general search *)
 (* Loaded 8092 symbols (0.155 seconds) With optimized proof-general search on battery *)
 
-(* !!! Still broken: Completion of block end *)
