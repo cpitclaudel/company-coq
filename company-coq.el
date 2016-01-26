@@ -3976,9 +3976,6 @@ Inspired by the excellent ‘page-break-lines-mode’."
 
 (defun company-coq-features/pg-improvements--goals-buffer-enable ()
   "Apply company-coq improvements to current buffer."
-  ;; Not adding this: it breaks pictures, and refontification is not common
-  ;; since the buffer is in fact emptied for each new goal.
-  ;; (add-to-list (make-local-variable 'font-lock-extra-managed-props) 'display)
   (add-hook 'window-configuration-change-hook #'company-coq-features/pg-improvements--update-display-table)
   (company-coq-features/pg-improvements--update-display-table)
   (font-lock-add-keywords nil company-coq-goal-separator-spec t)
@@ -3992,6 +3989,11 @@ Inspired by the excellent ‘page-break-lines-mode’."
   (company-coq-features/pg-improvements--clear-display-table)
   (font-lock-remove-keywords nil company-coq-goal-separator-spec)
   (font-lock-remove-keywords nil company-coq-subscript-spec)
+  (let ((inhibit-read-only t))
+    ;; Manually remove goal line display spec.  Using font-lock-extra-managed-props
+    ;; would break LaTeX notations, since images would be removed on each
+    ;; refontification.
+    (remove-list-of-text-properties (point-min) (point-max) '(display)))
   (kill-local-variable 'show-trailing-whitespace)
   (company-coq-request-refontification))
 
