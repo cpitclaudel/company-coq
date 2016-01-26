@@ -4776,7 +4776,8 @@ window every time it changes."
                              "company-🐤"
                            "company-coq")))
     (apply #'propertize lighter-string
-           (when (company-coq--icon) (list 'display display-spec)))))
+           (when (and (company-coq--icon) (image-type-available-p 'imagemagick))
+             (list 'display display-spec)))))
 
 (defvar company-coq--lighter-var ;; See https://emacs.stackexchange.com/questions/18945/can-i-use-an-image-in-my-modeline-lighter
   '(:eval (list " " (company-coq--lighter-string)))
