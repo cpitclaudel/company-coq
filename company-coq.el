@@ -701,7 +701,7 @@ infinite loop (they are not cleared by [generalize dependent]).")
   "Face spec for subscripts.")
 
 (defconst company-coq-goal-separator-spec
-  `(("^  \\s-*=====+\\s-*$" 0 '(face nil display "") append))
+  `(("^   *=====+ *$" 0 '(face nil display "") append))
   "Face spec for a sequence of '=' signs.")
 
 (defconst company-coq-deprecated-spec
