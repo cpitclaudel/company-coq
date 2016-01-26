@@ -13,7 +13,7 @@
       (package-initialize)
 
       ;; Open .v files with Proof-General's coq-mode
-      (require 'proof-site)
+      (require 'proof-site "~/.emacs.d/lisp/PG/generic/proof-site")
 
       ;; Load company-coq when opening Coq files
       (add-hook 'coq-mode-hook #'company-coq-mode)
@@ -23,7 +23,7 @@
 
 (******************************************************************************)
 
-(** Let’s get started!  If you use emacs ≥ 24.4, the symbols below should be
+(** Let’s get started!  If you use Emacs ≥ 24.4, the symbols below should be
     prettified, though they appear as ASCII in the source file.  You can disable
     this feature by typing ‘M-x prettify-symbols-mode’.  If the symbols show as
     square boxes instead, you may want to install a good unicode font, such as
@@ -66,7 +66,7 @@ Ltac MySimpleTactic :=
 
 (** Now for a few interactive features.  You'll want to start the prover. *)
 
-(* Start Coq by pressing ‘C-c RET’ here: *) 
+(* Start Coq by pressing ‘C-c C-RET’ here: *) 
 
 (******************************************************************************)
 
