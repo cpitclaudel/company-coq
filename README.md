@@ -69,7 +69,7 @@ Loading `company-coq` also binds the following keys:
 * <kbd>M-RET</kbd> inserts a new `match` case (`| _ => _`).
 * <kbd>M-S-RET</kbd> inserts a new `match goal` rule (`| [ H: _ |- _ ] => _`).
 * <kbd>C-c C-a C-x</kbd> extracts the current goal into a separate lemma.
-* <kbd>C-down-mouse-1</kbd> (i.e. <kbd>C-click</kbd>) shows an inline quick help box for the identifier under point. The box disappears when the mouse is released. Pressing the <kbd>&lt;menu></kbd> key also works.
+* <kbd>C-down-mouse-1</kbd> (i.e. <kbd>C-click</kbd>) shows an inline quick help box for the identifier under point. The box disappears when the mouse is released. Pressing the <kbd>&lt;menu></kbd> key or <kbd>M-F12</kdb> also works.
 * <kbd>M-.</kbd> jumps to the source of the identifier at point, when available.
 * <kbd>C-c C-p</kbd> opens the documentation of the identifier at point (for theorems, and definitions; for tactics, use <kbd>C-h</kbd> during completion).
 * <kbd>C-c C-,</kbd> opens an outline of the code in a separate buffer (using `occur`).

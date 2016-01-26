@@ -224,7 +224,7 @@ myR")
 
 ;; Deprecated | Titles in comments | Inline docs
 
-(my/with-screencast my/github-width/3 13 "west" 60 1 "Inline docs / quick peek (<C-click>)." "inline-docs"
+(my/with-screencast my/github-width/3 13 "west" 60 1 "Inline docs (C-Click, M-F12)." "inline-docs"
   (progn
     (my/start-pg-no-windows)
     (company-coq-ask-prover "Set Printing Width 40.")
