@@ -3,10 +3,9 @@
 
 # Packaging
 .cask
-/tactics
-/dist/
-/sandbox/
-/TODO.org
-/img/coq-pl-16-*.png
+dist/
+TODO.org
+img/coq-pl-16-*.png
+etc/tactics
 etc/vm/.vagrant
 experiments/untracked/

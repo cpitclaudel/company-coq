@@ -438,7 +438,7 @@ def write_patterns(template_path, patterns):
                               for (typ, strings) in strings_by_typ.items())
         output.write(template.replace('$ABBREVS$', abbrevs))
 
-    with open("tactics", mode = "w") as output:
+    with open("etc/tactics", mode = "w") as output:
         for strings in strings_by_typ.values():
             for string, _, _ in strings:
                 output.write(string)

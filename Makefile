@@ -67,7 +67,7 @@ pkg-install: elc package
 
 etc: clean-etc
 	env --unset COQPATH make -j8 -C $(TAGGED_REFMAN_ROOT) doc-html
-	./parse-hevea.py refman/ ./company-coq-abbrev.el.template $(TAGGED_REFMAN_ROOT)/doc/refman/html/Reference-Manual*.html
+	./etc/parse-hevea.py refman/ ./company-coq-abbrev.el.template $(TAGGED_REFMAN_ROOT)/doc/refman/html/Reference-Manual*.html
 	parallel -j8 gzip -9 -- refman/*.html
 
 icons:
