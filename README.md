@@ -124,30 +124,9 @@ Loading `company-coq` also binds the following keys:
 
 <img src="img/deprecated.png" alt="Highlighting of deprecated forms" /> <img src="img/titles.png" alt="Special syntax for titles in comments" /> <img src="img/inline-docs.gif" alt="Quick help (inline docs)" />
 
-## Troubleshooting
+## Citing
 
-### Empty squares in place of math operators, or incorrect line spacing
-
-If you see blank squares appear where there should be math symbols (`forall`, `exists`, etc.), or if some lines suddenly become very tall, you may be missing a proper math font. See [Installing a math font](#installing-a-math-font), or insert the following snippet in your .emacs to disable symbols beautification:
-
-```elisp
-;; Disable symbol prettification
-(setq company-coq-disabled-features '(prettify-symbols))
-```
-
-On the other hand, if you like that feature so much, you can enable it in the terminal:
-
-``` elisp
-(setq company-coq-features/prettify-symbols-in-terminals t)
-```
-
-Technical note: Proof General [also offers](http://proofgeneral.inf.ed.ac.uk/htmlshow.php?title=Proof+General+user+manual+%28latest+release%29&file=releases%2FProofGeneral-latest%2Fdoc%2FProofGeneral%2FProofGeneral_5.html#Unicode-Tokens-mode) a Unicode keywords facility. `company-coq`'s implementation is based on the `prettify-symbols-mode` facility found in Emacs 24.4+, yielding a more compact (and faster?) implementation.
-
-## Advanced topics
-
-### Citing
-
-Use `company-coq-cite` to insert the BibTeX entries for Coq, Proof General, and `company-coq` in the current buffer.
+Use `M-x company-coq-cite` to insert the BibTeX entries for Coq, Proof General, and `company-coq` in the current buffer.
 
 ```latex
 @InProceedings{CompanyCoq2016,
@@ -161,13 +140,35 @@ Use `company-coq-cite` to insert the BibTeX entries for Coq, Proof General, and 
 }
 ```
 
+## Troubleshooting
+
+### Empty squares in place of math operators, or incorrect line spacing
+
+If you see blank squares appear where there should be math symbols (`forall`, `exists`, etc.), or if some lines suddenly become very tall, you may be missing a proper math font. See [Installing a math font](#installing-a-math-font), or insert the following snippet in your .emacs to disable symbols beautification:
+
+```elisp
+;; Disable symbol prettification
+(setq company-coq-disabled-features '(prettify-symbols))
+```
+
+On the other hand, if you like that feature very much, you can enable it in the terminal:
+
+``` elisp
+(setq company-coq-features/prettify-symbols-in-terminals t)
+```
+
+Technical note: Proof General [also offers](http://proofgeneral.inf.ed.ac.uk/htmlshow.php?title=Proof+General+user+manual+%28latest+release%29&file=releases%2FProofGeneral-latest%2Fdoc%2FProofGeneral%2FProofGeneral_5.html#Unicode-Tokens-mode) a Unicode keywords facility. `company-coq`'s implementation is based on the `prettify-symbols-mode` facility found in Emacs 24.4+, yielding a more compact (and faster?) implementation.
+
+## Advanced topics
+
 ### Installing a math font
 
 For font beautification to work properly, you'll need a font with proper symbol support. [Symbola](http://users.teilar.gr/~g1951d/Symbola.zip), FreeMono, STIX Math, Segoe UI Symbol, Latin Modern, and Cambria Math will all work. If Emacs doesn't fallback properly, you can use the following snippet:
 
 ```elisp
-(set-fontset-font t 'unicode (font-spec :name "YOUR-USUAL-FONT"))
-(set-fontset-font t 'unicode (font-spec :name "Symbola") nil 'append)
+(dolist (ft (fontset-list))
+  (set-fontset-font ft 'unicode (font-spec :name "YOUR-USUAL-FONT"))
+  (set-fontset-font ft 'unicode (font-spec :name "Symbola") nil 'append))
 ```
 
 #### Fixing math indentation
@@ -175,8 +176,9 @@ For font beautification to work properly, you'll need a font with proper symbol 
 Using a variable-width font for symbols will break indentation. See [this other project of mine](https://github.com/cpitclaudel/monospacifier#pre-monospacified-fonts-monospace-fonts-with-good-unicode-coverage) to download a monospace-friendly symbols font. You'll want to replace the snippet above by following (adjusting `Symbola` and `DejaVu sans Mono` as appropriate):
 
 ```elisp
-(set-fontset-font t 'unicode (font-spec :name "DejaVu Sans Mono"))
-(set-fontset-font t 'unicode (font-spec :name "Symbola monospacified for DejaVu Sans Mono") nil 'append)
+(dolist (ft (fontset-list))
+  (set-fontset-font ft 'unicode (font-spec :name "YOUR-USUAL-FONT"))
+  (set-fontset-font ft 'unicode (font-spec :name "Symbola monospacified for DejaVu Sans Mono") nil 'append))
 ```
 
 ### Showing alerts for long-running proofs
@@ -224,7 +226,8 @@ Greek symbols can be obtained using the following mappings:
 in which case you may want to use a custom font for Greek characters:
 
 ```
-(set-fontset-font t 'greek (font-spec :name "DejaVu Sans Mono"))
+(dolist (ft (fontset-list))
+  (set-fontset-font ft 'greek (font-spec :name "DejaVu Sans Mono")))
 ```
 
 ### Autocompleting symbols and tactics defined externally
