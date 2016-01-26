@@ -3487,7 +3487,9 @@ subsequent invocations)."
           (replace-match (if (display-graphic-p) ""
                            company-coq--tutorial-tty-fonts-message)
                          t t)
-          (fill-paragraph))
+          (when (functionp fill-paragraph-function)
+            ;; Aquamacs overrides fill-paragraph
+            (funcall fill-paragraph-function)))
         (goto-char (point-min))
         (coq-mode)
         (company-coq-mode)
