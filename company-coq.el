@@ -158,6 +158,7 @@ forward-declare; instead, check that the declaration is valid."
   (company-coq-forward-declare-var proof-shell-last-output-kind)
   (company-coq-forward-declare-var proof-shell-last-goals-output)
   (company-coq-forward-declare-var proof-shell-last-response-output)
+  (company-coq-forward-declare-var proof-shell-delayed-output-flags)
   (company-coq-forward-declare-var coq-mode-map)
   (company-coq-forward-declare-var coq-reserved)
   (company-coq-forward-declare-var coq-user-cheat-tactics-db)
@@ -3953,7 +3954,7 @@ wrapping the line."
   :group 'company-coq-faces)
 
 (defun company-coq-features/pg-improvements--update-display-table ()
-  "Prettify ^L as a goal separator in the current buffer.
+  "Prettify ^K as a goal separator in the current buffer.
 Inspired by the excellent ‘page-break-lines-mode’."
   (company-coq-with-current-buffer-maybe proof-goals-buffer
     (-when-let* ((win (get-buffer-window (current-buffer))))
@@ -3969,6 +3970,11 @@ Inspired by the excellent ‘page-break-lines-mode’."
           (unless (equal display-entry (elt buffer-display-table ?\^K))
             (aset buffer-display-table ?\^K display-entry)))))))
 
+(defun company-coq-features/pg-improvements--update-display-table-if-new-goal ()
+  "Update  in the display table if there's a new goal."
+  (unless (memq 'no-goals-display proof-shell-delayed-output-flags)
+    (company-coq-features/pg-improvements--update-display-table)))
+
 (defun company-coq-features/pg-improvements--clear-display-table ()
   "Remove prettification of ^K in the current buffer."
   (when buffer-display-table
@@ -3976,7 +3982,9 @@ Inspired by the excellent ‘page-break-lines-mode’."
 
 (defun company-coq-features/pg-improvements--goals-buffer-enable ()
   "Apply company-coq improvements to current buffer."
+  (add-hook 'linum-mode-hook #'company-coq-features/pg-improvements--update-display-table)
   (add-hook 'window-configuration-change-hook #'company-coq-features/pg-improvements--update-display-table)
+  (add-hook 'proof-shell-handle-delayed-output-hook #'company-coq-features/pg-improvements--update-display-table-if-new-goal t)
   (company-coq-features/pg-improvements--update-display-table)
   (font-lock-add-keywords nil company-coq-goal-separator-spec t)
   (font-lock-add-keywords nil company-coq-subscript-spec t)
@@ -3985,7 +3993,9 @@ Inspired by the excellent ‘page-break-lines-mode’."
 
 (defun company-coq-features/pg-improvements--goals-buffer-disable ()
   "Remove company-coq improvements from current buffer."
+  (remove-hook 'linum-mode-hook #'company-coq-features/pg-improvements--update-display-table)
   (remove-hook 'window-configuration-change-hook #'company-coq-features/pg-improvements--update-display-table)
+  (remove-hook 'proof-shell-handle-delayed-output-hook #'company-coq-features/pg-improvements--update-display-table-if-new-goal)
   (company-coq-features/pg-improvements--clear-display-table)
   (font-lock-remove-keywords nil company-coq-goal-separator-spec)
   (font-lock-remove-keywords nil company-coq-subscript-spec)
