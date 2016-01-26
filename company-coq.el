@@ -1837,15 +1837,19 @@ KILL: See `quit-window'."
   :lighter nil
   :keymap company-coq--temp-buffer-minor-mode-map)
 
+(defun company-coq--setup-secondary-buffer ()
+  "Ensure that Emacs doesn't offer to save the current buffer."
+  (set-buffer-modified-p nil)
+  (setq-local buffer-offer-save nil)
+  (kill-local-variable 'kill-buffer-hook))
+
 (defun company-coq--setup-doc-buffer ()
   "Prepare current buffer for documentation display."
   (visual-line-mode)
   (buffer-disable-undo)
   (company-coq--keybindings-minor-mode)
   (company-coq--temp-buffer-minor-mode)
-  (set-buffer-modified-p nil)
-  (kill-local-variable 'kill-buffer-hook)
-  (setq-local buffer-offer-save nil)
+  (company-coq--setup-secondary-buffer)
   (setq-local show-trailing-whitespace nil)
   (setq-local cursor-in-non-selected-windows nil))
 
@@ -3467,7 +3471,7 @@ subsequent invocations)."
     (company-coq-tactic-initialize-notations-filter)))
 
 (defconst company-coq--tutorial-tty-fonts-message
-  "\n\n    (On TTYs, set `company-coq-features/prettify-symbols-in-terminals' to t to enable prettification.)"
+  "\n\n    (On TTYs, set ‘company-coq-features/prettify-symbols-in-terminals’ to t to enable prettification.)"
   "Message inserted in the tutorial on TTY terminals.")
 
 (defconst company-coq--tutorial-buffer-name
@@ -3494,6 +3498,7 @@ subsequent invocations)."
         (goto-char (point-min))
         (coq-mode)
         (company-coq-mode)
+        (company-coq--setup-secondary-buffer)
         (setq-local proof-script-fly-past-comments nil))
       (pop-to-buffer-same-window (current-buffer)))))
 
