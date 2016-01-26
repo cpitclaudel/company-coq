@@ -36,10 +36,10 @@ script's folder.")
         (while (not (file-exists-p (expand-file-name company-coq-features/latex--template-file-name dir)))
           (let ((parent (file-name-directory (directory-file-name dir))))
             (when (string= dir parent)
-              (error "Not found: %s" company-coq-features/latex--template-file-name))
+              (user-error "Not found: %s" company-coq-features/latex--template-file-name))
             (setq dir parent)))
         (expand-file-name company-coq-features/latex--template-file-name dir))
-    (error "Buffer must be saved before LaTeX rendering can happen")))
+    (user-error "Buffer must be saved before LaTeX rendering can happen")))
 
 (defvar company-coq-features/latex--template-path nil
   "Path to ‘company-coq-features/latex--template-file-name’.
@@ -179,6 +179,9 @@ Uses the LaTeX template at ‘company-coq-features/latex--template-path’."
 (defun company-coq-features/latex--render-goal ()
   "Parse and LaTeX-render the contents of the goals buffer.
 Does not run when output is silenced."
+  (unless company-coq-features/latex--template-path
+    (setq-local company-coq-features/latex--template-path
+                (company-coq-features/latex--find-template)))
   (unless (or (memq 'no-goals-display proof-shell-delayed-output-flags)
               (null proof-script-buffer)
               (not (display-graphic-p)))
@@ -201,9 +204,7 @@ Does not run when output is silenced."
   :lighter " $"
   (if company-coq-LaTeX
       (progn
-        (add-hook 'proof-shell-handle-delayed-output-hook #'company-coq-features/latex--render-goal)
-        (unless company-coq-features/latex--template-path
-          (setq-local company-coq-features/latex--template-path (company-coq-features/latex--find-template))))
+        (add-hook 'proof-shell-handle-delayed-output-hook #'company-coq-features/latex--render-goal))
     (company-coq-features/latex-evict-cache t)
     (remove-hook 'proof-shell-handle-delayed-output-hook #'company-coq-features/latex--render-goal)))
 
