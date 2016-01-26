@@ -82,7 +82,7 @@ Loading `company-coq` also binds the following keys:
 ## Tips
 
 * Most completion engines support fuzzy matching: you can type `Require Import C.N..Ab.ZPa` and press <kbd>RET</kbd> to insert `Coq.Numbers.Integer.Abstract.ZParity`, and typing `setrewin` is enough to insert <code>setoid_rewrite <i>term</i> in <i>ident</i></code>. You can (and must) omit spaces: `SLD` will insert `Set Ltac Debug` (of course `SetLtDeb` will also work), and `ULD` will insert `Unset Ltac Debug`.
-* Using <kbd>M-S-RET</kbd> to insert new cases in a `match goal` saves a lot of time (and finger contortions).
+* Using <kbd>M-S-RET</kbd> to insert new cases in a `match goal` saves a lot of time (and finger contortions). For the match itself, use `mgw` (for `match goal with`).
 * The point-and-click feature (quick help) also works in non-graphic mode, if you enable `xterm-mouse-mode`.
 * `company-coq` improves on some of Proof General's features. Try <kbd>C-c C-a RET nat RET</kbd>.
 
