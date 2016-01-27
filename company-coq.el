@@ -81,27 +81,25 @@
 
 ;;; Shims for old emacsen
 
+(defvar company-coq-seconds-to-string
+  (list (list 1 "ms" 0.001)
+        (list 100 "s" 1)
+        (list (* 60 100) "m" 60.0)
+        (list (* 3600 30) "h" 3600.0)
+        (list (* 3600 24 400) "d" (* 3600.0 24.0))
+        (list nil "y" (* 365.25 24 3600)))
+  "Formatting used by the function `company-coq-seconds-to-string'.")
+
+(defun company-coq-seconds-to-string (delay)
+  "Convert the time interval DELAY in seconds to a short string."
+  (cond ((> 0 delay) (concat "-" (company-coq-seconds-to-string (- delay))))
+        ((= 0 delay) "0s")
+        (t (let ((sts company-coq-seconds-to-string) here)
+             (while (and (car (setq here (pop sts)))
+                         (<= (car here) delay)))
+             (concat (format "%.2f" (/ delay (car (cddr here)))) (cadr here))))))
+
 (eval-and-compile
-  (unless (boundp 'seconds-to-string)
-    (defvar seconds-to-string
-      (list (list 1 "ms" 0.001)
-            (list 100 "s" 1)
-            (list (* 60 100) "m" 60.0)
-            (list (* 3600 30) "h" 3600.0)
-            (list (* 3600 24 400) "d" (* 3600.0 24.0))
-            (list nil "y" (* 365.25 24 3600)))
-      "Formatting used by the function `seconds-to-string'."))
-
-  (unless (fboundp 'seconds-to-string)
-    (defun seconds-to-string (delay)
-      "Convert the time interval in seconds to a short string."
-      (cond ((> 0 delay) (concat "-" (seconds-to-string (- delay))))
-            ((= 0 delay) "0s")
-            (t (let ((sts seconds-to-string) here)
-                 (while (and (car (setq here (pop sts)))
-                             (<= (car here) delay)))
-                 (concat (format "%.2f" (/ delay (car (cddr here)))) (cadr here)))))))
-
   ;; Silence the byte-compiler in Emacs < 24.4
   (defvar shr-width)
   (defvar shr-internal-width)
@@ -4448,7 +4446,7 @@ If ROTATION is non-nil, return the path to a rotated copy."
 (defun company-coq-features/alerts--alert ()
   "Display and alert with a company-coq-features/alerts-specific message."
   (let* ((elapsed (float-time (time-since company-coq-features/alerts--last-interaction)))
-         (title (format company-coq-features/alerts-title-format (seconds-to-string elapsed)))
+         (title (format company-coq-features/alerts-title-format (company-coq-seconds-to-string elapsed)))
          (body (funcall company-coq-features/alerts-body-function)))
     (setq company-coq-features/alerts--last-interaction nil)
     (cond
@@ -4458,7 +4456,7 @@ If ROTATION is non-nil, return the path to a rotated copy."
          body
          :severity 'normal
          :icon (or (company-coq--icon) (bound-and-true-p alert-default-icon))
-         :title (format company-coq-features/alerts-title-format (seconds-to-string elapsed))
+         :title (format company-coq-features/alerts-title-format (company-coq-seconds-to-string elapsed))
          :buffer proof-script-buffer)))
      ((functionp 'notifications-notify)
       (company-coq-suppress-warnings
