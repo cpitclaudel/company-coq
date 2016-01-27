@@ -343,9 +343,9 @@ impossible, for example in `proof-shell-insert-hook'")
 (defvar company-coq-definition-overlay nil
   "Overlay used to show inline definitions.")
 
-(defconst company-coq-id-regexp            "\\(?:[a-zA-Z0-9_][a-zA-Z0-9_']*\\)")
-(defconst company-coq-prefix-regexp        "\\(?:[a-zA-Z0-9_][a-zA-Z0-9_.'!]*\\)?") ;; '!' included for patterns like [intros!]
-(defconst company-coq-symbol-regexp        "\\(?:[a-zA-Z0-9_]\\(?:[a-zA-Z0-9_.']*[a-zA-Z0-9_.']\\)?\\)")
+(defconst company-coq-id-regexp "\\(?:[a-zA-Z0-9_][a-zA-Z0-9_']*\\)")
+(defconst company-coq-prefix-regexp "\\(?:[a-zA-Z0-9_][a-zA-Z0-9_.'!]*\\)?") ;; '!' included for patterns like [intros!]
+(defconst company-coq-symbol-regexp "\\(?:[a-zA-Z]\\(?:[a-zA-Z0-9_.']*[a-zA-Z0-9_']\\)?\\)")
 
 (defconst company-coq-all-symbols-slow-regexp (concat "^\\(" company-coq-symbol-regexp "\\):")
   "Regexp matching symbol names in search results.")
@@ -701,13 +701,13 @@ infinite loop (they are not cleared by [generalize dependent]).")
 
 (defconst company-coq-goal-separator-spec
   `(("^   *=====+ *$" 0 '(face nil display "") append))
-  "Face spec for a sequence of '=' signs.")
+  "Font-lock spec for a sequence of '=' signs.")
 
 (defconst company-coq-deprecated-spec
   `((,company-coq-deprecated-re 1 '(face (:underline (:color "#FF0000" :style wave))
                               help-echo "This form is deprecated (8.5)")
                      append))
-  "Face spec for deprecated forms.")
+  "Font-lock spec for deprecated forms.")
 
 (defmacro company-coq-dbg (format &rest args)
   "Call `message' with FORMAT and ARGS if `company-coq-debug' is non-nil."
@@ -1748,10 +1748,8 @@ return the starting point as well."
          (end (and start (save-excursion
                            (goto-char start)
                            (when (looking-at company-coq-symbol-regexp)
-                             (goto-char (match-end 0))
-                             (skip-chars-backward ".")
-                             (point))))))
-    ;; Trim dots
+                             ;; No dots at end of symbol
+                             (match-end 0))))))
     (when (and start end (< start end))
       (cons (buffer-substring-no-properties start end) start))))
 
