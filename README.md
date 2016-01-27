@@ -85,12 +85,13 @@ Loading `company-coq` also binds the following keys:
 * Using <kbd>M-S-RET</kbd> to insert new cases in a `match goal` saves a lot of time (and finger contortions). For the match itself, use `mgw` (for `match goal with`).
 * The point-and-click feature (quick help) also works in non-graphic mode, if you enable `xterm-mouse-mode`.
 * `company-coq` improves on some of Proof General's features. Try <kbd>C-c C-a RET nat RET</kbd>.
+* Use `a__b` to display `a`<sub>`b`</sub>.
 
 `company-coq` is implemented as a collection of small modules implementing independent features; check out `M-x customize-variable RET company-coq-disabled-features RET` and `M-x customize-group RET company-coq RET` for more info!
 
 ## Screenshots
 
-#### Prettification of operators and types
+#### Prettification of operators, types, and subscripts
 
 <img src="img/prettify-disabled.png" alt="Prettification of math symbols (disabled)" /> <img src="img/prettify.png" alt="Prettification of math symbols (enabled)" />
 
