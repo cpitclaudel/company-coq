@@ -113,8 +113,8 @@
 
 (my/with-screenshot my/github-width/2 6 "west" "Prettification of math symbols (enabled)." "prettify"
   (insert "Definition PrettySymbols : (nat -> nat -> Prop) :=
-  (fun (n m: nat) =>
-     forall p, p <> n -> p >= m -> True \\/ False)."))
+  (fun (n1 n2: nat) =>
+     forall p, p <> n1 -> p >= n2 -> True \\/ False)."))
 
 (my/with-screenshot my/github-width/2 6 "east" "Prettification of math symbols (disabled)." "prettify-disabled"
   (company-coq-features/prettify-symbols -1)
@@ -236,7 +236,9 @@ myR")
   "<menu>")
 
 (my/with-screenshot my/github-width/3 13 "center" "Special comments for titles." "titles"
-  (insert "(***    H1 title    ***)
+  (progn
+    (company-coq-features/smart-subscripts 'off)
+    (insert "(***    H1 title    ***)
 
 \(*+     H2 title in a     +*)
 \(*+ slightly smaller font +*)
@@ -247,13 +249,15 @@ myR")
 \(** ** Coqdoc subtitle    **)
 \(** Documentation comment **)
 
-\(* Regular comment *)")
+\(* Regular comment *)"))
   (my/send-keys "M-<")
   (while (re-search-forward "\n\n" nil t)
     (let ((ov (make-overlay (match-beginning 0) (match-end 0))))
       (overlay-put ov 'face '(:height 0.30))))
   (set-window-start nil 1)
   (setq cursor-type nil))
+
+(company-coq-features/smart-subscripts 'on)
 
 (my/with-screenshot my/github-width/3 13 "east" "Highlighting of deprecated forms." "deprecated"
   (my/insert-with-point "Set Undo 1.

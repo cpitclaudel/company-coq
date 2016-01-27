@@ -346,6 +346,7 @@ impossible, for example in `proof-shell-insert-hook'")
 (defconst company-coq-id-regexp "\\(?:[a-zA-Z0-9_][a-zA-Z0-9_']*\\)")
 (defconst company-coq-prefix-regexp "\\(?:[a-zA-Z0-9_][a-zA-Z0-9_.'!]*\\)?") ;; '!' included for patterns like [intros!]
 (defconst company-coq-symbol-regexp "\\(?:[a-zA-Z]\\(?:[a-zA-Z0-9_.']*[a-zA-Z0-9_']\\)?\\)")
+(defconst company-coq-symbol-regexp-no-numbers "\\(?:[a-zA-Z]\\(?:[a-zA-Z0-9_.']*[a-zA-Z']\\)?\\)")
 
 (defconst company-coq-all-symbols-slow-regexp (concat "^\\(" company-coq-symbol-regexp "\\):")
   "Regexp matching symbol names in search results.")
@@ -689,15 +690,6 @@ infinite loop (they are not cleared by [generalize dependent]).")
   '((t :inherit font-lock-doc-face))
   "Face used to highlight coqdoc's **** comments."
   :group 'company-coq-faces)
-
-(defface company-coq-subscript-face
-  '((t :height 0.9))
-  "Face used to change numbers to subscripts in hypothese names."
-  :group 'company-coq-faces)
-
-(defconst company-coq-subscript-spec
-  `((,company-coq-numeric-hypothesis-regexp 1 '(face 'company-coq-subscript-face display (raise -0.1)) append))
-  "Face spec for subscripts.")
 
 (defconst company-coq-goal-separator-spec
   `(("^   *=====+ *$" 0 '(face nil display "") append))
@@ -3554,6 +3546,15 @@ subsequent invocations)."
   `(company-coq-with-current-buffer-maybe proof-response-buffer
      ,@body))
 
+(defmacro company-coq-do-in-all-buffers (&rest body)
+  "Run BODY in all Coq-related buffers."
+  (declare (indent defun)
+           (debug t))
+  `(progn
+     (company-coq-do-in-coq-buffers ,@body)
+     (company-coq-do-in-goals-buffer ,@body)
+     (company-coq-do-in-response-buffer ,@body)))
+
 (defvar-local company-coq-mode nil
   "Non-nil if company-coq-mode is enabled.
 Use the command `company-coq-mode' to change this variable.")
@@ -3726,9 +3727,7 @@ Defining a feature adds it to `company-coq-available-features'."
   `(progn
      (setq company-coq--refontification-delayed t)
      (prog1 (progn ,@body)
-       (company-coq-do-in-coq-buffers (company-coq--perform-requested-refontification))
-       (company-coq-do-in-goals-buffer (company-coq--perform-requested-refontification))
-       (company-coq-do-in-response-buffer (company-coq--perform-requested-refontification))
+       (company-coq-do-in-all-buffers (company-coq--perform-requested-refontification))
        (setq company-coq--refontification-delayed nil))))
 
 (defun company-coq-toggle-features (enabled-or-disabled-features status)
@@ -3899,9 +3898,7 @@ REF-BUFFER is used to retrieve the buffer-local values of
   "Disable prettify-symbols in all Coq buffers."
   (when (fboundp #'prettify-symbols-mode)
     (company-coq-suppress-warnings
-      (company-coq-do-in-coq-buffers (prettify-symbols-mode -1))
-      (company-coq-do-in-goals-buffer (prettify-symbols-mode -1))
-      (company-coq-do-in-response-buffer (prettify-symbols-mode -1))
+      (company-coq-do-in-all-buffers (prettify-symbols-mode -1))
       (remove-hook 'coq-goals-mode-hook #'company-coq-features/prettify-symbols--enable-other)
       (remove-hook 'coq-response-mode-hook #'company-coq-features/prettify-symbols--enable-other))))
 
@@ -3924,6 +3921,46 @@ for display (the buffer contents are not modified, though).
      (company-coq-features/prettify-symbols--disable)
      (remove-hook 'hack-local-variables-hook #'company-coq-features/prettify-symbols--update-table)
      (remove-hook 'proof-activate-scripting-hook #'company-coq-features/prettify-symbols--enable-others))))
+
+
+(defface company-coq-features/smart-subscripts-face
+  '((t))
+  "Face used to display subscripts."
+  :group 'company-coq-faces)
+
+(defconst company-coq-features/smart-subscripts--display-spec
+  '(face company-coq-features/smart-subscripts-face display (raise -0.25))
+  "Display spec for subscripts.")
+
+(defconst company-coq-features/smart-subscripts--spec
+  `((,(concat "\\_<" company-coq-symbol-regexp-no-numbers "\\(_?[0-9]+\\)\\_>")
+     (1 company-coq-features/smart-subscripts--display-spec append))
+    (,(concat "\\_<" company-coq-symbol-regexp "\\(__\\)\\([0-9a-zA-Z]+\\)\\_>")
+     (1 '(face nil invisible 'company-coq-features/smart-subscripts) prepend)
+     (2 company-coq-features/smart-subscripts--display-spec append)))
+  "Font-lock spec for subscripts in proof script.")
+
+(defun company-coq-features/smart-subscripts--enable ()
+  "Enable subscript prettification in current buffer."
+  (font-lock-add-keywords nil company-coq-features/smart-subscripts--spec 'add)
+  (add-to-invisibility-spec 'company-coq-features/smart-subscripts)
+  (make-local-variable 'font-lock-extra-managed-props)
+  (add-to-list 'font-lock-extra-managed-props 'display)
+  ;; 'invisible is used by code folding, so can't be managed by font-spec
+  (company-coq-request-refontification))
+
+(defun company-coq-features/smart-subscripts--disable ()
+  "Disable subscript prettification in current buffer."
+  (font-lock-remove-keywords nil company-coq-features/smart-subscripts--spec)
+  (remove-from-invisibility-spec 'company-coq-features/smart-subscripts)
+  (company-coq-request-refontification))
+
+(company-coq-define-feature smart-subscripts (arg)
+  "Smart subscripts: a1 → a₁ and a__n → aₙ.
+Transparently displays subscripts."
+  (pcase arg
+    (`on (company-coq-do-in-all-buffers (company-coq-features/smart-subscripts--enable)))
+    (`off (company-coq-do-in-all-buffers (company-coq-features/smart-subscripts--disable)))))
 
 (company-coq-define-feature snippets (arg)
   "Snippets for various common Coq forms.
@@ -3989,7 +4026,6 @@ Inspired by the excellent ‘page-break-lines-mode’."
   (add-hook 'proof-shell-handle-delayed-output-hook #'company-coq-features/pg-improvements--update-display-table-if-new-goal t)
   (company-coq-features/pg-improvements--update-display-table)
   (font-lock-add-keywords nil company-coq-goal-separator-spec t)
-  (font-lock-add-keywords nil company-coq-subscript-spec t)
   (setq-local show-trailing-whitespace nil)
   (company-coq-request-refontification))
 
@@ -4000,7 +4036,6 @@ Inspired by the excellent ‘page-break-lines-mode’."
   (remove-hook 'proof-shell-handle-delayed-output-hook #'company-coq-features/pg-improvements--update-display-table-if-new-goal)
   (company-coq-features/pg-improvements--clear-display-table)
   (font-lock-remove-keywords nil company-coq-goal-separator-spec)
-  (font-lock-remove-keywords nil company-coq-subscript-spec)
   (let ((inhibit-read-only t))
     ;; Manually remove goal line display spec.  Using font-lock-extra-managed-props
     ;; would break LaTeX notations, since images would be removed on each

@@ -25,8 +25,8 @@ Inductive AAABBB :=
 | AAA1
 | AAA2 : BBBCCC -> AAABBB
 with BBBCCC :=
-     | BBB1
-     | BBB2 : AAABBB -> BBBCCC.
+| BBB1
+| BBB2 : AAABBB -> BBBCCC.
 
 Goal (nat + bool).
   (* constructor (apply true).     (* Is constructor @{tactic} documented? *) *)
@@ -55,6 +55,8 @@ Proof.
       (* Do folded sections automatically unfold when stepping in? *)
       Show Script.
 Qed.
+
+Locate "xx__abc".
 
 Inductive LongTypeName := II.
 Goal False.
@@ -189,13 +191,15 @@ Proof.
   destruct n.                   (* Does an automatic as clause here work? *)
   - destruct x1.
     + admit.
-    + 
 Abort.
 
 Lemma TestSubscripts :
   forall x: True, True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> nat -> nat.
 Proof.
   intros.
+  pose proof I as a__abc.
+  pose proof I as a_123.        (* _ not hidden *)
+  pose proof I as a_def.        (* no subscript *)
   (* Are subscripts displaying properly? What about the goals line? *)
   constructor.
 Qed.
@@ -204,8 +208,6 @@ Goal 1 = 1.
   (* Are the two numbers displaying properly? *)
   reflexivity.
 Qed.
-
-Print TestSubscripts.
 
 Lemma TestLemma : (* This is a template *)
   forall number (hypothesis : number + 1 < number),
@@ -235,7 +237,7 @@ Qed.
 Definition plus1 (n: nat) :=
   match n with (* C-c C-a RET *)
   | O => 1
-  | S x => S x + 1
+  | S x1 => S x1 + 1
   end.
 
 Example NameContaining_with_ : True. (* Dummy Example to add a name containing "with" to the context *)
