@@ -117,8 +117,7 @@ Proof.
     destruct H.
     compute in mu.
     clear epsilon.
-    pose proof I.
-    { (* Does this fold? Does the ellipsis look nice? *)
+    pose proof I. { (* Does this fold? Does the ellipsis look nice? *)
       apply I.
     }
     { apply I. }                (* This shouldn't be highlighted *)

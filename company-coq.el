@@ -4167,8 +4167,8 @@ Requiring a space helps with implicit args.  See
 of $ instead of \n.")
 
 (defconst company-coq-features/code-folding--line-beginning-regexp
-  "^[[:space:]*+-]*[*+{-]\\s-+"
-  "Regexp matching braces and bullets from the beginning of the line.")
+  "^[[:space:]*+-]*[*+-]\\s-+"
+  "Regexp matching bullets from the beginning of the line.")
 
 (defconst company-coq-features/code-folding--hs-regexp
   (concat "\\("
@@ -4255,12 +4255,13 @@ fully populated."
          (not (nth 3 sx))
          ;; Not in a comment
          (not (nth 4 sx))
-         ;; Not in the middle of a line
-         (-when-let* ((furthest-bullet (save-excursion
-                                         (beginning-of-line)
-                                         (when (looking-at company-coq-features/code-folding--line-beginning-regexp)
-                                           (match-end 0)))))
-           (<= (point) furthest-bullet))
+         ;; Not a bullet in the middle of a line
+         (or (eq (char-after) ?{)
+             (-when-let* ((furthest-bullet (save-excursion
+                                             (beginning-of-line)
+                                             (when (looking-at company-coq-features/code-folding--line-beginning-regexp)
+                                               (match-end 0)))))
+               (<= (point) furthest-bullet)))
          ;; Not on a brace closed on the same line
          (not (and (eq (char-after) ?{)
                    (save-excursion
