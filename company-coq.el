@@ -3959,8 +3959,14 @@ for display (the buffer contents are not modified, though).
   "Smart subscripts: a1 → a₁ and a__n → aₙ.
 Transparently displays subscripts."
   (pcase arg
-    (`on (company-coq-do-in-all-buffers (company-coq-features/smart-subscripts--enable)))
-    (`off (company-coq-do-in-all-buffers (company-coq-features/smart-subscripts--disable)))))
+    (`on
+     (company-coq-do-in-all-buffers (company-coq-features/smart-subscripts--enable))
+     (add-hook 'coq-goals-mode-hook #'company-coq-features/smart-subscripts--enable)
+     (add-hook 'coq-response-mode-hook #'company-coq-features/smart-subscripts--enable))
+    (`off
+     (company-coq-do-in-all-buffers (company-coq-features/smart-subscripts--disable))
+     (remove-hook 'coq-goals-mode-hook #'company-coq-features/smart-subscripts--enable)
+     (remove-hook 'coq-response-mode-hook #'company-coq-features/smart-subscripts--enable))))
 
 (company-coq-define-feature snippets (arg)
   "Snippets for various common Coq forms.
