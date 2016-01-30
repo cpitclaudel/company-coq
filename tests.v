@@ -196,8 +196,11 @@ Lemma TestSubscripts :
   forall x: True, True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> True -> nat -> nat.
 Proof.
   intros.
-  pose proof I as a__abc.
+  pose proof I as a123.         (* subscript *)
+  pose proof I as a__abc.         (* __ hidden *)
   pose proof I as a_123.        (* _ not hidden *)
+  pose proof I as a__123.       (* __ not hidden *)
+  pose proof I as a_'123.       (* no subscript *)
   pose proof I as a_def.        (* no subscript *)
   (* Are subscripts displaying properly? What about the goals line? *)
   constructor.
