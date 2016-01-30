@@ -37,57 +37,14 @@ MELPA is a repository of Emacs packages. Skip this step if you already use [MELP
 
 ### company-coq
 
-This should be easier: `company-coq` is on [MELPA](http://melpa.org/#/getting-started). Just use <kbd>M-x package-refresh-contents RET</kbd> followed by <kbd>M-x package-install RET company-coq RET</kbd> to install and byte-compile `company-coq` and its dependencies. Some of them will produce a few warnings; that's OK.
+This should be easier: `company-coq` is on [MELPA](http://melpa.org/#/getting-started). Just use <kbd>M-x package-refresh-contents RET</kbd> followed by <kbd>M-x package-install RET company-coq RET</kbd> to install and byte-compile `company-coq` and its dependencies (some of them will produce a few warnings; that's OK).
 
-## Configuration
-
-Add the following to your `.emacs`:
+To enabled company-coq automatically, add the following to your `.emacs`:
 
 ```elisp
 ;; Load company-coq when opening Coq files
 (add-hook 'coq-mode-hook #'company-coq-mode)
 ```
-
-## Quick start guide
-
-**You can check out the interactive tutorial by pressing <kbd>M-x company-coq-tutorial RET</kbd>.** See also the **[screenshots](#screenshots)** below!
-
-`company-coq` should be pretty transparent. Completion windows will pop up when `company-coq` has suggestions to make. By default, this would be when you start writing a tactic name or a command. You can also launch manual completion by using <kbd>C-RET</kbd> (or whatever was originally assigned to `proof-script-complete` in Coq mode).
-
-Once auto-completion has started, the following key bindings are available:
-
-* <kbd>RET</kbd> selects a completion
-* <kbd>C-g</kbd> interrupts completion.
-* <kbd>C-h</kbd> and <kbd>&lt;f1></kbd> display documentation for the currently highlighted keyword, identifier, or tactic.
-* <kbd>C-M-v</kbd> scrolls down in the documentation window.
-* <kbd>C-w</kbd> opens source view when available (alternatively, pressing <kbd>M-.</kbd> browses to the definition of the identifier at point).
-
-Selecting a completion often inserts a snippet with holes at the current point (`company-coq` uses `yasnippet` as the snippet backend). You can move between holes by using <kbd>&lt;tab></kbd> and <kbd>S-&lt;tab></kbd>.
-
-Loading `company-coq` also binds the following keys:
-
-* <kbd>M-RET</kbd> inserts a new `match` case (`| _ => _`).
-* <kbd>M-S-RET</kbd> inserts a new `match goal` rule (`| [ H: _ |- _ ] => _`).
-* <kbd>C-c C-a C-x</kbd> extracts the current goal into a separate lemma.
-* <kbd>C-down-mouse-1</kbd> (i.e. <kbd>C-click</kbd>) shows an inline quick help box for the identifier under point. The box disappears when the mouse is released. Pressing the <kbd>&lt;menu></kbd> key or <kbd>M-F12</kdb> also works.
-* <kbd>M-.</kbd> jumps to the source of the identifier at point, when available.
-* <kbd>C-c C-p</kbd> opens the documentation of the identifier at point (for theorems, and definitions; for tactics, use <kbd>C-h</kbd> during completion).
-* <kbd>C-c C-,</kbd> opens an outline of the code in a separate buffer (using `occur`).
-* <kbd>C-c C-/</kbd> folds the current code block, or all blocs in the file if repeated.
-* <kbd>C-c C-\\</kbd> unfolds the current code block, or all blocs in the file if repeated.
-* <kbd>C-c C-&</kbd> looks up (grep) the current word in files in the current directory subtree.
-* <kbd>C-c C-a C-e</kbd> tries to match the last output to a documented error message, and displays the relevant section of the manual if it finds one.
-* <kbd>C-c C-a C-d</kbd> parses the last unification error, and shows a diff of the two types that can't unify. If there is no such error, <kbd>C-c C-a C-d</kbd> shows a diff comparing the last goal to the previous one.
-
-## Tips
-
-* Most completion engines support fuzzy matching: you can type `Require Import C.N..Ab.ZPa` and press <kbd>RET</kbd> to insert `Coq.Numbers.Integer.Abstract.ZParity`, and typing `setrewin` is enough to insert <code>setoid_rewrite <i>term</i> in <i>ident</i></code>. You can (and must) omit spaces: `SLD` will insert `Set Ltac Debug` (of course `SetLtDeb` will also work), and `ULD` will insert `Unset Ltac Debug`.
-* Using <kbd>M-S-RET</kbd> to insert new cases in a `match goal` saves a lot of time (and finger contortions). For the match itself, use `mgw` (for `match goal with`).
-* The point-and-click feature (quick help) also works in non-graphic mode, if you enable `xterm-mouse-mode`.
-* `company-coq` improves on some of Proof General's features. Try <kbd>C-c C-a RET nat RET</kbd>.
-* Use `a__b` to display `a`<sub>`b`</sub>.
-
-`company-coq` is implemented as a collection of small modules implementing independent features; check out `M-x customize-variable RET company-coq-disabled-features RET` and `M-x customize-group RET company-coq RET` for more info!
 
 ## Screenshots
 
@@ -141,6 +98,47 @@ Use `M-x company-coq-cite` to insert the BibTeX entries for Coq, Proof General, 
 }
 ```
 
+## Quick start guide
+
+**You can check out the interactive tutorial by pressing <kbd>M-x company-coq-tutorial RET</kbd>.** See also the **[screenshots](#screenshots)** below!
+
+`company-coq` should be pretty transparent. Completion windows will pop up when `company-coq` has suggestions to make. By default, this would be when you start writing a tactic name or a command. You can also launch manual completion by using <kbd>C-RET</kbd> (or whatever was originally assigned to `proof-script-complete` in Coq mode).
+
+Once auto-completion has started, the following key bindings are available:
+
+* <kbd>RET</kbd> selects a completion
+* <kbd>C-g</kbd> interrupts completion.
+* <kbd>C-h</kbd> and <kbd>&lt;f1></kbd> display documentation for the currently highlighted keyword, identifier, or tactic.
+* <kbd>C-M-v</kbd> scrolls down in the documentation window.
+* <kbd>C-w</kbd> opens source view when available (alternatively, pressing <kbd>M-.</kbd> browses to the definition of the identifier at point).
+
+Selecting a completion often inserts a snippet with holes at the current point (`company-coq` uses `yasnippet` as the snippet backend). You can move between holes by using <kbd>&lt;tab></kbd> and <kbd>S-&lt;tab></kbd>.
+
+Loading `company-coq` also binds the following keys:
+
+* <kbd>M-RET</kbd> inserts a new `match` case (`| _ => _`).
+* <kbd>M-S-RET</kbd> inserts a new `match goal` rule (`| [ H: _ |- _ ] => _`).
+* <kbd>C-c C-a C-x</kbd> extracts the current goal into a separate lemma.
+* <kbd>C-down-mouse-1</kbd> (i.e. <kbd>C-click</kbd>) shows an inline quick help box for the identifier under point. The box disappears when the mouse is released. Pressing the <kbd>&lt;menu></kbd> key or <kbd>M-F12</kdb> also works.
+* <kbd>M-.</kbd> jumps to the source of the identifier at point, when available.
+* <kbd>C-c C-p</kbd> opens the documentation of the identifier at point (for theorems, and definitions; for tactics, use <kbd>C-h</kbd> during completion).
+* <kbd>C-c C-,</kbd> opens an outline of the code in a separate buffer (using `occur`).
+* <kbd>C-c C-/</kbd> folds the current code block, or all blocs in the file if repeated.
+* <kbd>C-c C-\\</kbd> unfolds the current code block, or all blocs in the file if repeated.
+* <kbd>C-c C-&</kbd> looks up (grep) the current word in files in the current directory subtree.
+* <kbd>C-c C-a C-e</kbd> tries to match the last output to a documented error message, and displays the relevant section of the manual if it finds one.
+* <kbd>C-c C-a C-d</kbd> parses the last unification error, and shows a diff of the two types that can't unify. If there is no such error, <kbd>C-c C-a C-d</kbd> shows a diff comparing the last goal to the previous one.
+
+## Tips
+
+* Most completion engines support fuzzy matching: you can type `Require Import C.N..Ab.ZPa` and press <kbd>RET</kbd> to insert `Coq.Numbers.Integer.Abstract.ZParity`, and typing `setrewin` is enough to insert <code>setoid_rewrite <i>term</i> in <i>ident</i></code>. You can (and must) omit spaces: `SLD` will insert `Set Ltac Debug` (of course `SetLtDeb` will also work), and `ULD` will insert `Unset Ltac Debug`.
+* Using <kbd>M-S-RET</kbd> to insert new cases in a `match goal` saves a lot of time (and finger contortions). For the match itself, use `mgw` (for `match goal with`).
+* The point-and-click feature (quick help) also works in non-graphic mode, if you enable `xterm-mouse-mode`.
+* `company-coq` improves on some of Proof General's features. Try <kbd>C-c C-a RET nat RET</kbd>.
+* Use `a__b` to display `a`<sub>`b`</sub>.
+
+`company-coq` is implemented as a collection of small modules implementing independent features; check out `M-x customize-variable RET company-coq-disabled-features RET` and `M-x customize-group RET company-coq RET` for more info!
+
 ## Troubleshooting
 
 ### Empty squares in place of math operators, or incorrect line spacing
@@ -178,7 +176,7 @@ Using a variable-width font for symbols will break indentation. See [this other 
 
 ```elisp
 (dolist (ft (fontset-list))
-  (set-fontset-font ft 'unicode (font-spec :name "YOUR-USUAL-FONT"))
+  (set-fontset-font ft 'unicode (font-spec :name "DejaVu Sans Mono"))
   (set-fontset-font ft 'unicode (font-spec :name "Symbola monospacified for DejaVu Sans Mono") nil 'append))
 ```
 
