@@ -222,7 +222,9 @@ It isn't available in old versions of PG."
                               "match goal with\n$0\nend"
                               "lazymatch goal with\n$0\nend")
   "Custom snippets.
-Feel free to share your snippets on company-coq's GitHub!")
+Feel free to share your snippets on company-coq's GitHub!"
+  :group 'company-coq
+  :type '(repeat string))
 
 (defcustom company-coq-dynamic-autocompletion nil
   "Get suggestions by querying coq about defined identifiers.
@@ -278,7 +280,8 @@ The contents of the buffer are not changed."
 
 (defcustom company-coq-snippet-default-hole-contents "_"
   "String to use to indicate holes in inserted snippets."
-  :group 'company-coq)
+  :group 'company-coq
+  :type '(string))
 
 (defvar company-coq-enabled-backends nil
   "List of currently enabled company-coq completion backends.
@@ -390,7 +393,9 @@ The result matches any symbol in HEADERS, followed by BODY."
   "Regexp used to find section endings.")
 
 (defcustom company-coq-search-blacklist '("Raw" "Proofs") ;; "_refl" "_sym" "_trans" "_ind" "_rec" "_rect"
-  "List of strings to add to Coq's search blacklist when loading completion candidates.")
+  "List of strings to add to Coq's search blacklist when loading completion candidates."
+  :group 'company-coq
+  :type '(repeat string))
 
 (defconst company-coq-search-blacklist-str (mapconcat (lambda (str) (concat "\"" str "\""))
                                            company-coq-search-blacklist " "))
@@ -541,7 +546,8 @@ the file.  Most useful as a file- or dir-local variable."
   "Function called before offering completions, or nil.
 If nil, offer candidates everywhere.  If set to
 `company-coq-not-in-comment-p', offer completions in source code,
-but not in comments.  This function should change the point.")
+but not in comments.  This function should not change the point."
+  :group 'company-coq)
 
 (defun company-coq-not-in-comment-p ()
   "Return nil if point is inside a comment.
@@ -3981,7 +3987,9 @@ added to `company-coq-custom-snippets'."
 Set to a space by default on graphical displays; the line is
 emulated using a :strike-through property (set as part of
 `company-coq-goal-line-face').  That doesn't work on TTYs, so we
-use a box character there.  Suggested values: `═' or `─'.")
+use a box character there.  Suggested values: `═' or `─'."
+  :group 'company-coq
+  :type '(character))
 
 (defface company-coq-goal-line-face
   '((((type tty)) ())
