@@ -542,11 +542,14 @@ the file.  Most useful as a file- or dir-local variable."
   :type 'alist
   :safe 'listp)
 
-(defcustom company-coq-completion-predicate nil
-  "Function called before offering completions, or nil.
-If nil, offer candidates everywhere.  If set to
+(defcustom company-coq-completion-predicate #'company-coq-not-in-comment-text-p
+  "Function called before offering company-coq completions, or nil.
+If nil, offer company-coq candidates everywhere.  If set to
 `company-coq-not-in-comment-p', offer completions in source code,
-but not in comments.  This function should not change the point."
+but never in comments.  If set to
+`company-coq-not-in-comment-text-p', offer completion in source
+code, in code blocks in comments […], but not in comment text.
+This function should not change the point."
   :group 'company-coq)
 
 (defun company-coq-not-in-comment-p ()
@@ -554,8 +557,16 @@ but not in comments.  This function should not change the point."
 Useful as a value for `company-coq-completion-predicate'"
   (not (coq-looking-at-comment)))
 
-(defconst company-coq-numeric-hypothesis-regexp "\\(?:^  \\|, \\)[A-Za-zΑ-Ωα-ω]\\([0-9]+\\)\\b"
-  "Regexp used to detect hypotheses of the form Hyp25 and change them into Hyp_25.")
+(defun company-coq-not-in-comment-text-p ()
+  "Return nil if point is inside a comment, but not a code block.
+That is, returns non nil in “(* abc| ”, but not in “(* abc [p| ”.
+Useful as a value for `company-coq-completion-predicate'"
+  (let* ((pp (syntax-ppss))
+         (comment-beginning (nth 8 pp)))
+    (or (not comment-beginning)
+        (save-excursion
+          (skip-chars-backward "^[]" (max comment-beginning (point-at-bol)))
+          (eq (char-before (point)) ?\[)))))
 
 (defconst company-coq-lemma-introduction-forms
   '("repeat match goal with H:_ |- _ => clear H end"

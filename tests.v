@@ -70,15 +70,19 @@ Goal False.
    (* Try (company-coq--parse-context-and-goals proof-shell-last-goals-output) here *)
 Abort.
 
+(* Try completion here:
+   And in these brackets: []
+   And outside: *)
+
 Definition more_bullets: (True \/ (True \/ (True \/ (True \/ True)))) \/ (True \/ True) -> True.
 Proof.
   intros.                       (* 1- *)
   destruct H.                   (* 2- *)
-  - destruct H.                   (* 3- *)
-    + apply I.                      (* 2- *)
-    + destruct H.                   (* 2- *)
-      * apply I.                      (* 2- *)
-      * destruct H.                   (*  *)
+  - destruct H.                 (* 3- *)
+    + apply I.                  (* 2- *)
+    + destruct H.               (* 2- *)
+      * apply I.                (* 2- *)
+      * destruct H.
         apply I.
         apply I.
   - destruct H.
