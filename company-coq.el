@@ -4212,7 +4212,7 @@ missing end marker (it uses `forward-sexp' to find the end of
 each block).")
 
 (defface company-coq-features/code-folding-bullet-face
-  '((t (:weight bold :inherit link)))
+  '((t (:inherit link)))
   "Face used to change numbers to subscripts in hypothese names."
   :group 'company-coq-faces)
 
