@@ -3932,9 +3932,9 @@ for display (the buffer contents are not modified, though).
   "Display spec for subscripts.")
 
 (defconst company-coq-features/smart-subscripts--spec
-  `((,(concat "\\_<" company-coq-symbol-regexp-no-numbers "\\(_*[0-9]+\\)\\_>")
+  `((,(concat "\\_<" company-coq-symbol-regexp-no-numbers "\\(_*[0-9]+\\)'*\\_>")
      (1 company-coq-features/smart-subscripts--display-spec append))
-    (,(concat "\\_<" company-coq-symbol-regexp "\\(__\\)\\([a-zA-Z][0-9a-zA-Z]*\\)\\_>")
+    (,(concat "\\_<" company-coq-symbol-regexp "\\(__\\)\\([a-zA-Z][0-9a-zA-Z]*\\)'*\\_>")
      (1 '(face nil invisible 'company-coq-features/smart-subscripts) prepend)
      (2 company-coq-features/smart-subscripts--display-spec append)))
   "Font-lock spec for subscripts in proof script.")
