@@ -148,13 +148,16 @@ class TextPattern:
     @staticmethod
     def with_option_variants(variants, stripped_already_known):
         for variant in variants:
-            # NOTE: We don't generate variants for commands with holes
+            # NOTES:
+            # * We don't generate variants for commands with holes
+            # * '"' is a special case for [Set Loose Hint Behaviour "Lax"]
             if (TextPattern.OPTION_RE.match(variant) and not TextPattern.ID_RE.search(variant)) and not '"' in variant:
-                # '"' is a special case for [Set Loose Hint Behaviour "Lax"]
-                for rid, repl in enumerate(("Set ", "Unset ", "Test ")):
+                # We always return the original variant
+                yield variant
+                # Plus option variants, if not mentionned elsewhere in the manual
+                for repl in ("Set ", "Unset ", "Test "):
                     new_variant = TextPattern.OPTION_RE.sub(repl, variant)
-                    # rid == 0: always keep at least one variant
-                    if rid == 0 or TextPattern.strip_pattern(new_variant) not in stripped_already_known:
+                    if (new_variant != variant and TextPattern.strip_pattern(new_variant) not in stripped_already_known):
                         yield new_variant
             else:
                 yield variant
