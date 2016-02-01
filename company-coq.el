@@ -3944,16 +3944,29 @@ for display (the buffer contents are not modified, though).
   "Face used to display subscripts."
   :group 'company-coq-faces)
 
-(defconst company-coq-features/smart-subscripts--display-spec
-  '(face company-coq-features/smart-subscripts-face display (raise -0.25))
-  "Display spec for subscripts.")
+(defun company-coq-features/smart-subscripts--compute-spec (spec)
+  "Compute font-locking spec for subscript at point, using SPEC.
+Returns an empty spec in comments (but not in code blocks in comments."
+  `(face ,@(if (company-coq-not-in-comment-text-p)
+               spec
+             '(nil))))
+
+(defun company-coq-features/smart-subscripts--subscript-spec ()
+  "Compute font-locking spec for subscript at point."
+  (company-coq-features/smart-subscripts--compute-spec
+   '(company-coq-features/smart-subscripts-face display (raise -0.25))))
+
+(defun company-coq-features/smart-subscripts--separator-spec ()
+  "Compute font-locking spec for subscript separator at point."
+  (company-coq-features/smart-subscripts--compute-spec
+   '(nil invisible 'company-coq-features/smart-subscripts)))
 
 (defconst company-coq-features/smart-subscripts--spec
   `((,(concat "\\_<" company-coq-symbol-regexp-no-numbers "\\(_*[0-9]+\\)'*\\_>")
-     (1 company-coq-features/smart-subscripts--display-spec append))
+     (1 (company-coq-features/smart-subscripts--subscript-spec) append))
     (,(concat "\\_<" company-coq-symbol-regexp "\\(__\\)\\([a-zA-Z][0-9a-zA-Z]*\\)'*\\_>")
-     (1 '(face nil invisible 'company-coq-features/smart-subscripts) prepend)
-     (2 company-coq-features/smart-subscripts--display-spec append)))
+     (1 (company-coq-features/smart-subscripts--separator-spec) prepend)
+     (2 (company-coq-features/smart-subscripts--subscript-spec) append)))
   "Font-lock spec for subscripts in proof script.")
 
 (defun company-coq-features/smart-subscripts--enable ()
