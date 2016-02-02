@@ -4000,9 +4000,10 @@ comments).  Also returns an empty spec on non-graphic displays."
   "Enable subscript prettification in current buffer."
   (font-lock-add-keywords nil company-coq-features/smart-subscripts--spec 'add)
   (add-to-invisibility-spec 'company-coq-features/smart-subscripts)
+  ;; hideshow and outline use overlays, so won't be confused by this:
   (make-local-variable 'font-lock-extra-managed-props)
   (add-to-list 'font-lock-extra-managed-props 'display)
-  ;; 'invisible is used by code folding, so can't be managed by font-spec
+  (add-to-list 'font-lock-extra-managed-props 'invisible)
   (company-coq-request-refontification))
 
 (defun company-coq-features/smart-subscripts--disable ()
@@ -4090,6 +4091,7 @@ Inspired by the excellent ‘page-break-lines-mode’."
   (add-hook 'proof-shell-handle-delayed-output-hook #'company-coq-features/pg-improvements--update-display-table-if-new-goal t)
   (company-coq-features/pg-improvements--update-display-table)
   (font-lock-add-keywords nil company-coq-goal-separator-spec t)
+  (add-to-list (make-local-variable 'font-lock-extra-managed-props) 'display)
   (setq-local show-trailing-whitespace nil)
   (company-coq-request-refontification))
 
@@ -4100,11 +4102,6 @@ Inspired by the excellent ‘page-break-lines-mode’."
   (remove-hook 'proof-shell-handle-delayed-output-hook #'company-coq-features/pg-improvements--update-display-table-if-new-goal)
   (company-coq-features/pg-improvements--clear-display-table)
   (font-lock-remove-keywords nil company-coq-goal-separator-spec)
-  (let ((inhibit-read-only t))
-    ;; Manually remove goal line display spec.  Using font-lock-extra-managed-props
-    ;; would break LaTeX notations, since images would be removed on each
-    ;; refontification.
-    (remove-list-of-text-properties (point-min) (point-max) '(display)))
   (kill-local-variable 'show-trailing-whitespace)
   (company-coq-request-refontification))
 

@@ -16,13 +16,14 @@ Search is case-insensitive."
       (setq color (apply #'color-rgb-to-hex (color-name-to-rgb color))))
     (upcase (substring color 1))))
 
-(defun company-coq-features/latex--img-plist (fname alt)
-  "Construct a text attributes plist to display image FNAME.
+(defun company-coq-features/latex--img-plist (ov fname alt)
+  "Add attributes to OV to display image FNAME.
 Uses ALT as help-echo."
-  (list 'help-echo alt
-        'display `(image :type imagemagick
-                         :file ,(expand-file-name fname default-directory)
-                         :ascent center)))
+  (overlay-put ov 'company-coq-latex t)
+  (overlay-put ov 'help-echo alt)
+  (overlay-put ov 'display `(image :type imagemagick
+                                   :file ,(expand-file-name fname default-directory)
+                                   :ascent center)))
 
 (defconst company-coq-features/latex--template-file-name "coq.template.tex"
   "Name of template file for LaTeX rendering.
@@ -55,6 +56,13 @@ Does not remove the image."
   (dolist (ext '("dvi" "log" "aux" "tex"))
     (ignore-errors (delete-file (company-coq-features/latex--make-file-name prefix ext)))))
 
+(defun company-coq-features/latex--clear-overlays ()
+  "Remove overlays created by cc-LaTeX."
+  (company-coq-with-current-buffer-maybe proof-goals-buffer
+    (dolist (ov (overlays-in (point-min) (point-max)))
+      (when (overlay-get ov 'company-coq-latex)
+        (delete-overlay ov)))))
+
 (defvar company-coq-features/latex--disk-cache-size 100
   "Max number of goal pictures to keep in disk cache.")
 
@@ -82,9 +90,7 @@ is non-nil."
   (interactive)
   (clear-image-cache)
   (company-coq-features/latex--evict-cache 0)
-  (company-coq-with-current-buffer-maybe proof-goals-buffer
-    (let ((inhibit-read-only t))
-      (remove-list-of-text-properties (point-min) (point-max) '(display))))
+  (company-coq-features/latex--clear-overlays)
   (unless no-redraw (company-coq-features/latex--render-goal)))
 
 (defconst company-coq-features/latex--log-buffer "*LaTeX rendering log*"
@@ -173,18 +179,18 @@ Uses the LaTeX template at ‘company-coq-features/latex--template-path’."
           (progn (company-coq-features/latex--prepare-tex-file latex tex-name width-in)
                  (company-coq-features/latex--render-tex-file tex-name dvi-name png-name dpi))
         (company-coq-features/latex--cleanup-temporaries (expand-file-name prefix temporary-file-directory))))
-    (let ((inhibit-read-only t))
-      (add-text-properties beg end (company-coq-features/latex--img-plist png-name str)))))
+    (company-coq-features/latex--img-plist (make-overlay beg end nil t nil) png-name str)))
 
 (defun company-coq-features/latex--render-goal ()
   "Parse and LaTeX-render the contents of the goals buffer.
 Does not run when output is silenced."
-  (unless company-coq-features/latex--template-path
-    (setq-local company-coq-features/latex--template-path
-                (company-coq-features/latex--find-template)))
   (unless (or (memq 'no-goals-display proof-shell-delayed-output-flags)
               (null proof-script-buffer)
               (not (display-graphic-p)))
+    (unless company-coq-features/latex--template-path
+      (with-current-buffer proof-script-buffer
+        (setq-local company-coq-features/latex--template-path
+                    (company-coq-features/latex--find-template))))
     (condition-case-unless-debug err
         (company-coq-with-current-buffer-maybe proof-goals-buffer
           (company-coq-features/latex--evict-cache)
@@ -195,8 +201,7 @@ Does not run when output is silenced."
                 (length (company-coq-hypothesis-type hyp)))))
           (pcase-dolist (`(,type . ,beg) (company-coq--collect-subgoals))
             (company-coq-features/latex--render-string beg (+ beg (length type)))))
-      (error (company-coq-features/latex--evict-cache)
-             (remove-list-of-text-properties (point-min) (point-max) 'display)
+      (error (company-coq-features/latex-evict-cache t)
              (message "Error while rendering goals buffers: %S" (error-message-string err))))))
 
 (define-minor-mode company-coq-LaTeX

@@ -200,8 +200,8 @@ Tactic Notation \"myR\" constr(from)
   \"by\" tactic(tac) := idtac.
 <|>
 myR")
-  (put-text-property 54 60 'invisible 'outline)
-  (put-text-property 119 125 'invisible 'outline)
+  (overlay-put (make-overlay 54 60) 'invisible 'outline)
+  (overlay-put (make-overlay 119 125) 'invisible 'outline)
   (my/send-keys "C-c <C-return>")
   (my/send-keys "C-x 1 M-< M-> <C-return>")
   (set-window-start nil 1))
