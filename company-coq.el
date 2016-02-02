@@ -3164,7 +3164,7 @@ With prefix ARG, insert an inductive constructor with arguments."
           (push hyp hyps))))
     (list lemma-name hyps)))
 
-(defcustom company-coq-lemma-from-goal-adds-intros nil
+(defcustom company-coq-lemma-from-goal-adds-intros t
   "If non-nil, add an ‘intros’ line to extracted lemmas.
 This extra line ensures that the new proof inherits hypothesis
 names from previous proof."
