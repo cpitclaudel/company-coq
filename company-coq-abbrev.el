@@ -670,7 +670,7 @@
     '("Local Close Scope @{scope}." . ("bj" . 920))
     '("Local Coercion @{ident} := @{term}." . ("dj" . 983))
     '("Local Coercion @{qualid} : @{class} >-> @{class}." . ("dj" . 980))
-    '("Local Declare ML Module \"@{string}\" .. \"@{string}\"." . ("4g" . 247))
+    '("Local Declare ML Module \"@{string+}\"." . ("4g" . 247))
     '("Local Definition @{ident} := @{term}." . ("11" . 15))
     '("Local Hint @{hint_definition}." . ("8e" . 740))
     '("Local Hint @{hint_definition} : @{ident+}." . ("8e" . 739))
