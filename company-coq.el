@@ -30,6 +30,10 @@
 ;; use M-x company-coq-tutorial to open the tutorial.
 
 ;;; History:
+;;
+;; 2016-02-02 — Lemma extraction now preserves names by inserting intros.
+;; 2016-01-20 — First stable release (~600 commits)
+;; 2015-02-15 — First commit
 
 ;;; Code:
 ;;
