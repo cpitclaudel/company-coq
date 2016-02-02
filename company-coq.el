@@ -3369,9 +3369,9 @@ Useful for debugging tactics in versions of Coq prior to 8.5: use
   "Refontify the current buffer."
   (with-no-warnings
     (if company-coq-emacs-below-25-p
+        ;; Actually calls jit-lock-refontify, which doesn't refontify immediately
         (font-lock-fontify-buffer)
-      (font-lock-flush)
-      (font-lock-ensure))))
+      (font-lock-flush))))
 
 (defconst company-coq--font-lock-vars '(font-lock-keywords
                              font-lock-keywords-only
@@ -3754,6 +3754,7 @@ Defining a feature adds it to `company-coq-available-features'."
   "Request a refontification of the buffer."
   (if company-coq--refontification-delayed
       (setq-local company-coq--refontification-requested t)
+    ;; Toggling a single feature does not delay refontification
     (company-coq-fontify-buffer)))
 
 (defun company-coq--perform-requested-refontification ()
