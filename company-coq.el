@@ -3192,8 +3192,9 @@ of these hypotheses are also added to the lemma."
                  (full-cmd (mapconcat 'identity (nconc gen-cmds company-coq-lemma-introduction-forms) ";")))
             (-if-let* ((lemma (cadr (company-coq-run-then-collect-hypotheses-and-goal full-cmd)))
                        (intros (-if-let* ((enabled company-coq-lemma-from-goal-adds-intros)
-                                          (vars (company-coq-ask-prover-swallow-errors "Show Intros.")))
-                                   (format "intros %s.\n  " (company-coq-trim vars)) "")))
+                                          (vars (company-coq-trim (company-coq-ask-prover-swallow-errors "Show Intros.")))
+                                          (has-intros (> (length vars) 0)))
+                                   (format "intros %s.\n  " vars) "")))
                 (company-coq-insert-indented (format "Lemma %s:\n%s.\nProof.\n  %s"
                                           lemma-name lemma intros))
               (error "Lemma extraction failed")))
