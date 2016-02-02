@@ -284,8 +284,9 @@ Section TestSectionName.
 
     Lemma t: True -> 1 + 1 = 2.
     Proof.
-      intros.
-      (* Try extract-lemma-from-goal C-c C-a C-x here *)
+      intros ** H0.
+      (* Try extract-lemma-from-goal C-c C-a C-x here.
+         Are section variables re-introduced? What about [H0]? *)
     Abort.
   End OtherSection. (* These names should autocomplete *)
 End TestSectionName.

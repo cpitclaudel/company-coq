@@ -568,14 +568,6 @@ Useful as a value for `company-coq-completion-predicate'"
           (skip-chars-backward "^[]" (max comment-beginning (point-at-bol)))
           (eq (char-before (point)) ?\[)))))
 
-(defconst company-coq-lemma-introduction-forms
-  '("repeat match goal with H:_ |- _ => clear H end"
-    "repeat match goal with H:_ |- _ => generalize dependent H; try (generalize dependent H; fail 1) end")
-  "Ltac script to produce a lemma statement.
-Assumes that all hypothees of interest have already been moved to the goal.
-The try (…) part ensures that section variables don't cause an
-infinite loop (they are not cleared by [generalize dependent]).")
-
 (defconst company-coq-unification-error-header
   "\\(?:The command has indeed failed with message:\\|Error:\\)"
   "Header of unification errors.")
@@ -3179,6 +3171,35 @@ names from previous proof."
   :group 'company-coq
   :type 'boolean)
 
+(defun company-coq--new-intros (old-intros)
+  "Return an intro statement for newly added parts of the goal.
+OLD-INTROS is the result of Show Intros before new parts were
+added."
+  (let ((new-intros (company-coq-ask-prover-swallow-errors "Show Intros.")))
+    (if (and old-intros new-intros)
+        (let* ((old-split (split-string old-intros))
+               (new-split (split-string new-intros))
+               (nb-added (max 0 (- (length new-split) (length old-split)))))
+          (-if-let* ((kept (-take nb-added new-split)))
+              (format "intros %s.\n" (mapconcat 'identity kept " "))
+            ""))
+      "")))
+
+(defun company-coq-lemma-from-goal--clear-unprotected-cmd (protected)
+  "Generate a command to clear unprotected hypotheses.
+Protected hypotheses are those that the goal and the hypotheses
+in PROTECTED depend on."
+  (let* ((tracker (mapconcat (lambda (hyp)
+                               (format "let dummy := (%s) in" hyp))
+                             protected " ")))
+    (format "repeat match goal with H:_ |- _ => clear dependent H; %s idtac end" tracker)))
+
+(defconst company-coq-lemma-from-goal--generalization-forms
+  "repeat match goal with H:_ |- _ => generalize dependent H; try (generalize dependent H; fail 1) end"
+  "Ltac script to produce a lemma statement.
+The try (…) part ensures that section variables don't cause an
+infinite loop (they are not cleared by [generalize dependent]).")
+
 (defun company-coq-lemma-from-goal (lemma-name hyps)
   "Create a new lemma LEMMA-NAME and insert it.
 Interactively, prompt the user for LEMMA-NAME, as well as
@@ -3188,16 +3209,13 @@ of these hypotheses are also added to the lemma."
   (proof-shell-ready-prover)
   (-if-let* ((statenum (car (coq-last-prompt-info-safe))))
       (unwind-protect
-          (let* ((gen-cmds (mapcar (lambda (hyp) (concat "generalize dependent " hyp)) hyps))
-                 (full-cmd (mapconcat 'identity (nconc gen-cmds company-coq-lemma-introduction-forms) ";")))
-            (-if-let* ((lemma (cadr (company-coq-run-then-collect-hypotheses-and-goal full-cmd)))
-                       (intros (-if-let* ((enabled company-coq-lemma-from-goal-adds-intros)
-                                          (vars (company-coq-trim (company-coq-ask-prover-swallow-errors "Show Intros.")))
-                                          (has-intros (> (length vars) 0)))
-                                   (format "intros %s.\n  " vars) "")))
-                (company-coq-insert-indented (format "Lemma %s:\n%s.\nProof.\n  %s"
-                                          lemma-name lemma intros))
-              (error "Lemma extraction failed")))
+          (-if-let* ((intros-before (company-coq-ask-prover-swallow-errors "Show Intros."))
+                     (clear-cmd (company-coq-lemma-from-goal--clear-unprotected-cmd hyps))
+                     (full-cmd (concat clear-cmd "; " company-coq-lemma-from-goal--generalization-forms))
+                     (lemma (cadr (company-coq-run-then-collect-hypotheses-and-goal full-cmd)))
+                     (intros (if company-coq-lemma-from-goal-adds-intros (company-coq--new-intros intros-before) "")))
+              (company-coq-insert-indented (format "Lemma %s:\n%s.\nProof.\n%s" lemma-name lemma intros))
+            (error "Lemma extraction failed"))
         (company-coq-ask-prover (format "BackTo %d." statenum)))
     (user-error "Please start a proof before extracting a lemma")))
 
