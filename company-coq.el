@@ -546,12 +546,12 @@ the file.  Most useful as a file- or dir-local variable."
   :type 'alist
   :safe 'listp)
 
-(defcustom company-coq-completion-predicate #'company-coq-not-in-comment-text-p
+(defcustom company-coq-completion-predicate #'company-coq-not-in-comment-text-or-string-p
   "Function called before offering company-coq completions, or nil.
 If nil, offer company-coq candidates everywhere.  If set to
 `company-coq-not-in-comment-p', offer completions in source code,
 but never in comments.  If set to
-`company-coq-not-in-comment-text-p', offer completion in source
+`company-coq-not-in-comment-text-or-string-p', offer completion in source
 code, in code blocks in comments […], but not in comment text.
 This function should not change the point."
   :group 'company-coq)
@@ -561,16 +561,18 @@ This function should not change the point."
 Useful as a value for `company-coq-completion-predicate'"
   (not (coq-looking-at-comment)))
 
-(defun company-coq-not-in-comment-text-p ()
-  "Return nil if point is inside a comment, but not a code block.
-That is, returns non nil in “(* abc| ”, but not in “(* abc [p| ”.
+(defun company-coq-not-in-comment-text-or-string-p ()
+  "Return nil if point is inside a comment or string, but not a code block.
+That is, returns non nil in “(* abc| ”, but nil in “(* abc [p| ”.
 Useful as a value for `company-coq-completion-predicate'"
   (let* ((pp (syntax-ppss))
-         (comment-beginning (nth 8 pp)))
-    (or (not comment-beginning)
-        (save-excursion
-          (skip-chars-backward "^[]" (max comment-beginning (point-at-bol)))
-          (eq (char-before (point)) ?\[)))))
+         (in-comment-p (nth 4 pp))
+         (comment-or-str-beg (nth 8 pp)))
+    (or (not comment-or-str-beg)
+        (when in-comment-p
+          (save-excursion
+            (skip-chars-backward "^[]" (max comment-or-str-beg (point-at-bol)))
+            (eq (char-before (point)) ?\[))))))
 
 (defconst company-coq-unification-error-header
   "\\(?:The command has indeed failed with message:\\|Error:\\)"
@@ -3969,8 +3971,10 @@ for display (the buffer contents are not modified, though).
 
 (defun company-coq-features/smart-subscripts--compute-spec (spec)
   "Compute font-locking spec for subscript at point, using SPEC.
-Returns an empty spec in comments (but not in code blocks in comments."
-  `(face ,@(if (company-coq-not-in-comment-text-p)
+Returns an empty spec in comments (but not in code blocks in
+comments).  Also returns an empty spec on non-graphic displays."
+  `(face ,@(if (and (company-coq-not-in-comment-text-or-string-p)
+                    (display-graphic-p))
                spec
              '(nil))))
 

@@ -56,7 +56,7 @@ Proof.
       Show Script.
 Qed.
 
-Locate "xx__abc".
+Locate "xx__abc".               (* Should not have a subscript *)
 
 Inductive LongTypeName := II.
 Goal False.
