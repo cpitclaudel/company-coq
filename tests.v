@@ -379,7 +379,7 @@ Proof.
   (* (company-coq-diff-unification-error) *)
   Unset Printing All.
 
-  (* Position in the goals buffer shouldn't change when thorem names are autocompleted. *)
+  (* Position in the goals buffer shouldn't change when theorem names are autocompleted. *)
 Admitted.
 
 (** Error messages **)

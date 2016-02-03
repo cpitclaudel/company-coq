@@ -76,7 +76,7 @@ display of the goal."
 (defun company-coq-features/goal-diffs-hyperlink-action (_btn)
   "Handle a click on the “full diff” button."
   (company-coq-diff-goals)
-  (message "%s" (substitute-command-keys "Press q to close this diff. Next time, you can use \\<company-coq-map>\\[company-coq-diff-dwim] to open it faster.")))
+  (company-coq--diff-dwim-help-message))
 
 (defun company-coq-features/goal-diffs--add-hyperlink ()
   "Add hyperlink to full goal diff after (ID ...)."

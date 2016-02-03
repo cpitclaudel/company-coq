@@ -76,6 +76,7 @@
 (require 'smie)         ;; Move around the source code
 (require 'yasnippet)    ;; Templates
 (require 'pulse)        ;; Pulsing after jumping to definitions
+(require 'button)       ;; Links in goals and error messages
 (unless (require 'alert nil t) ;; Notifications
   (require 'notifications nil t))
 
@@ -575,8 +576,15 @@ Useful as a value for `company-coq-completion-predicate'"
             (eq (char-before (point)) ?\[))))))
 
 (defconst company-coq-unification-error-header
-  "\\(?:The command has indeed failed with message:\\|Error:\\)"
+  "\\(?:The command has indeed failed with message\\|Error\\):"
   "Header of unification errors.")
+
+(defconst company-coq-unification-error-quick-regexp
+  (regexp-opt '("Refiner was given an argument"
+                "Unable to unify"
+                "Impossible to unify"
+                "it is expected to have type"))
+  "Fast regexp to check if current response is a unification error.")
 
 (defconst company-coq-unification-error-messages
   '("Refiner was given an argument \".*\" of type \"\\(?1:.*\\)\" instead of \"\\(?2:.*\\)\"."
@@ -2567,10 +2575,11 @@ differences."
       (save-excursion
         (goto-char (point-min))
         (if (re-search-forward company-coq-unification-error-message nil t)
-            (company-coq-diff-strings (match-string-no-properties 1)
-                           (match-string-no-properties 2)
-                           " " "unification" (or context 10))
-          (user-error "Buffer *response* does not match the format of a unification error message"))))))
+            (let ((pre (match-string-no-properties 1))
+                  (post (match-string-no-properties 2)))
+              (with-selected-window (or (company-coq-get-response-window) (selected-window))
+                (company-coq-diff-strings pre post " " "unification" (or context 10))))
+          (user-error "No unification error message found"))))))
 
 (defun company-coq-diff-goals (&optional context)
   "Compare two terms of a unification error, highlighting differences.
@@ -2586,12 +2595,12 @@ differences."
 (defun company-coq-diff-dwim ()
   "Compare unification error messages (if any) or goals."
   (interactive)
-  (unless (company-coq--close-diff-window "goals")
+  (unless (or (company-coq--close-diff-window "goals")
+              (company-coq--close-diff-window "unification"))
     (condition-case nil
         (company-coq-diff-unification-error)
-      (user-error
-       (company-coq-diff-goals)
-       (message "%s" (substitute-command-keys "Use \\[company-coq-diff-dwim] to hide the diff."))))))
+      (user-error (company-coq-diff-goals)))
+    (message "%s" (substitute-command-keys "Use \\[company-coq-diff-dwim] to hide the diff."))))
 
 (defun company-coq-cant-fold-unfold ()
   "Return nil iff folding is possible at current point."
@@ -4636,6 +4645,10 @@ Spins the modeline icon when Coq is busy."
 (company-coq-define-feature cross-ref (arg)
   "Cross references and browsing to definition.
 Lets you jump to the definition of a symbol by pressing M-. on it.")
+
+(defun company-coq--diff-dwim-help-message ()
+  "Suggest to use a keybinding instead of a link to open a diff."
+  (message "%s" (substitute-command-keys "Press q to close this diff. Next time, you can use \\<company-coq-map>\\[company-coq-diff-dwim] to open it faster.")))
 
 (company-coq-define-feature company (arg)
   "Context-sensitive completion.
