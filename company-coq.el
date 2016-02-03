@@ -4650,6 +4650,47 @@ Lets you jump to the definition of a symbol by pressing M-. on it.")
   "Suggest to use a keybinding instead of a link to open a diff."
   (message "%s" (substitute-command-keys "Press q to close this diff. Next time, you can use \\<company-coq-map>\\[company-coq-diff-dwim] to open it faster.")))
 
+(defun company-coq-features/error-diffs--hyperlink-action (_btn)
+  "Handle a click on the “diff” button for errors."
+  (company-coq-diff-unification-error)
+  (company-coq--diff-dwim-help-message))
+
+(defun company-coq--remove-overlays (buffer prop)
+  "Delete overlays in BUFFER with PROP."
+  (company-coq-with-current-buffer-maybe buffer
+    (dolist (ov (overlays-in (point-min) (point-max)))
+      (when (overlay-get ov prop)
+        (delete-overlay ov)))))
+
+(defun company-coq-features/error-diffs--make-link-string ()
+  "Create link to diff of unification error."
+  (with-temp-buffer
+    (insert " (diff)")
+    (make-text-button (+ 2 (point-min)) (- (point-max) 1)
+                      'follow-link t
+                      'action #'company-coq-features/error-diffs--hyperlink-action
+                      'help-echo "Compare the two terms in this error message.")
+    (buffer-string)))
+
+(defun company-coq-features/error-diffs--add-link ()
+  "Add a link to current response if it's a unification error."
+  (company-coq--remove-overlays proof-response-buffer 'company-coq-response-diff)
+  (company-coq-with-current-buffer-maybe proof-response-buffer
+    (save-excursion
+      (goto-char (point-min))
+      (when (save-excursion (re-search-forward company-coq-unification-error-quick-regexp nil t))
+        (when (re-search-forward company-coq-unification-error-header nil t)
+          (let ((ov (make-overlay (match-beginning 0) (match-end 0))))
+            (overlay-put ov 'company-coq-response-diff t)
+            (overlay-put ov 'after-string (company-coq-features/error-diffs--make-link-string))))))))
+
+(company-coq-define-feature error-diffs (arg)
+  "Diffs of unification errors.
+Add a link to unification errors to show a diff."
+  (pcase arg
+    (`on (company-coq--listen-for-output #'company-coq-features/error-diffs--add-link))
+    (`off (company-coq--unlisten-for-output #'company-coq-features/error-diffs--add-link))))
+
 (company-coq-define-feature company (arg)
   "Context-sensitive completion.
 Configures `company-mode' for use with Coq."
