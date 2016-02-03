@@ -4665,26 +4665,35 @@ Lets you jump to the definition of a symbol by pressing M-. on it.")
       (when (overlay-get ov prop)
         (delete-overlay ov)))))
 
+(defun company-coq--make-link-string (pre link post action help-echo)
+  "Create a link.
+Concatenate PRE, LINK, and POST to get the link's text, only
+applying the link to LINK.  ACTION and HELP-ECHO are passed to the button
+library."
+  (with-temp-buffer
+    (insert pre)
+    (insert-text-button link
+                        'follow-link t
+                        'action action
+                        'help-echo help-echo)
+    (insert post)
+    (buffer-string)))
+
 (defun company-coq-features/error-diffs--make-link-string ()
   "Create link to diff of unification error."
-  (with-temp-buffer
-    (insert " (diff)")
-    (make-text-button (+ 2 (point-min)) (- (point-max) 1)
-                      'follow-link t
-                      'action #'company-coq-features/error-diffs--hyperlink-action
-                      'help-echo "Compare the two terms in this error message.")
-    (buffer-string)))
+  (company-coq--make-link-string " (" "diff" ")" #'company-coq-features/error-diffs--hyperlink-action
+                      "Compare the terms mentioned by this error message."))
 
 (defun company-coq-features/error-diffs--add-link ()
   "Add a link to current response if it's a unification error."
-  (company-coq--remove-overlays proof-response-buffer 'company-coq-response-diff)
+  (company-coq--remove-overlays proof-response-buffer 'company-coq-features/error-diffs)
   (company-coq-with-current-buffer-maybe proof-response-buffer
     (save-excursion
       (goto-char (point-min))
       (when (save-excursion (re-search-forward company-coq-unification-error-quick-regexp nil t))
         (when (re-search-forward company-coq-unification-error-header nil t)
           (let ((ov (make-overlay (match-beginning 0) (match-end 0))))
-            (overlay-put ov 'company-coq-response-diff t)
+            (overlay-put ov 'company-coq-features/error-diffs t)
             (overlay-put ov 'after-string (company-coq-features/error-diffs--make-link-string))))))))
 
 (company-coq-define-feature error-diffs (arg)

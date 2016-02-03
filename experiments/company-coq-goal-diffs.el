@@ -60,8 +60,9 @@ display of the goal."
   (let ((names-pos (company-coq-hypothesis-names-position multi-hyp))
         (annot (company-coq-features/goal-diffs--make-annot statuses)))
     (when (> (length annot) 0)
-      (put-text-property (+ names-pos -2) (+ names-pos -2 (length annot))
-                         'display annot))))
+      (let ((ov (make-overlay (+ names-pos -2) (+ names-pos -2 (length annot)))))
+        (overlay-put ov 'company-coq-features/goal-diffs t)
+        (overlay-put ov 'display annot)))))
 
 (defun company-coq-features/goal-diffs--highlight-1 (hyp status)
   "Highlight HYP (if STATUS isn't `unchanged')."
@@ -69,7 +70,7 @@ display of the goal."
     (let* ((start (company-coq-hypothesis-names-position hyp))
            (end (+ start (length (company-coq-hypothesis-names hyp))))
            (ov (make-overlay start end)))
-      (overlay-put ov 'company-coq t)
+      (overlay-put ov 'company-coq-features/goal-diffs t)
       (overlay-put ov 'face 'company-coq-features/goal-diffs-hyp-highlight-face)
       (overlay-put ov 'help-echo (format "This hypothesis was just %s." status)))))
 
@@ -78,31 +79,32 @@ display of the goal."
   (company-coq-diff-goals)
   (company-coq--diff-dwim-help-message))
 
+(defun company-coq-features/goal-diffs--make-link-string ()
+  "Create link to diff of current goal against previous one."
+  (company-coq--make-link-string "; " "diff to previous" ""
+                                 #'company-coq-features/goal-diffs-hyperlink-action
+                                 "Compare this goal to the previous one in a separate diff buffer"))
+
 (defun company-coq-features/goal-diffs--add-hyperlink ()
   "Add hyperlink to full goal diff after (ID ...)."
   (save-excursion
     (goto-char (point-min))
     (when (re-search-forward "(ID \\([0-9]+\\))" nil t)
-      (goto-char (match-end 1))
-      (let ((inhibit-read-only t))
-        (insert "; ")
-        (insert-text-button
-         "diff to previous"
-         'follow-link t
-         'action #'company-coq-features/goal-diffs-hyperlink-action
-         'help-echo "Compare this goal to the previous one in a separate diff buffer")))))
+      (unless (-any-p (lambda (ov) (overlay-get ov 'company-coq-features/goal-diffs))
+                      (overlays-at (match-beginning 1)))
+        (let ((ov (make-overlay (match-beginning 1) (match-end 1))))
+          (overlay-put ov 'company-coq-features/goal-diffs t)
+          (overlay-put ov 'after-string (company-coq-features/goal-diffs--make-link-string)))))))
 
 (defun company-coq-features/goal-diffs-annotate ()
   "Annotate the goals in the proof buffer.
 Assumes that both `company-coq--current-context-parse' and
 `company-coq--current-context-parse' are up-to-date."
   (interactive)
+  (company-coq--remove-overlays proof-goals-buffer 'company-coq-features/goal-diffs)
   (when (and (consp company-coq--previous-context-parse)
              (consp company-coq--current-context-parse))
     (company-coq-with-current-buffer-maybe proof-goals-buffer
-      (dolist (ov (overlays-in (point-min) (point-max)))
-        (when (overlay-get ov 'company-coq)
-          (delete-overlay ov)))
       (pcase-let* ((`(,old-multi-hyps . ,old-goals) company-coq--previous-context-parse)
                    (`(,multi-hyps . ,goals) company-coq--current-context-parse)
                    (old-hyps (company-coq--split-merged-hypotheses old-multi-hyps))

@@ -175,7 +175,6 @@ Proof.
   | [ H: ?a |- _ ] => eauto (* Is the variable name highlighted? But not in comments: ?a *)
   end.
   Undo 1.
-  
   congruence.
 Qed.
 
@@ -324,10 +323,6 @@ Qed.
 Require Import Utf8.
 Lemma MathCompletion : ∀ x, x > 1 → x > 0. (* This can be typed using \forall *)
   intros x H.
-  Lemma asd:
-    ∀ x : nat, x > 1 → x > 0.
-  Proof.
-    
   info_auto with arith.
 Qed.
 
