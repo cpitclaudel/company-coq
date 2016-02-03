@@ -4225,13 +4225,13 @@ folding at the level of Proofs."
        (outline-minor-mode -1)))))
 
 (defconst company-coq-features/code-folding--bullet-regexp
-  "^\\s-*\\([*+-]+\\)\\(?:[ \t]\\|$\\)"
+  "^\\s-*\\(?1:[*+-]+\\)\\(?:[ \t]\\|$\\)"
   "Regexp matching bullets.
 This uses $ instead of \n because \n would confuse hideshow into
 thinking that the line to fold from is the next one.")
 
 (defconst company-coq-features/code-folding--brace-regexp
-  "\\({\\)\\(?:[ \t]\\|$\\)"
+  "\\(?1:{\\)\\(?:[ \t]\\|$\\)"
   "Regexp matching braces.
 Requiring a space helps with implicit args.  See
 `company-coq-features/code-folding--bullet-regexp' about the use
@@ -4242,7 +4242,7 @@ of $ instead of \n.")
   "Regexp matching bullets from the beginning of the line.")
 
 (defconst company-coq-features/code-folding--hs-regexp
-  (concat "\\("
+  (concat "\\(?:"
           company-coq-features/code-folding--bullet-regexp "\\|"
           company-coq-features/code-folding--brace-regexp "\\)")
   "Regexp matching hide-show openers.")
@@ -4301,12 +4301,16 @@ will be used as a local-map."
     map))
 
 (defvar company-coq-features/code-folding--bullet-fl-face nil
-  "Display spec for bullets.")
+  "Display spec for bullets.
+Populated by `company-coq-features/code-folding--update-bullet-spec'.")
 
 (defun company-coq-features/code-folding--update-bullet-spec ()
   "Update `company-coq-features/code-folding--bullet-fl-face'.
 Needed because loading `coq' is not enough to get `coq-mode-map'
-fully populated."
+fully populated.  The spec uses local-map instead of keymap,
+because it needs to take precedence over PG's own keymaps,
+introduced by the overlays that it adds after processing a buffer
+section."
   (setq company-coq-features/code-folding--bullet-fl-face
         `(face company-coq-features/code-folding-bullet-face
                front-sticky nil
@@ -4345,29 +4349,33 @@ fully populated."
                  (backward-up-list)
                  (looking-back "Proof" (point-at-bol)))))))))
 
-(defun company-coq-features/code-folding--search (search-fn regexp &optional bound)
-  "Find a bullet matching REGEXP using SEARCH-FN.
-BOUND is as in `re-search-forward'.  SEARCH-FN must make it so
-that the first match group starts on the bullet."
-  (let ((found nil))
+(defun company-coq-features/code-folding--next-bullet (search-fn &optional regexp bound)
+  "Find a bullet using SEARCH-FN and put point on it.
+REGEXP and BOUND are passed to SEARCH-FN, as in
+`re-search-forward'.  SEARCH-FN must make it so that the first
+match group starts on the bullet.  If REGEXP is nil, use
+`company-coq-features/code-folding--hs-regexp'."
+  (unless regexp
+    (setq regexp company-coq-features/code-folding--hs-regexp))
+  (let ((saved-end nil))
     (save-excursion
-      (while (and (setq found (funcall search-fn regexp bound t))
+      (while (and (setq saved-end (funcall search-fn regexp bound t))
                   (not (company-coq-features/code-folding--really-on-bullet-p
                         (match-beginning 1))))))
-    (when found
-      (goto-char found))))
+    (when saved-end
+      (goto-char saved-end))))
 
 (defun company-coq-features/code-folding-toggle-current-block ()
   "Fold or unfold current bullet or brace pair."
   (interactive)
   (company-coq-error-unless-feature-active 'code-folding)
-  (pcase-let* ((`(,bullet . ,end-of-bullet)
+  (pcase-let* ((`(,block-start . ,block-end)
                 (save-excursion
-                  (when (company-coq-features/code-folding--search
+                  (when (company-coq-features/code-folding--next-bullet
                          're-search-backward company-coq-features/code-folding--hs-regexp)
                     (cons (point) (progn (forward-sexp) (point)))))))
-    (when (and bullet (> end-of-bullet (point)))
-      (company-coq-features/code-folding-toggle-bullet-at-point bullet))))
+    (when (and block-start (> block-end (point)))
+      (company-coq-features/code-folding-toggle-bullet-at-point block-start))))
 
 (defvar company-coq-features/code-folding--overlays
   '(outline hs)
@@ -4408,14 +4416,9 @@ interactive use."
     (mapc #'delete-overlay (company-coq-features/code-folding--folding-overlays-at (point)))))
 
 (defconst company-coq-features/code-folding--bullet-fl-spec
-  `((,(apply-partially #'company-coq-features/code-folding--search #'re-search-forward company-coq-features/code-folding--brace-regexp)
-     1 company-coq-features/code-folding--bullet-fl-face nil)
-    (,(apply-partially #'company-coq-features/code-folding--search #'re-search-forward company-coq-features/code-folding--bullet-regexp)
+  `((,(apply-partially #'company-coq-features/code-folding--next-bullet #'re-search-forward company-coq-features/code-folding--hs-regexp)
      1 company-coq-features/code-folding--bullet-fl-face nil))
-  "Font-lock spec for bullets.
-The spec uses local-map instead of keymap, because it needs to
-take precedence over PG's own keymaps, introduced by the overlays
-that it adds after processing a buffer section.")
+  "Font-lock spec for bullets.")
 
 (defcustom company-coq-features/code-folding-ellipsis " […]"
   "Ellipsis used for code folding.
