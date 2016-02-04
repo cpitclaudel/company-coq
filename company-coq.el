@@ -3103,6 +3103,7 @@ keybinding that called this not been intercepted."
 (defmacro company-coq-repeat-until-fixpoint-or-scan-error (body retform)
   "Repeat BODY until a fixpoint or a scan error is reached, then eval RETFORM.
 Execution of both forms is wrapped in `save-excursion'."
+  (declare (debug t))
   `(save-excursion
      (condition-case nil
          (let ((prev-point nil))
@@ -3441,24 +3442,23 @@ to show at most MAX-LINES."
 
 (defun company-coq--show-definition-overlay-at-point ()
   "Show inline definition of symbol at point."
-  (let* ((sb-pos  (company-coq-symbol-at-point-with-pos))
-         (ins-pos (and sb-pos (save-excursion (and (forward-line 1)
-                                                   (> (point-at-bol) (cdr sb-pos))
-                                                   (point-at-bol)))))
-         (docs    (and ins-pos (company-coq-doc-buffer-collect-outputs
-                                (car sb-pos) (list company-coq-doc-cmd
-                                                   company-coq-tactic-def-cmd
-                                                   company-coq-def-cmd)
-                                (list company-coq-type-cmd))))
-         (max-h   (max 4 (min 16 (- (company-coq--count-lines-under-point) 2)))))
-    (cond
-     (docs (let* ((offset  (company-coq-text-width (point-at-bol) (cdr sb-pos)))
-                  (ins-str (company-coq--prepare-for-definition-overlay docs offset max-h)))
-             (setq company-coq-definition-overlay (make-overlay ins-pos ins-pos))
-             (overlay-put company-coq-definition-overlay 'after-string ins-str)))
-     (ins-pos (error "No information found for %s" (car sb-pos)))
-     (sb-pos  (error "No newline at end of file"))
-     (t       (error "No symbol here")))))
+  (let* ((sb-pos  (company-coq-symbol-at-point-with-pos)))
+    (unless sb-pos (error "No symbol here"))
+    (let* ((ins-pos (save-excursion (and (forward-line 1)
+                                         (> (point-at-bol) (cdr sb-pos))
+                                         (point-at-bol)))))
+      (unless ins-pos (error "No newline at end of file"))
+      (-if-let* ((docs (company-coq-doc-buffer-collect-outputs
+                        (car sb-pos) (list company-coq-doc-cmd
+                                           company-coq-tactic-def-cmd
+                                           company-coq-def-cmd)
+                        (list company-coq-type-cmd))))
+          (let* ((offset  (company-coq-text-width (point-at-bol) (cdr sb-pos)))
+                 (max-h (max 4 (min 16 (- (company-coq--count-lines-under-point) 2))))
+                 (ins-str (company-coq--prepare-for-definition-overlay docs offset max-h)))
+            (setq company-coq-definition-overlay (make-overlay ins-pos ins-pos))
+            (overlay-put company-coq-definition-overlay 'after-string ins-str))
+        (company-coq--maybe-complain-docs-not-found t "information" (car sb-pos))))))
 
 (defun company-coq-error-unless-feature-active (cc-feature)
   "Display an error, unless CC-FEATURE is enabled."
