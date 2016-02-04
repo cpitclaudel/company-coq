@@ -4377,7 +4377,7 @@ match group starts on the bullet.  If REGEXP is nil, use
                   (when (company-coq-features/code-folding--next-bullet
                          're-search-backward company-coq-features/code-folding--hs-regexp)
                     (cons (point) (progn (forward-sexp) (point)))))))
-    (when (and block-start (> block-end (point)))
+    (when (and block-start (>= block-end (point)))
       block-start)))
 
 (defun company-coq-features/code-folding-fold-all ()
