@@ -35,7 +35,7 @@ MELPA is a repository of Emacs packages. Skip this step if you already use [MELP
 (package-initialize)
 ```
 
-### company-coq
+### Company-Coq
 
 This should be easier: `company-coq` is on [MELPA](http://melpa.org/#/getting-started). Just use <kbd>M-x package-refresh-contents RET</kbd> followed by <kbd>M-x package-install RET company-coq RET</kbd> to install and byte-compile `company-coq` and its dependencies (some of them will produce a few warnings; that's OK).
 
@@ -45,6 +45,8 @@ To enabled company-coq automatically, add the following to your `.emacs`:
 ;; Load company-coq when opening Coq files
 (add-hook 'coq-mode-hook #'company-coq-mode)
 ```
+
+Then restart and launch the tutorial with <kbd>M-x company-coq-tutorial</kbd>!
 
 ## Screenshots
 
@@ -100,7 +102,7 @@ Use `M-x company-coq-cite` to insert the BibTeX entries for Coq, Proof General, 
 
 ## Quick start guide
 
-**You can check out the interactive tutorial by pressing <kbd>M-x company-coq-tutorial RET</kbd>.** See also the **[screenshots](#screenshots)** below!
+**You can check out the interactive tutorial by pressing <kbd>M-x company-coq-tutorial RET</kbd>.** See also the **[screenshots](#screenshots)** above!
 
 `company-coq` should be pretty transparent. Completion windows will pop up when `company-coq` has suggestions to make. By default, this would be when you start writing a tactic name or a command. You can also launch manual completion by using <kbd>C-RET</kbd> (or whatever was originally assigned to `proof-script-complete` in Coq mode).
 
@@ -121,11 +123,12 @@ Loading `company-coq` also binds the following keys:
 * <kbd>C-c C-a C-x</kbd> extracts the current goal into a separate lemma.
 * <kbd>C-down-mouse-1</kbd> (i.e. <kbd>C-click</kbd>) shows an inline quick help box for the identifier under point. The box disappears when the mouse is released. Pressing the <kbd>&lt;menu></kbd> key or <kbd>M-F12</kdb> also works.
 * <kbd>M-.</kbd> jumps to the source of the identifier at point, when available.
-* <kbd>C-c C-p</kbd> opens the documentation of the identifier at point (for theorems, and definitions; for tactics, use <kbd>C-h</kbd> during completion).
+* <kbd>C-c C-d</kbd> opens the documentation of the identifier at point (for theorems and definitions; for tactics, use <kbd>C-h</kbd> during completion).
 * <kbd>C-c C-,</kbd> opens an outline of the code in a separate buffer (using `occur`).
-* <kbd>C-c C-/</kbd> folds the current code block, or all blocs in the file if repeated.
-* <kbd>C-c C-\\</kbd> unfolds the current code block, or all blocs in the file if repeated.
-* <kbd>C-c C-&</kbd> looks up (grep) the current word in files in the current directory subtree.
+* <kbd>C-c C-/</kbd> folds the current definition, or all definitions in the file if repeated.
+* <kbd>C-c C-\\</kbd> unfolds the current definition, or all definitions in the file if repeated.
+* <kbd>S-TAB</kbd> folds or unfolds the current bullet or curly-brace-delimited block. With <kbd>C-u</kbd>, <kbd>S-TAB</kbd> folds all bullets and braces in the current buffer.
+* <kbd>C-c C-&</kbd> looks up (grep) the current word in files in the current directory's subtree.
 * <kbd>C-c C-a C-e</kbd> tries to match the last output to a documented error message, and displays the relevant section of the manual if it finds one.
 * <kbd>C-c C-a C-d</kbd> parses the last unification error, and shows a diff of the two types that can't unify. If there is no such error, <kbd>C-c C-a C-d</kbd> shows a diff comparing the last goal to the previous one.
 
@@ -150,7 +153,7 @@ If you see blank squares appear where there should be math symbols (`forall`, `e
 (setq company-coq-disabled-features '(prettify-symbols))
 ```
 
-On the other hand, if you like that feature very much, you can enable it in the terminal:
+On the other hand, if you like the prettification feature a lot, you can enable it in the terminal:
 
 ``` elisp
 (setq company-coq-features/prettify-symbols-in-terminals t)
@@ -191,7 +194,7 @@ Goal True.
 
 ### Registering your own symbols and math operators
 
-Adjust and use the following snippet to register your own keywords. This needs be called before `(company-coq-mode)`, so the code needs to be added after the code listed above.
+Adjust and use the following snippet to register your own keywords. This must be called before `(company-coq-mode)`, so the code needs to be added after the code listed above.
 
 ```elisp
 (add-hook 'coq-mode-hook
