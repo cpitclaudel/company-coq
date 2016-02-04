@@ -2031,7 +2031,7 @@ FIXME more docs"
 (defun company-coq--maybe-complain-docs-not-found (interactive-p doc-type name)
   "If INTERACTIVE-P, complain that do DOC-TYPE was found for NAME."
   (when interactive-p
-    (user-error "No %s found for %s.%s" doc-type name
+    (user-error "No %s found for ‘%s’.%s" doc-type name
                 (if (company-coq-prover-available-p) ""
                   " Try starting Coq, or waiting for processing to complete."))))
 
@@ -3032,7 +3032,7 @@ Do not edit this keymap: instead, edit `company-coq-map'.")
     (define-key cc-map (kbd "<C-mouse-1>")      #'company-coq-clear-definition-overlay)
     (define-key cc-map (kbd "<menu>")           #'company-coq-toggle-definition-overlay)
     (define-key cc-map (kbd "<M-f12>")          #'company-coq-toggle-definition-overlay)
-    (define-key cc-map (kbd "<backtab>")        #'company-coq-features/code-folding-toggle-current-block)
+    (define-key cc-map (kbd "<backtab>")        #'company-coq-features/code-folding-toggle-block)
     (define-key cc-map (kbd "SPC")              #'company-coq-maybe-exit-snippet)
     (define-key cc-map (kbd "RET")              #'company-coq-maybe-exit-snippet)
     (define-key cc-map (kbd "M-.")              #'company-coq-jump-to-definition)
@@ -4275,10 +4275,12 @@ EVENT is the corresponding mouse event."
         (goto-char (posn-point position))
         (company-coq-features/code-folding-toggle-bullet-at-point)))))
 
-(defun company-coq-features/code-folding-toggle-bullet-at-point (&optional beg)
+(defun company-coq-features/code-folding-toggle-bullet-at-point (&optional beg fold-or-unfold)
   "Fold or unfold bullet at point.
 If BEG is specified, skip the bullet detection logic and assume
-BEG is a good position to call hideshow functions."
+BEG is a good position to call hideshow functions.  If
+FOLD-OR-UNFOLD is `fold', force folding; if `unfold', force
+unfolding; otherwise, toggle."
   (interactive)
   (-when-let* ((beg (cond (beg beg)
                           ((member (char-after) '(?* ?+ ?-))
@@ -4287,9 +4289,11 @@ BEG is a good position to call hideshow functions."
                            (point)))))
     (save-excursion
       (goto-char beg)
-      (if (hs-overlay-at (point-at-eol))
-          (hs-show-block)
-        (hs-hide-block-at-point)))))
+      (unless fold-or-unfold
+        (setq fold-or-unfold (if (hs-overlay-at (point-at-eol)) 'unfold 'fold)))
+      (cond
+       ((eq fold-or-unfold 'unfold) (hs-show-block))
+       ((eq fold-or-unfold 'fold) (hs-hide-block-at-point))))))
 
 (defun company-coq-features/code-folding--keymap ()
   "Compute a keymap for bullets.
@@ -4365,9 +4369,8 @@ match group starts on the bullet.  If REGEXP is nil, use
     (when saved-end
       (goto-char saved-end))))
 
-(defun company-coq-features/code-folding-toggle-current-block ()
-  "Fold or unfold current bullet or brace pair."
-  (interactive)
+(defun company-coq-features/code-folding--block-start ()
+  "Find start of current bullet- (or brace-) delimited block."
   (company-coq-error-unless-feature-active 'code-folding)
   (pcase-let* ((`(,block-start . ,block-end)
                 (save-excursion
@@ -4375,7 +4378,51 @@ match group starts on the bullet.  If REGEXP is nil, use
                          're-search-backward company-coq-features/code-folding--hs-regexp)
                     (cons (point) (progn (forward-sexp) (point)))))))
     (when (and block-start (> block-end (point)))
-      (company-coq-features/code-folding-toggle-bullet-at-point block-start))))
+      block-start)))
+
+(defun company-coq-features/code-folding-fold-all ()
+  "Fold all bullets and braces in current (narrowed) buffer."
+  (save-excursion
+    (goto-char (point-max))
+    (while (company-coq-features/code-folding--next-bullet #'re-search-backward)
+      (hs-hide-block-at-point)
+      (goto-char (point-at-bol)))))
+
+(defun company-coq-features/code-folding-unfold-all ()
+  "Unfold all bullets and braces in current (narrowed) buffer."
+  (dolist (ov (overlays-in (point-min) (point-max)))
+    (when (overlay-get ov 'hs)
+      (delete-overlay ov))))
+
+(defvar company-coq-features/code-folding-toggle-block--globally-folded nil
+  "Non-nil if last toggling hid all blocks.")
+
+(defvar company-coq-features/code-folding-toggle-block--saved-arg nil
+  "If set, future code folding toggles will be global.")
+
+(defun company-coq-features/code-folding-toggle-block (arg)
+  "Fold or unfold current bullet or brace pair.
+With prefix ARG, toggle all bullets and braces."
+  (interactive "P")
+  ;; Remember prefix arg across consecutive invocations
+  (unless (eq this-command last-command)
+    (setq company-coq-features/code-folding-toggle-block--saved-arg nil))
+  (setq arg (or arg company-coq-features/code-folding-toggle-block--saved-arg))
+  ;; Toggle visibility
+  (cond
+   ((null arg)
+    (setq company-coq-features/code-folding-toggle-block--globally-folded nil)
+    (-when-let* ((block-start (company-coq-features/code-folding--block-start)))
+      (company-coq-features/code-folding-toggle-bullet-at-point block-start)
+      (message (substitute-command-keys "Use \\[universal-argument] \\[company-coq-features/code-folding-toggle-block] to hide or show all blocks."))))
+   (t
+    (if company-coq-features/code-folding-toggle-block--globally-folded
+        (company-coq-features/code-folding-unfold-all)
+      (company-coq-features/code-folding-fold-all))
+    (setq company-coq-features/code-folding-toggle-block--globally-folded
+          (not company-coq-features/code-folding-toggle-block--globally-folded))
+    (message (substitute-command-keys "Repeat \\[company-coq-features/code-folding-toggle-block] to hide or show all blocks (no need to repeat \\[universal-argument])."))))
+  (setq company-coq-features/code-folding-toggle-block--saved-arg arg))
 
 (defvar company-coq-features/code-folding--overlays
   '(outline hs)
@@ -4439,32 +4486,65 @@ Suggested values: […] [⤶] [↲] [▶] [⏩] [▸]."
                           (vconcat (mapcar (lambda (c) (make-glyph-code c 'company-coq-features/code-folding-ellipsis-face))
                                            company-coq-features/code-folding-ellipsis))))
 
+(defun company-coq-features/code-folding--set-up-font-lock ()
+  "Configures font-lock to highlight bullets and braces."
+  (make-local-variable 'font-lock-extra-managed-props)
+  (add-to-list 'font-lock-extra-managed-props 'front-sticky)
+  (add-to-list 'font-lock-extra-managed-props 'rear-nonsticky)
+  (add-to-list 'font-lock-extra-managed-props 'mouse-face)
+  (add-to-list 'font-lock-extra-managed-props 'local-map)
+  (font-lock-add-keywords nil company-coq-features/code-folding--bullet-fl-spec 'add))
+
+(defcustom company-coq-initial-fold-state nil
+  "Initial folding state of Coq buffers.
+One of nil (no folding), `bullets' (fold bullets and braces), and
+`all' (fold everything, i.e. definitions and bullets).  This is
+useful as a file-local variable."
+  :group 'company-coq
+  :type '(choice
+          (const :tag "Fold nothing" nil)
+          (const :tag "Fold bullets" bullets)
+          (const :tag "Fold everything (definitions and bullets)" all))
+  :safe #'symbolp)
+
+(defun company-coq-features/code-folding-reset-to-initial-state (&optional force)
+  "Fold parts of current buffer according to `company-coq-initial-fold-state'.
+With FORCE, unfold everything before folding."
+  (interactive '(t))
+  (when force
+    (company-coq-features/code-folding-unfold-all))
+  (pcase company-coq-initial-fold-state
+    (`bullets
+     (company-coq-features/code-folding-fold-all))
+    (`all
+     (company-coq-features/code-folding-fold-all)
+     (outline-hide-body))))
+
 (company-coq-define-feature code-folding (arg)
   "Code folding.
-Configures `hs-minor-mode' for use with Coq.  Support folding at
-the level of bullets."
+Configures `hs-minor-mode' for use with Coq.  Supports folding
+bullets and curly braces."
   (pcase arg
     (`on
      (add-to-list 'hs-special-modes-alist company-coq-features/code-folding--hs-spec)
      (company-coq-do-in-coq-buffers
        (hs-minor-mode)
+       (setq-local hs-allow-nesting t)
+       (company-coq-features/code-folding--set-up-font-lock)
        (company-coq-features/code-folding--set-display-table)
        (company-coq-features/code-folding--update-bullet-spec)
-       (make-local-variable 'font-lock-extra-managed-props)
-       (add-to-list 'font-lock-extra-managed-props 'front-sticky)
-       (add-to-list 'font-lock-extra-managed-props 'rear-nonsticky)
-       (add-to-list 'font-lock-extra-managed-props 'mouse-face)
-       (add-to-list 'font-lock-extra-managed-props 'local-map)
-       (font-lock-add-keywords nil company-coq-features/code-folding--bullet-fl-spec 'add)
        (add-hook 'post-command-hook #'company-coq-features/code-folding--unfold-at-point t t)
+       (add-hook 'hack-local-variables-hook #'company-coq-features/code-folding-reset-to-initial-state nil t)
        (company-coq-request-refontification)))
     (`off
      (setq hs-special-modes-alist (delete company-coq-features/code-folding--hs-spec hs-special-modes-alist))
      (company-coq-do-in-coq-buffers
        (hs-minor-mode -1)
+       (kill-local-variable 'hs-allow-nesting)
        (kill-local-variable 'buffer-display-table)
        (font-lock-remove-keywords nil company-coq-features/code-folding--bullet-fl-spec)
        (remove-hook 'post-command-hook #'company-coq-features/code-folding--unfold-at-point t)
+       (remove-hook 'hack-local-variables-hook #'company-coq-features/code-folding-reset-to-initial-state t)
        (company-coq-request-refontification)))))
 
 (defcustom company-coq-features/alerts-long-running-task-threshold 5

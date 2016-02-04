@@ -1,3 +1,4 @@
+(* -*- company-coq-initial-fold-state: bullets -*- *)
 Require Import Utf8.
 
 (* Global folding should work here *)
@@ -75,6 +76,23 @@ Abort.
    And outside: *)
 
 Definition more_bullets: (True \/ (True \/ (True \/ (True \/ True)))) \/ (True \/ True) -> True.
+Proof.
+  intros.                       (* 1- *)
+  destruct H.                   (* 2- *)
+  - destruct H.                 (* 3- *)
+    + apply I.                  (* 2- *)
+    + destruct H.               (* 2- *)
+      * apply I.                (* 2- *)
+      * destruct H.
+        apply I.
+        apply I.
+  - destruct H.
+    + apply I.
+    + destruct H.
+      apply I.
+Qed.
+
+Definition more_bullets2: (True \/ (True \/ (True \/ (True \/ True)))) \/ (True \/ True) -> True.
 Proof.
   intros.                       (* 1- *)
   destruct H.                   (* 2- *)
@@ -286,6 +304,8 @@ Section TestSectionName.
       intros ** H0.
       (* Try extract-lemma-from-goal C-c C-a C-x here.
          Are section variables re-introduced? What about [H0]? *)
+      + idtac.
+        idtac.
     Abort.
   End OtherSection. (* These names should autocomplete *)
 End TestSectionName.
@@ -854,4 +874,3 @@ Require Import RelationPairs.
 (* Loaded 8092 symbols (0.088 seconds) With optimized proof-general search *)
 (* Loaded 8092 symbols (0.136 seconds) With plain proof-general search *)
 (* Loaded 8092 symbols (0.155 seconds) With optimized proof-general search on battery *)
-
