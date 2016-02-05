@@ -3041,7 +3041,8 @@ Do not edit this keymap: instead, edit `company-coq-map'.")
     (define-key cc-map [remap coq-insert-match] #'company-coq-insert-match-construct)
     (define-key cc-map [remap narrow-to-defun]  #'company-coq-narrow-to-defun)
     cc-map)
-  "Keymap of company-coq keybindings.")
+  "Keymap of company-coq keybindings.
+These keybindings are activated by `company-coq--keybindings-minor-mode'.")
 
 (define-minor-mode company-coq--keybindings-minor-mode
   "Minor mode providing convenient company-coq keybindings."
@@ -3881,6 +3882,18 @@ Do not disable this feature"
      (remove-hook 'proof-shell-handle-error-or-interrupt-hook #'company-coq--update-context)
      (remove-hook 'yas-after-exit-snippet-hook #'company-coq-forget-choices))))
 
+(defun company-coq--add-auxiliary-buffers-hook (hook &optional append local)
+  "Add HOOK to `coq-response-mode-hook' and `coq-goals-mode-hook'.
+APPEND and LOCAL are as in `add-hook'."
+  (add-hook 'coq-response-mode-hook hook append local)
+  (add-hook 'coq-goals-mode-hook hook append local))
+
+(defun company-coq--remove-auxiliary-buffers-hook (hook &optional local)
+  "Remove HOOK from `coq-response-mode-hook' and `coq-goals-mode-hook'.
+LOCAL is as in `add-hook'."
+  (remove-hook 'coq-response-mode-hook hook local)
+  (remove-hook 'coq-goals-mode-hook hook local))
+
 (defun company-coq--hello ()
   "Show a company-coq–related greeting."
   (message "%s" (substitute-command-keys "Welcome to company-coq! Use \\[company-coq-tutorial] to get started.")))
@@ -3893,13 +3906,25 @@ Shows a greeting when company-coq starts."
      (when (and company-coq-mode (buffer-name) (not (string-match-p "\\` ?\\*" (buffer-name))))
        (run-with-timer 0 nil #'company-coq--hello)))))
 
+(defun company-coq-features/keybindings--enable ()
+  "Enable company-coq keybindings in current buffer."
+  (company-coq--keybindings-minor-mode))
+
+(defun company-coq-features/keybindings--disable ()
+  "Disable company-coq keybindings in current buffer."
+  (company-coq--keybindings-minor-mode -1))
+
 (company-coq-define-feature keybindings (arg)
   "Company-coq keybindings.
 Activates `company-coq-map', a keymap containing many shortcuts
 to commonly used company-coq features."
   (pcase arg
-    (`on (company-coq--keybindings-minor-mode))
-    (`off (company-coq--keybindings-minor-mode -1))))
+    (`on
+     (company-coq-do-in-all-buffers (company-coq-features/keybindings--enable))
+     (company-coq--add-auxiliary-buffers-hook #'company-coq-features/keybindings--enable))
+    (`off
+     (company-coq-do-in-all-buffers (company-coq-features/keybindings--disable))
+     (company-coq--remove-auxiliary-buffers-hook #'company-coq-features/keybindings--enable))))
 
 (company-coq-define-feature inline-docs (arg)
   "Inline documentation popups.
@@ -3940,8 +3965,7 @@ REF-BUFFER is used to retrieve the buffer-local values of
   "Enable prettify-symbols in response and goals buffers."
   (company-coq-do-in-goals-buffer (company-coq-features/prettify-symbols--enable-other))
   (company-coq-do-in-response-buffer (company-coq-features/prettify-symbols--enable-other))
-  (add-hook 'coq-goals-mode-hook #'company-coq-features/prettify-symbols--enable-other)
-  (add-hook 'coq-response-mode-hook #'company-coq-features/prettify-symbols--enable-other))
+  (company-coq--add-auxiliary-buffers-hook #'company-coq-features/prettify-symbols--enable-other))
 
 (defun company-coq-features/prettify-symbols--enable ()
   "Enable prettify-symbols in all Coq buffers."
@@ -3953,8 +3977,7 @@ REF-BUFFER is used to retrieve the buffer-local values of
   (when (fboundp #'prettify-symbols-mode)
     (company-coq-suppress-warnings
       (company-coq-do-in-all-buffers (prettify-symbols-mode -1))
-      (remove-hook 'coq-goals-mode-hook #'company-coq-features/prettify-symbols--enable-other)
-      (remove-hook 'coq-response-mode-hook #'company-coq-features/prettify-symbols--enable-other))))
+      (company-coq--remove-auxiliary-buffers-hook #'company-coq-features/prettify-symbols--enable-other))))
 
 (defun company-coq-features/prettify-symbols--update-table ()
   "Update table of prettification symbols from file-local vars."
@@ -4030,12 +4053,10 @@ Transparently displays subscripts."
   (pcase arg
     (`on
      (company-coq-do-in-all-buffers (company-coq-features/smart-subscripts--enable))
-     (add-hook 'coq-goals-mode-hook #'company-coq-features/smart-subscripts--enable)
-     (add-hook 'coq-response-mode-hook #'company-coq-features/smart-subscripts--enable))
+     (company-coq--add-auxiliary-buffers-hook #'company-coq-features/smart-subscripts--enable))
     (`off
      (company-coq-do-in-all-buffers (company-coq-features/smart-subscripts--disable))
-     (remove-hook 'coq-goals-mode-hook #'company-coq-features/smart-subscripts--enable)
-     (remove-hook 'coq-response-mode-hook #'company-coq-features/smart-subscripts--enable))))
+     (company-coq--remove-auxiliary-buffers-hook #'company-coq-features/smart-subscripts--enable))))
 
 (company-coq-define-feature snippets (arg)
   "Snippets for various common Coq forms.

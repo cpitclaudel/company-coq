@@ -7,7 +7,7 @@ Ltac SimpleLtac a b cde := idtac.
 Goal True = False -> False.
   intros.
   rewrite <- ?H. (* Is this colored? Ideally it should not be colored at all *)
-  (* Are contents of goal buffer prettified? *)
+  (* Are contents of goal buffer prettified? Does <menu> work there? *)
   apply I.
 Qed.
 
