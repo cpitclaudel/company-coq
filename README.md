@@ -183,6 +183,14 @@ Using a variable-width font for symbols will break indentation. See [this other 
   (set-fontset-font ft 'unicode (font-spec :name "Symbola monospacified for DejaVu Sans Mono") nil 'append))
 ```
 
+### Folding all goals when a file is opened
+
+Adding the following header to a Coq file will make company-coq hide the bodies of all bullets when the file is opened. You can also customize the `company-coq-initial-state` variable to apply the setting globally.
+
+```elisp
+(* -*- company-coq-initial-fold-state: bullets -*- *)
+```
+
 ### Showing alerts for long-running proofs
 
 If possible, `company-coq` will use the [`alert`](https://github.com/jwiegley/alert) library to display notifications when long-running proofs complete.  `alert` is only needed on Windows and OSX; on Linux systems with DBus this should work out of the box. You can try it out by running the snippet below and opening another application while the proof runs; after 10 seconds company-coq will show a notification.
@@ -246,7 +254,7 @@ You can download these changes as patches for [8.4](etc/8.4-additions.patch), [8
 
 ### Installing from source
 
-See dependencies in `Cask` file.
+Use Cask.
 
 ### Special thanks
 
