@@ -4510,7 +4510,7 @@ Suggested values: […] [⤶] [↲] [▶] [⏩] [▸]."
   :group 'company-coq)
 
 (defface company-coq-features/code-folding-ellipsis-face
-  '((t (:inherit font-lock-preprocessor-face)))
+  '((t (:underline nil :inherit font-lock-preprocessor-face)))
   "Face used to display `company-coq-features/code-folding-ellipsis'."
   :group 'company-coq-faces)
 
