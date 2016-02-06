@@ -4893,12 +4893,13 @@ of a module name, before replacing that name (after getting a
 confirmation form the user)."
   (let ((ov (make-overlay from to)))
     (overlay-put ov 'company-coq-fqn-of-module fqn)
-    (overlay-put ov 'face 'highlight)
     ov))
 
-(defun company-coq-features/refactorings--reqs-add-overlays (limit)
+(defun company-coq-features/refactorings--reqs-add-overlays (limit display)
   "Change [Require Import]s up to LIMIT to use fully qualified names.
-Use overlays to display fully qualified names."
+Use overlays to display fully qualified names.  If DISPLAY is
+nil, record fully qualified names using overlays, but don't give
+them visible properties."
   (let ((end-m (make-marker))
         (overlays nil))
     (set-marker end-m limit)
@@ -4909,12 +4910,14 @@ Use overlays to display fully qualified names."
           (let ((ov (company-coq-features/refactorings--reqs-add-overlay
                      (match-beginning 0) (match-end 0) abs-name)))
             (push ov overlays)
-            (pcase abs-name
-              ((pred stringp)
-               (overlay-put ov 'display abs-name))
-              (`(error . ,msg)
-               (overlay-put ov 'help-echo msg)
-               (overlay-put ov 'face font-lock-warning-face)))))))
+            (when display
+              (pcase abs-name
+                ((pred stringp)
+                 (overlay-put ov 'display abs-name)
+                 (overlay-put ov 'face 'highlight))
+                (`(error . ,msg)
+                 (overlay-put ov 'help-echo msg)
+                 (overlay-put ov 'face font-lock-warning-face))))))))
     (set-marker end-m nil)
     overlays))
 
@@ -4963,7 +4966,7 @@ if CONFIRM-CHANGES is non-nil."
     (goto-char beg)
     (unless (re-search-forward company-coq-features/refactorings--reqs-header end t)
       (user-error "No [Require]s found in “%s”" (buffer-substring-no-properties beg end)))
-    (let ((ovs (company-coq-features/refactorings--reqs-add-overlays end)))
+    (let ((ovs (company-coq-features/refactorings--reqs-add-overlays end confirm-changes)))
       (unwind-protect
           (cond
            ((null ovs)
