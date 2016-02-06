@@ -163,6 +163,8 @@ forward-declare; instead, check that the declaration is valid."
   (company-coq-forward-declare-var proof-shell-last-goals-output)
   (company-coq-forward-declare-var proof-shell-last-response-output)
   (company-coq-forward-declare-var proof-shell-delayed-output-flags)
+  (company-coq-forward-declare-var proof-shell-eager-annotation-start)
+  (company-coq-forward-declare-var proof-shell-eager-annotation-end)
   (company-coq-forward-declare-var pg-span-context-menu-keymap)
   (company-coq-forward-declare-var coq-mode-map)
   (company-coq-forward-declare-var coq-reserved)
@@ -747,6 +749,18 @@ Useful as a value for `company-coq-completion-predicate'"
       `(with-no-warnings ,@body)
     `(progn ,@body)))
 
+(defun company-coq--last-output-without-eager-annotation-markers ()
+  "Return `proof-shell-last-output', without eager annotation markers.
+Normally PG strips eager annotations, but
+`company-coq-ask-prover' turns that mechanism off to not loose
+output."
+  (when proof-shell-last-output
+    (replace-regexp-in-string
+     (concat "\\(?:" (or proof-shell-eager-annotation-start "") "\\)"
+             "\\(?1:[^0]+\\)"
+             "\\(?:" (or proof-shell-eager-annotation-end "") "\\)")
+     "\\1" proof-shell-last-output t)))
+
 (defun company-coq-ask-prover (question)
   "Synchronously send QUESTION to the prover.
 This function attemps to preserve the offsets of the
@@ -759,15 +773,19 @@ goals and response windows."
               ;; `save-window-excursion' is still needed to restore any buffer
               ;; that might have been show instead of the goals or the response
               ;; (the fix to PG doesn't prevent it from restoring the window
-              ;; configuration)
+              ;; configuration, and anyway the fix isn't deployed to everyone)
               (save-window-excursion
-                ;; proof-shell-invisible-cmd-get-result does not pass the
-                ;; 'no-goals-display flag, causing the goals buffer to jitter.
-                (proof-shell-invisible-command question 'wait nil
-                                               'no-response-display
-                                               'no-error-display
-                                               'no-goals-display)
-                proof-shell-last-output)
+                ;; Coq-mode intercepts <infomsg>s using eager-annotation-start,
+                ;; but it shouldn't.
+                (let* ((proof-shell-eager-annotation-start nil)
+                       (proof-shell-eager-annotation-end nil))
+                  ;; proof-shell-invisible-cmd-get-result does not pass the
+                  ;; 'no-goals-display flag, causing the goals buffer to jitter.
+                  (proof-shell-invisible-command question 'wait nil
+                                                 'no-response-display
+                                                 'no-error-display
+                                                 'no-goals-display))
+                (company-coq--last-output-without-eager-annotation-markers))
             (setq company-coq-talking-to-prover nil)))
       (company-coq-dbg "Prover not available; [%s] discarded" question)
       nil)))
