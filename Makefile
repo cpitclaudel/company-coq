@@ -5,6 +5,7 @@ OLD_PG_GENERIC_ROOT := ~/.emacs.d/lisp/ProofGeneral-4.2/generic/
 EMACS ?= emacs
 CASK = env --unset INSIDE_EMACS EMACS=$(EMACS) cask
 COMPANY_COQ_ARGS := --debug-init --eval "(progn (setq-default company-coq--check-forward-declarations t) (add-hook 'coq-mode-hook (lambda () (require 'company-coq) (company-coq-mode))))"
+COQ_85_ARGS := --eval '(setq coq-prog-name "/build/coq-8.5/dist/bin/coqtop")'
 
 .PHONY: pkg-def
 
@@ -15,9 +16,6 @@ clean: clean-elc clean-package
 sandbox: elc
 	$(EMACS) --debug-init -L . $(COMPANY_COQ_ARGS) tests.v
 
-emacs24:
-	$(eval EMACS := /build/emacs-24.5/src/emacs)
-
 test: elc
 	$(CASK) exec $(EMACS) --debug-init -Q \
 		-L $(PG_GENERIC_ROOT) -l proof-site -L . $(COMPANY_COQ_ARGS) tests.v
@@ -26,9 +24,15 @@ test-old-pg: elc
 	$(CASK) exec $(EMACS) --debug-init -Q \
 		-L $(OLD_PG_GENERIC_ROOT) -l proof-site -L . $(COMPANY_COQ_ARGS) tests.v
 
-compatibility: emacs24 elc
+emacs243:
+	$(eval EMACS := /build/emacs-24.3/src/emacs)
+
+emacs245:
+	$(eval EMACS := /build/emacs-24.5/src/emacs)
+
+compatibility: emacs243 elc
 	$(CASK) exec $(EMACS) --debug-init -Q \
-		-L $(OLD_PG_GENERIC_ROOT) -l proof-site -L . $(COMPANY_COQ_ARGS) tests.v
+		-L $(OLD_PG_GENERIC_ROOT) -l proof-site -L . $(COQ_85_ARGS) $(COMPANY_COQ_ARGS) tests.v
 
 update:
 	$(CASK) install
@@ -53,10 +57,14 @@ clean-package:
 	rm -rf dist
 
 screenshots: elc
-	$(CASK) exec $(EMACS) --debug-init -Q --load etc/rebuild-screenshots.el
+	$(CASK) exec $(EMACS) --debug-init -Q -L $(PG_GENERIC_ROOT) --load etc/rebuild-screenshots.el
 
 screenshots-8.5: elc
-	$(CASK) exec $(EMACS) --debug-init -Q --eval '(setq coq-prog-name "/build/coq-8.5/dist/bin/coqtop")' --load etc/rebuild-screenshots.el
+	$(CASK) exec $(EMACS) --debug-init -Q -L $(PG_GENERIC_ROOT) $(COQ_85_ARGS) --load etc/rebuild-screenshots.el
+
+screenshots-8.5-24.5: emacs245 elc
+	$(CASK) exec $(EMACS) --debug-init -Q \
+		-L $(OLD_PG_GENERIC_ROOT) -L . $(COQ_85_ARGS) $(COMPANY_COQ_ARGS) --load etc/rebuild-screenshots.el
 
 # find ./.cask/ -type d -name elpa -exec rm -rf {} +
 pkg-install: elc package
