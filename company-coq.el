@@ -5066,20 +5066,19 @@ See `company-coq-features/code-folding--keymap' for more info.")
 (company-coq-define-feature refactorings (arg)
   "Various refactoring commands (experimental).
 Currently focuses on [Require Import/Export] statements."
-  (when nil
-    (pcase arg
-      (`on
-       (company-coq-do-in-coq-buffers
-         (progn ;; Prevent PG's overlays from capturing clicks on processed spans.
-           (setq-local pg-span-context-menu-keymap nil))
-         (company-coq--set-up-font-lock-for-links)
-         (font-lock-add-keywords nil company-coq-features/refactorings--fl-keywords 'append)
-         (company-coq-request-refontification)))
-      (`off
-       (company-coq-do-in-coq-buffers
-         (kill-local-variable 'pg-span-context-menu-keymap)
-         (font-lock-remove-keywords nil company-coq-features/refactorings--fl-keywords)
-         (company-coq-request-refontification))))))
+  (pcase arg
+    (`on
+     (company-coq-do-in-coq-buffers
+       (progn ;; Prevent PG's overlays from capturing clicks on processed spans.
+         (setq-local pg-span-context-menu-keymap nil))
+       (company-coq--set-up-font-lock-for-links)
+       (font-lock-add-keywords nil company-coq-features/refactorings--fl-keywords 'append)
+       (company-coq-request-refontification)))
+    (`off
+     (company-coq-do-in-coq-buffers
+       (kill-local-variable 'pg-span-context-menu-keymap)
+       (font-lock-remove-keywords nil company-coq-features/refactorings--fl-keywords)
+       (company-coq-request-refontification)))))
 
 (company-coq-define-feature company (arg)
   "Context-sensitive completion.
