@@ -4607,7 +4607,7 @@ With FORCE, unfold everything before folding."
      (company-coq-features/code-folding-fold-all))
     (`all
      (company-coq-features/code-folding-fold-all)
-     (outline-hide-body))))
+     (company-coq-call-compat 'outline-hide-body 'hide-body))))
 
 (company-coq-define-feature code-folding (arg)
   "Code folding.
@@ -4991,8 +4991,10 @@ position t) it segfaults."
                (menu-entries (cl-loop for pair being the key-bindings of keymap
                                       for num = 0 then (1+ num)
                                       collect (cons num pair)))
-               (menu (mapconcat (pcase-lambda (`(,num ,desc . ,_))
-                                  (format "%d → %s" num desc))
+               (menu (mapconcat (lambda (entry)
+                                  (pcase entry
+                                    (`(,num ,desc . ,_)
+                                     (format "%d → %s" num desc))))
                                 (-take 10 menu-entries)
                                 "   ")))
     (message "%s:   %s" title menu)
