@@ -77,6 +77,7 @@
 (require 'yasnippet)    ;; Templates
 (require 'pulse)        ;; Pulsing after jumping to definitions
 (require 'button)       ;; Links in goals and error messages
+(require 'menu-bar)     ;; `popup-menu'
 (unless (require 'alert nil t) ;; Notifications
   (require 'notifications nil t))
 
@@ -1088,6 +1089,19 @@ definitions in the unprocessed part of the buffer."
                                        'location (current-buffer)
                                        'target (cdr pair)))
             company-coq-local-definitions)))
+
+(defun company-coq--current-command-bounds ()
+  "(Coarsely) find the limits of the current Coq phrase."
+  (save-match-data
+    (let ((bound-re "\\.[ \t\n]"))
+      (list (or (save-excursion
+                  (when (re-search-backward bound-re nil t)
+                    (match-end 0)))
+                (point-min))
+            (or (save-excursion
+                  (when (re-search-forward bound-re nil t)
+                    (match-beginning 0)))
+                (point-max))))))
 
 (defun company-coq-line-is-import-p ()
   "Return non-nil if current line is part of an Import statement."
@@ -4820,6 +4834,205 @@ Add a link to unification errors to show a diff."
   (pcase arg
     (`on (company-coq--listen-for-output #'company-coq-features/error-diffs--add-link))
     (`off (company-coq--unlisten-for-output #'company-coq-features/error-diffs--add-link))))
+
+(defun company-coq-features/refactorings--reqs-compute-module-name (mod-name)
+  "Find fully qualified name of MOD-NAME.
+In case of error return a cons (error . ERROR-MSG)"
+  (save-match-data
+    (let* ((cmd (format company-coq-locate-lib-cmd mod-name))
+           (out (company-coq-ask-prover cmd)))
+      (if (string-match company-coq-locate-lib-output-format out)
+          (match-string-no-properties 1 out)
+        `(error . ,out)))))
+
+(defun company-coq-features/refactorings--reqs-add-overlay (from to fqn)
+  "Add an fully qualified module name overlay covering FROM .. TO.
+This overlay is used to display an fully qualified (FQN) version
+of a module name, before replacing that name (after getting a
+confirmation form the user)."
+  (let ((ov (make-overlay from to)))
+    (overlay-put ov 'company-coq-fqn-of-module fqn)
+    (overlay-put ov 'face 'highlight)
+    ov))
+
+(defun company-coq-features/refactorings--reqs-add-overlays (limit)
+  "Change [Require Import]s up to LIMIT to use fully qualified names.
+Use overlays to display fully qualified names."
+  (let ((end-m (make-marker))
+        (overlays nil))
+    (set-marker end-m limit)
+    (while (re-search-forward company-coq-module-name-regexp end-m t)
+      (let* ((rel-name (match-string 0))
+             (abs-name (company-coq-features/refactorings--reqs-compute-module-name rel-name)))
+        (unless (equal rel-name abs-name)
+          (let ((ov (company-coq-features/refactorings--reqs-add-overlay
+                     (match-beginning 0) (match-end 0) abs-name)))
+            (push ov overlays)
+            (pcase abs-name
+              ((pred stringp)
+               (overlay-put ov 'display abs-name))
+              (`(error . ,msg)
+               (overlay-put ov 'help-echo msg)
+               (overlay-put ov 'face font-lock-warning-face)))))))
+    (set-marker end-m nil)
+    overlays))
+
+(defun company-coq-features/refactorings--reqs-commit (ovs)
+  "Perform replacements suggested by overlays in OVS."
+  (save-excursion
+    (dolist (ov ovs)
+      (let ((abs (overlay-get ov 'company-coq-fqn-of-module))
+            (inhibit-modification-hooks t))
+        (when (stringp abs)
+          (goto-char (overlay-start ov))
+          (delete-region (point) (overlay-end ov))
+          (insert abs))))))
+
+(defconst company-coq-features/refactorings--reqs-header "\\(\\<Require \\(?:Import\\|Export\\)\\>\\)"
+  "Header of [Require] commands that can be fully qualified.")
+
+(defconst company-coq-features/refactorings--reqs-menu
+  (let ((map (make-sparse-keymap "Refactor imports")))
+    (define-key map [abs-no-confirm]
+      `("Fully qualify module names (no confirmation)" .
+        company-coq-features/refactorings-qualify-module-names-without-confirmation))
+    (define-key map [abs-confirm]
+      '("Fully qualify module names" .
+        company-coq-features/refactorings-qualify-module-names))
+    map)
+  "Menu for right clicks on [Require]s.")
+
+(defun company-coq-features/refactorings--reqs-get-region ()
+  "Compute a region in which to fully qualify modules names."
+  (if (region-active-p)
+      (list (region-beginning) (region-end))
+    (company-coq--current-command-bounds)))
+
+(defun company-coq-features/refactorings-qualify-module-names (beg end &optional confirm-changes)
+  "Change [Require Import]s to use fully qualified names.
+Interactively, use region if avaiilable and current phrase
+otherwise, and use overlays to display fully qualified names and
+query the user before replacing unless given a prefix argument.
+From Lisp, replace forms in BEG .. END, asking for confirmation
+if CONFIRM-CHANGES is non-nil."
+  (interactive `(,@(company-coq-features/refactorings--reqs-get-region)
+                 (not (consp current-prefix-arg))))
+  (company-coq-complain-unless-prover-available "refactoring")
+  (save-excursion
+    (goto-char beg)
+    (unless (re-search-forward company-coq-features/refactorings--reqs-header end t)
+      (user-error "No [Require]s found in “%s”" (buffer-substring-no-properties beg end)))
+    (let ((ovs (company-coq-features/refactorings--reqs-add-overlays end)))
+      (unwind-protect
+          (cond
+           ((null ovs)
+            (user-error "All module names on this line are already fully qualified"))
+           ((or (not confirm-changes) (y-or-n-p "Perform replacement? "))
+            (company-coq-features/refactorings--reqs-commit ovs)))
+        (mapc #'delete-overlay ovs)))))
+
+(defun company-coq-features/refactorings-qualify-module-names-without-confirmation (beg end)
+  "Change [Require Import]s to use fully qualified names.
+BEG and END are as in
+`company-coq-features/refactorings-qualify-module-names-without-confirmation'."
+  (interactive (company-coq-features/refactorings--reqs-get-region))
+  (company-coq-features/refactorings-qualify-module-names beg end nil))
+
+(defun company-coq--popup-menu-no-x (keymap)
+  "Emulate `popup-menu' on KEYMAP using text only.
+In Emacs 25 `popup-menu' emulation is not very usable, and on 24
+it doesn't work: sometimes it shows an error, sometimes (with
+position t) it segfaults."
+  (-when-let* ((title (or (car (-filter #'stringp keymap)) "Action"))
+               (menu-entries (cl-loop for pair being the key-bindings of keymap
+                                      for num = 0 then (1+ num)
+                                      collect (cons num pair)))
+               (menu (mapconcat (pcase-lambda (`(,num ,desc . ,_))
+                                  (format "%d → %s" num desc))
+                                (-take 10 menu-entries)
+                                "   ")))
+    (message "%s:   %s" title menu)
+    (-when-let* ((input (ignore-errors (string-to-number (char-to-string (read-char)))))
+                 (choice (cddr (assoc input menu-entries))))
+      (call-interactively choice))))
+
+
+(defun company-coq--popup-menu (keymap &optional position)
+  "Show a popup menu (based on KEYMAP) at POSITION.
+If POSITION is nil, show a text-only menu in the minibuffer."
+  (when keymap
+    (if position
+        ;; `popup-menu' is much nicer than `x-popup-menu'; the latter returns a
+        ;; list of events, which one must convert with (apply #'vector actions)
+        ;; before callign the resulting command.
+        (let ((use-dialog-box nil))
+          (popup-menu keymap position))
+      (company-coq--popup-menu-no-x keymap))))
+
+(defun company-coq-features/refactorings--get-menu-at-point (&optional pt)
+  "Get refactoring menu at point PT."
+  (get-text-property (or pt (point)) 'company-coq-features/refactorings--menu))
+
+(defun company-coq-features/refactorings--show-menu-at-point ()
+  "Show refactoring menu at point."
+  (interactive)
+  (company-coq--popup-menu (company-coq-features/refactorings--get-menu-at-point)))
+
+(defun company-coq-features/refactorings--show-menu (event)
+  "Show refactoring menu.
+EVENT is the corresponding mouse event."
+  (interactive "e")
+  (company-coq--with-point-at-click event
+    (company-coq--popup-menu (company-coq-features/refactorings--get-menu-at-point) event)))
+
+(defconst company-coq-features/refactorings--keymap
+  (let ((map (copy-keymap coq-mode-map)))
+    (define-key map (kbd "<down-mouse-3>") #'company-coq-features/refactorings--show-menu)
+    (define-key map (kbd "<mouse-3>") #'ignore)
+    (define-key map (kbd "<C-down-mouse-1>") #'company-coq-features/refactorings--show-menu)
+    (define-key map (kbd "<C-mouse-1>") #'ignore)
+    (define-key map (kbd "<menu>") #'company-coq-features/refactorings--show-menu-at-point)
+    map)
+  "Keymap for refactoring tags.
+See `company-coq-features/code-folding--keymap' for more info.")
+
+(defface company-coq-features/refactorings-highlight-face
+  '((t (:underline "DimGray")))
+  "Face used to display refactoring tags."
+  :group 'company-coq-faces)
+
+(defconst company-coq-features/refactorings--fl-spec
+  ;;"#888a85" ;;,(face-attribute 'default :background)
+  `(face company-coq-features/refactorings-highlight-face
+         front-sticky nil
+         rear-nonsticky t
+         pointer hand
+         keymap ,company-coq-features/refactorings--keymap
+         help-echo "Right click (or C-click) to show the refactoring menu.")
+  "Display spec for refactoring tags.")
+
+(defconst company-coq-features/refactorings--fl-keywords
+  `((,company-coq-features/refactorings--reqs-header
+     (1 `(,@company-coq-features/refactorings--fl-spec
+          company-coq-features/refactorings--menu ,company-coq-features/refactorings--reqs-menu)
+        append))))
+
+(company-coq-define-feature refactorings (arg)
+  "Various refactoring commands (experimental).
+Currently focuses on [Require Import/Export] statements."
+  (pcase arg
+    (`on
+     (company-coq-do-in-coq-buffers
+       (progn ;; Prevent PG's overlays from capturing clicks on processed spans.
+         (setq-local pg-span-context-menu-keymap nil))
+       (company-coq--set-up-font-lock-for-links)
+       (font-lock-add-keywords nil company-coq-features/refactorings--fl-keywords 'append)
+       (company-coq-request-refontification)))
+    (`off
+     (company-coq-do-in-coq-buffers
+       (kill-local-variable 'pg-span-context-menu-keymap)
+       (font-lock-remove-keywords nil company-coq-features/refactorings--fl-keywords)
+       (company-coq-request-refontification)))))
 
 (company-coq-define-feature company (arg)
   "Context-sensitive completion.

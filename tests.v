@@ -29,6 +29,12 @@ with BBBCCC :=
 | BBB1
 | BBB2 : AAABBB -> BBBCCC.
 
+
+(* Does right clicking on Require Import produce a menu?
+   Does substitution work?
+   Does canceling with C-g remove the overlays? *)
+(* Require Import String Reals Argh Bedrock. *)
+
 Goal (nat + bool).
   (* constructor (apply true).     (* Is constructor @{tactic} documented? *) *)
 Abort.
