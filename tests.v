@@ -29,7 +29,6 @@ with BBBCCC :=
 | BBB1
 | BBB2 : AAABBB -> BBBCCC.
 
-
 (* Does right clicking on Require Import produce a menu?
    Does substitution work?
    Does canceling with C-g remove the overlays? *)
@@ -83,19 +82,20 @@ Abort.
 
 Definition more_bullets: (True \/ (True \/ (True \/ (True \/ True)))) \/ (True \/ True) -> True.
 Proof.
-  intros.                       (* 1- *)
-  destruct H.                   (* 2- *)
-  - destruct H.                 (* 3- *)
-    + apply I.                  (* 2- *)
-    + destruct H.               (* 2- *)
-      * apply I.                (* 2- *)
-      * destruct H.
-        apply I.
-        apply I.
-  - destruct H.
-    + apply I.
-    + destruct H.
-      apply I.
+  intros.
+  destruct H.                   (* + *)
+  - destruct H.                 (* + *)
+    + apply I.                  (* - *)
+    + destruct H.               (* + *)
+      * apply I.                (* - *)
+      * destruct H.             (* + *)
+        -- apply I.             (* - *)
+        -- apply I.             (* - *)
+  - destruct H.                 (* + *)
+    + apply I.                  (* - *)
+    + destruct H.               (* = *)
+      apply I.                  (* - *)
+      
 Qed.
 
 Definition more_bullets2: (True \/ (True \/ (True \/ (True \/ True)))) \/ (True \/ True) -> True.
