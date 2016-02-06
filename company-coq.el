@@ -357,7 +357,8 @@ impossible, for example in `proof-shell-insert-hook'")
 (defconst company-coq-id-regexp "\\(?:[a-zA-Z0-9_][a-zA-Z0-9_']*\\)")
 (defconst company-coq-prefix-regexp "\\(?:[a-zA-Z0-9_][a-zA-Z0-9_.'!]*\\)?") ;; '!' included for patterns like [intros!]
 (defconst company-coq-symbol-regexp "\\(?:[a-zA-Z]\\(?:[a-zA-Z0-9_.']*[a-zA-Z0-9_']\\)?\\)")
-(defconst company-coq-symbol-regexp-no-numbers "\\(?:[a-zA-Z]\\(?:[a-zA-Z0-9_.']*[a-zA-Z]\\)?\\)")
+(defconst company-coq-symbol-regexp-no-dots "\\(?:[a-zA-Z]\\(?:[a-zA-Z0-9_']*[a-zA-Z0-9_']\\)?\\)")
+(defconst company-coq-symbol-regexp-no-dots-no-numbers "\\(?:[a-zA-Z]\\(?:[a-zA-Z0-9_']*[a-zA-Z]\\)?\\)")
 (defconst company-coq-module-chunk-regexp "\\(?:[A-Z][a-zA-Z0-9_]*\\)")
 (defconst company-coq-module-name-regexp (concat company-coq-module-chunk-regexp "\\(?:\\." company-coq-module-chunk-regexp "\\)*"))
 
@@ -4087,9 +4088,10 @@ comments).  Also returns an empty spec on non-graphic displays."
    '(nil invisible 'company-coq-features/smart-subscripts)))
 
 (defconst company-coq-features/smart-subscripts--spec
-  `((,(concat "\\_<" company-coq-symbol-regexp-no-numbers "\\(_*[0-9]+\\)'*\\_>")
+  ;; Works because '.' isn't part of symbols
+  `((,(concat "\\_<" company-coq-symbol-regexp-no-dots-no-numbers "\\(_*[0-9]+\\)'*\\_>")
      (1 (company-coq-features/smart-subscripts--subscript-spec) append))
-    (,(concat "\\_<" company-coq-symbol-regexp "\\(__\\)\\([a-zA-Z][0-9a-zA-Z]*\\)'*\\_>")
+    (,(concat "\\_<" company-coq-symbol-regexp-no-dots "\\(__\\)\\([a-zA-Z][0-9a-zA-Z]*\\)'*\\_>")
      (1 (company-coq-features/smart-subscripts--separator-spec) prepend)
      (2 (company-coq-features/smart-subscripts--subscript-spec) append)))
   "Font-lock spec for subscripts in proof script.")

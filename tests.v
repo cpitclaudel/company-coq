@@ -63,6 +63,7 @@ Proof.
 Qed.
 
 Locate "xx__abc".               (* Should not have a subscript *)
+(* Is [p1.p22.p3.P__abc.P__def] properly subscripted? *)
 
 Inductive LongTypeName := II.
 Goal False.
