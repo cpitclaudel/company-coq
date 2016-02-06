@@ -470,9 +470,11 @@ The result matches any symbol in HEADERS, followed by BODY."
   "Regexp used to detect signs that new symbols have been defined.")
 
 (defconst company-coq-error-regexps `("^Error:"
+                           "^Syntax error:"
                            "^No object of basename"
                            "^Toplevel input, characters"
                            "^No Ltac definition is referred to by"
+                           "^Unable to locate library"
                            "^The command has indeed failed with message:"
                            " not a defined object.\\s-$")
   "Regexps used to detect invalid output.")
@@ -1090,13 +1092,13 @@ definitions in the unprocessed part of the buffer."
 (defun company-coq-line-is-import-p ()
   "Return non-nil if current line is part of an Import statement."
   (save-excursion
-    (-when-let* ((limit (point))
-                 (command-begin (or (re-search-backward "\\.[ \t\n]" nil t) (point-min))))
+    (let* ((limit (point))
+           (command-begin (or (re-search-backward "\\.[ \t\n]" nil t) (point-min))))
       (goto-char command-begin)
       (re-search-forward company-coq-import-regexp limit t))))
 
 (defun company-coq-line-is-block-end-p ()
-  "Return non-nil if current line is point is at block end."
+  "Return non-nil if point is at block end."
   (company-coq-looking-back company-coq-block-end-regexp (point-at-bol)))
 
 (defun company-coq-parse-path-specs (loadpath-output)
@@ -1963,7 +1965,7 @@ Returns the corresponding (logical name . real name) pair."
 May also return a buffer visiting that file.  FALLBACK-SPEC is a
 module path specification to be used if [Locate Library] points
 to a non-existent file (for an example of such a case, try
-[Locate Library Peano] in 8.4pl3)."
+\[Locate Library Peano] in 8.4pl3)."
   (if (and (equal lib-path "") (equal mod-name "Top"))
       (current-buffer)
     (let* ((lib-name (concat lib-path mod-name))
@@ -1988,9 +1990,9 @@ in that file."
 
 (defun company-coq--loc-fully-qualified-name (fqn)
   "Find source file for fully qualified name FQN."
-  (let* ((spec       (company-coq-longest-matching-path-spec fqn))
-         (logical    (if spec (concat (car spec) ".") ""))
-         (mod-name   (replace-regexp-in-string "\\..*\\'" "" fqn nil nil nil (length logical))))
+  (let* ((spec (company-coq-longest-matching-path-spec fqn))
+         (logical (if spec (concat (car spec) ".") ""))
+         (mod-name (replace-regexp-in-string "\\..*\\'" "" fqn nil nil nil (length logical))))
     (company-coq-library-path logical mod-name spec)))
 
 (defun company-coq--fqn-with-regexp (name cmd-format response-headers)
@@ -2002,7 +2004,7 @@ in that file."
         (match-string-no-properties 1 output)))))
 
 (defun company-coq--loc-with-regexp (name cmd-format response-headers)
-  "Find location of name of NAME using CMD-FORMAT and RESPONSE-HEADERS.
+  "Find location of NAME using CMD-FORMAT and RESPONSE-HEADERS.
 Returns a cons as specified by `company-coq--locate-name'."
   (-when-let* ((fqn (company-coq--fqn-with-regexp name cmd-format response-headers))
                (loc (company-coq--loc-fully-qualified-name fqn))
@@ -2435,15 +2437,17 @@ Which conversion function to use is determined from SOURCE."
          (snippet (and abbrev (company-coq-abbrev-to-yas abbrev source))))
     snippet))
 
+(defun company-coq-complain-unless-prover-available (msg)
+  "Show an error message using MSG if the prover isn't available."
+  (unless (company-coq-prover-available-p)
+    (user-error "Please ensure that the prover is started and idle before %s" msg)))
+
 (defun company-coq-call-insert-fun (insert-fun beg end)
   "Check if prover is available and call INSERT-FUN.
 Before calling INSERT-FUN, delete BEG .. END."
   (delete-region beg end)
-  (condition-case err
-      (if (company-coq-prover-available-p)
-          (call-interactively insert-fun)
-        (user-error "Please ensure that the prover is started and idle before using smart completions"))
-    (error (message "%s" (error-message-string err)))))
+  (company-coq-complain-unless-prover-available "using smart completions")
+  (call-interactively insert-fun))
 
 (defun company-coq-post-completion-snippet (candidate)
   "Run post-action for CANDIDATE (most often, insert YAS snippet)."
@@ -3095,7 +3099,7 @@ keybinding that called this not been intercepted."
   (interactive "p")
   (company-coq-exit-snippet-if-at-exit-point)
   (let* ((company-coq--keybindings-minor-mode nil)
-         (original-func   (key-binding (this-command-keys-vector) t)))
+         (original-func (key-binding (this-command-keys-vector) t)))
     (if original-func (call-interactively original-func)
       (self-insert-command arg))))
 
