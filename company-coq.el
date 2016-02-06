@@ -761,6 +761,10 @@ output."
              "\\(?:" (or proof-shell-eager-annotation-end "") "\\)")
      "\\1" proof-shell-last-output t)))
 
+(defun company-coq-trim (str)
+  "Trim STR."
+  (replace-regexp-in-string "\\`[ \r\n\t]+\\|[ \r\n\t]+\\'" "" str t t))
+
 (defun company-coq-ask-prover (question)
   "Synchronously send QUESTION to the prover.
 This function attemps to preserve the offsets of the
@@ -785,7 +789,7 @@ goals and response windows."
                                                  'no-response-display
                                                  'no-error-display
                                                  'no-goals-display))
-                (company-coq--last-output-without-eager-annotation-markers))
+                (company-coq-trim (company-coq--last-output-without-eager-annotation-markers)))
             (setq company-coq-talking-to-prover nil)))
       (company-coq-dbg "Prover not available; [%s] discarded" question)
       nil)))
@@ -1838,10 +1842,6 @@ return the starting point as well."
   (-if-let* ((symbol (company-coq-symbol-at-point)))
       symbol
     (user-error "No identifier found at point")))
-
-(defun company-coq-trim (str)
-  "Trim STR."
-  (replace-regexp-in-string "\\`[ \r\n\t]+\\|[ \r\n\t]+\\'" "" str t t))
 
 (defun company-coq-truncate-to-minibuf (str)
   "Truncate STR for display in minibuffer."
