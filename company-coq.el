@@ -166,7 +166,6 @@ forward-declare; instead, check that the declaration is valid."
   (company-coq-forward-declare-var proof-shell-eager-annotation-start)
   (company-coq-forward-declare-var proof-shell-eager-annotation-end)
   (company-coq-forward-declare-var pg-span-context-menu-keymap)
-  (company-coq-forward-declare-var coq-mode-map)
   (company-coq-forward-declare-var coq-reserved)
   (company-coq-forward-declare-var coq-user-cheat-tactics-db)
   (company-coq-forward-declare-var coq-user-commands-db)
@@ -3314,7 +3313,7 @@ function."
   (if (eq type 'fallback)
       (call-interactively #'coq-insert-match)
     (proof-shell-ready-prover)
-    (let* ((question (concat "Show Match " type))
+    (let* ((question (format "Show Match %s" type))
            (response (company-coq-ask-prover question)))
       (if (company-coq-unless-error response)
           (let* ((cleaned (replace-regexp-in-string "\\s-+\\'" "" response))
@@ -5032,7 +5031,7 @@ EVENT is the corresponding mouse event."
     (company-coq--popup-menu (company-coq-features/refactorings--get-menu-at-point) event)))
 
 (defconst company-coq-features/refactorings--keymap
-  (let ((map (copy-keymap coq-mode-map)))
+  (let ((map (make-sparse-keymap)))
     (define-key map (kbd "<down-mouse-3>") #'company-coq-features/refactorings--show-menu)
     (define-key map (kbd "<mouse-3>") #'ignore)
     (define-key map (kbd "<C-down-mouse-1>") #'company-coq-features/refactorings--show-menu)
