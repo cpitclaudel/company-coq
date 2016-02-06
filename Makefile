@@ -55,6 +55,9 @@ clean-package:
 screenshots: elc
 	$(CASK) exec $(EMACS) --debug-init -Q --load etc/rebuild-screenshots.el
 
+screenshots-8.5: elc
+	$(CASK) exec $(EMACS) --debug-init -Q --eval '(setq coq-prog-name "/build/coq-8.5/dist/bin/coqtop")' --load etc/rebuild-screenshots.el
+
 # find ./.cask/ -type d -name elpa -exec rm -rf {} +
 pkg-install: elc package
 	rm -rf .emacs.d
