@@ -879,7 +879,7 @@ Optionally adds an ELLIPSIS at the end."
     (let ((header-end (and (string-match "\n\\s-*\\(\n\\|\\'\\)" str) (match-beginning 0))))
       (substring-no-properties str 0 header-end))))
 
-(defun company-coq-boundp-string-match (regexp symbol)
+(defun company-coq-boundp-string-match-p (regexp symbol)
   "Match REGEXP against SYMBOL.
 If SYMBOL is undefined or nil, return nil."
   (and (boundp symbol)
@@ -1498,17 +1498,37 @@ search term and a qualifier."
                                      module-atoms)
                     company-coq-path-specs-cache)))))
 
+(defun company-coq-test-output-or-response (regexp cache-var)
+  "Check last prover output against REGEXP.
+Uses CACHE-VAR because some of the output may have been
+redirected to response buffer, so we want to process that, but we
+don't want to process the same thing repeatedly."
+  (let ((response (company-coq-with-current-buffer-maybe proof-response-buffer
+                    (buffer-string))))
+    (or (unless (string= response (symbol-value cache-var))
+          (set cache-var response)
+          (string-match-p regexp response))
+        (company-coq-boundp-string-match-p regexp 'proof-shell-last-output))))
+
+(defvar company-coq-shell-output-is-end-of-def-response-cache nil
+  "Contents of response buffer.
+Updated when `company-coq-shell-output-is-end-of-def' is called.")
+
 (defun company-coq-shell-output-is-end-of-def ()
   "Check output of the last command against `company-coq-end-of-def-regexp'."
-  (company-coq-boundp-string-match company-coq-end-of-def-regexp 'proof-shell-last-output))
+  (company-coq-test-output-or-response company-coq-end-of-def-regexp 'company-coq-shell-output-is-end-of-def-response-cache))
+
+(defvar company-coq-shell-output-is-error-response-cache nil
+  "Last contents of response buffer.
+Updated when `company-coq-shell-output-is-error' is called.")
+
+(defun company-coq-shell-output-is-error ()
+  "Check whether proof-general signaled an error."
+  (company-coq-test-output-or-response company-coq-error-regexp 'company-coq-shell-output-is-error-response-cache))
 
 (defun company-coq-shell-output-is-end-of-proof ()
   "Check whether proof-general signaled a finished proof."
   proof-shell-proof-completed)
-
-(defun company-coq-shell-output-is-error ()
-  "Check whether proof-general signaled an error."
-  (company-coq-boundp-string-match company-coq-error-regexp 'proof-shell-last-output))
 
 (defun company-coq-warn (message &rest args)
   "Show a warning MESSAGE, formatted with ARGS."
@@ -1710,8 +1730,8 @@ If CLEAR is non-nil, clear all caches."
 (defun company-coq-maybe-proof-output-reload-things ()
   "Parse output of prover, looking for signals that things need to be reloaded, and reload them."
   (interactive)
-  (company-coq-dbg "company-coq-maybe-proof-output-reload-things: Called")
   (unless company-coq-talking-to-prover
+    (company-coq-dbg "company-coq-maybe-proof-output-reload-things: last output is [%S]." proof-shell-last-output)
     (let ((is-error         (company-coq-shell-output-is-error))
           (is-end-of-def    (company-coq-shell-output-is-end-of-def))
           (is-end-of-proof  (company-coq-shell-output-is-end-of-proof)))
@@ -1729,13 +1749,13 @@ If CLEAR is non-nil, clear all caches."
   "Parse output of prover, looking for signals that things need to be reloaded.
 Nothing is reloaded immediately; instead the relevant flags are set."
   (interactive)
-  (company-coq-dbg "company-coq-maybe-proof-input-reload-things: Called")
   (unless company-coq-talking-to-prover
+    (company-coq-dbg "company-coq-maybe-proof-input-reload-things: Called")
     (let* ((is-advancing  (company-coq-boundp-equal 'action 'proof-done-advancing))
            (is-retracting (company-coq-boundp-equal 'action 'proof-done-retracting))
-           (is-tac-not    (and is-advancing (company-coq-boundp-string-match company-coq-tac-notation-regexp 'string)))
-           (is-import     (and is-advancing (company-coq-boundp-string-match company-coq-import-regexp 'string)))
-           (is-load       (and is-advancing (company-coq-boundp-string-match company-coq-load-regexp   'string))))
+           (is-tac-not    (and is-advancing (company-coq-boundp-string-match-p company-coq-tac-notation-regexp 'string)))
+           (is-import     (and is-advancing (company-coq-boundp-string-match-p company-coq-import-regexp 'string)))
+           (is-load       (and is-advancing (company-coq-boundp-string-match-p company-coq-load-regexp   'string))))
       (when is-retracting (company-coq-dbg "company-coq-maybe-proof-input-reload-things: Rewinding"))
       (when is-import     (company-coq-dbg "company-coq-maybe-proof-input-reload-things: New import"))
       (when is-load       (company-coq-dbg "company-coq-maybe-proof-input-reload-things: Touching load path"))
@@ -4685,10 +4705,11 @@ If non-nil, alerts are not displayed.")
 (defun company-coq-features/alerts--alert-body ()
   "Compute body of notification."
   (company-coq-features/alerts--truncate
-   (or (and proof-response-buffer
-            (with-current-buffer proof-response-buffer
-              (buffer-substring-no-properties (point-min) (point-max))))
+   (or (company-coq-with-current-buffer-maybe proof-response-buffer
+         (buffer-substring-no-properties (point-min) (point-max)))
        (pcase proof-shell-last-output-kind
+         ;; Ok to use last-output here despite Coq-mode's swallowing, as we
+         ;; looked at response buffer first
          (`error proof-shell-last-output)
          (_      proof-shell-last-response-output))
        "")))
