@@ -4291,17 +4291,24 @@ each block).")
   "Face used to change numbers to subscripts in hypothese names."
   :group 'company-coq-faces)
 
+(defmacro company-coq--with-point-at-click (evt &rest body)
+  "Set buffer, window, and point from EVT, then run BODY."
+  (declare (indent defun)
+           (debug t))
+  `(let* ((--position (event-start ,evt))
+          (--window (posn-window --position))
+          (--buffer (window-buffer --window)))
+     (with-selected-window --window
+       (with-current-buffer --buffer
+         (goto-char (posn-point --position))
+         ,@body))))
+
 (defun company-coq-features/code-folding--click-bullet (event)
   "Fold or unfold bullet at beginning of clicked line.
 EVENT is the corresponding mouse event."
   (interactive "e")
-  (let* ((position (event-start event))
-         (window (posn-window position))
-         (buffer (window-buffer window)))
-    (with-selected-window window
-      (with-current-buffer buffer
-        (goto-char (posn-point position))
-        (company-coq-features/code-folding-toggle-bullet-at-point)))))
+  (company-coq--with-point-at-click event
+    (company-coq-features/code-folding-toggle-bullet-at-point)))
 
 (defun company-coq-features/code-folding-toggle-bullet-at-point (&optional beg fold-or-unfold)
   "Fold or unfold bullet at point.
