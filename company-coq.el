@@ -162,6 +162,7 @@ forward-declare; instead, check that the declaration is valid."
   (company-coq-forward-declare-var proof-shell-last-goals-output)
   (company-coq-forward-declare-var proof-shell-last-response-output)
   (company-coq-forward-declare-var proof-shell-delayed-output-flags)
+  (company-coq-forward-declare-var pg-span-context-menu-keymap)
   (company-coq-forward-declare-var coq-mode-map)
   (company-coq-forward-declare-var coq-reserved)
   (company-coq-forward-declare-var coq-user-cheat-tactics-db)
@@ -4330,33 +4331,28 @@ unfolding; otherwise, toggle."
        ((eq fold-or-unfold 'unfold) (hs-show-block))
        ((eq fold-or-unfold 'fold) (hs-hide-block-at-point))))))
 
-(defun company-coq-features/code-folding--keymap ()
-  "Compute a keymap for bullets.
-Explicitly copies `coq-mode-map' to mitigate the fact that it
-will be used as a local-map."
-  (let ((map (copy-keymap coq-mode-map)))
+(defconst company-coq-features/code-folding--keymap
+  (let ((map (make-sparse-keymap)))
     (define-key map (kbd "<mouse-1>") #'company-coq-features/code-folding--click-bullet)
     (define-key map (kbd "RET") #'company-coq-features/code-folding-toggle-bullet-at-point)
-    map))
+    map)
+  "Keymap for bullets.")
 
-(defvar company-coq-features/code-folding--bullet-fl-face nil
+(defconst company-coq-features/code-folding--bullet-fl-spec
+  `(face company-coq-features/code-folding-bullet-face
+         front-sticky nil
+         rear-nonsticky t
+         mouse-face highlight
+         keymap ,company-coq-features/code-folding--keymap
+         help-echo "Click (or press RET on) this bullet to hide or show its body.")
   "Display spec for bullets.
-Populated by `company-coq-features/code-folding--update-bullet-spec'.")
-
-(defun company-coq-features/code-folding--update-bullet-spec ()
-  "Update `company-coq-features/code-folding--bullet-fl-face'.
-Needed because loading `coq' is not enough to get `coq-mode-map'
-fully populated.  The spec uses local-map instead of keymap,
-because it needs to take precedence over PG's own keymaps,
-introduced by the overlays that it adds after processing a buffer
-section."
-  (setq company-coq-features/code-folding--bullet-fl-face
-        `(face company-coq-features/code-folding-bullet-face
-               front-sticky nil
-               rear-nonsticky t
-               mouse-face highlight
-               local-map ,(company-coq-features/code-folding--keymap)
-               help-echo "Click (or press RET on) this bullet to hide or show its body.")))
+Using the keymap property works only if
+`pg-span-context-menu-keymap' is set to nil.  Otherwise PG's
+overlays take priority, and the code-folding keymap is ignored.
+To override that, this code used to used local-map instead of a
+keymap; and since it was a local map it had to copy
+`coq-mode-map', which wasn't loaded at `require' time, so it had
+to be a defun.")
 
 (defun company-coq-features/code-folding--really-on-bullet-p (point)
   "Check if POINT is on a bullet."
@@ -4497,9 +4493,10 @@ interactive use."
   (when (memq this-command company-coq-features/code-folding--unfolding-commands)
     (mapc #'delete-overlay (company-coq-features/code-folding--folding-overlays-at (point)))))
 
-(defconst company-coq-features/code-folding--bullet-fl-spec
-  `((,(apply-partially #'company-coq-features/code-folding--next-bullet #'re-search-forward company-coq-features/code-folding--hs-regexp)
-     1 company-coq-features/code-folding--bullet-fl-face nil))
+(defconst company-coq-features/code-folding--bullet-fl-keywords
+  `((,(apply-partially #'company-coq-features/code-folding--next-bullet
+                       #'re-search-forward company-coq-features/code-folding--hs-regexp)
+     1 company-coq-features/code-folding--bullet-fl-spec nil))
   "Font-lock spec for bullets.")
 
 (defcustom company-coq-features/code-folding-ellipsis " […]"
@@ -4521,14 +4518,13 @@ Suggested values: […] [⤶] [↲] [▶] [⏩] [▸]."
                           (vconcat (mapcar (lambda (c) (make-glyph-code c 'company-coq-features/code-folding-ellipsis-face))
                                            company-coq-features/code-folding-ellipsis))))
 
-(defun company-coq-features/code-folding--set-up-font-lock ()
+(defun company-coq--set-up-font-lock-for-links ()
   "Configures font-lock to highlight bullets and braces."
   (make-local-variable 'font-lock-extra-managed-props)
   (add-to-list 'font-lock-extra-managed-props 'front-sticky)
   (add-to-list 'font-lock-extra-managed-props 'rear-nonsticky)
   (add-to-list 'font-lock-extra-managed-props 'mouse-face)
-  (add-to-list 'font-lock-extra-managed-props 'local-map)
-  (font-lock-add-keywords nil company-coq-features/code-folding--bullet-fl-spec 'add))
+  (add-to-list 'font-lock-extra-managed-props 'local-map))
 
 (defcustom company-coq-initial-fold-state nil
   "Initial folding state of Coq buffers.
@@ -4565,9 +4561,11 @@ bullets and curly braces."
      (company-coq-do-in-coq-buffers
        (hs-minor-mode)
        (setq-local hs-allow-nesting t)
-       (company-coq-features/code-folding--set-up-font-lock)
        (company-coq-features/code-folding--set-display-table)
-       (company-coq-features/code-folding--update-bullet-spec)
+       (progn ;; Prevent PG's overlays from capturing clicks on processed spans.
+         (setq-local pg-span-context-menu-keymap nil))
+       (company-coq--set-up-font-lock-for-links)
+       (font-lock-add-keywords nil company-coq-features/code-folding--bullet-fl-keywords 'add)
        (add-hook 'post-command-hook #'company-coq-features/code-folding--unfold-at-point t t)
        (add-hook 'hack-local-variables-hook #'company-coq-features/code-folding-reset-to-initial-state nil t)
        (company-coq-request-refontification)))
@@ -4577,7 +4575,8 @@ bullets and curly braces."
        (hs-minor-mode -1)
        (kill-local-variable 'hs-allow-nesting)
        (kill-local-variable 'buffer-display-table)
-       (font-lock-remove-keywords nil company-coq-features/code-folding--bullet-fl-spec)
+       (kill-local-variable 'pg-span-context-menu-keymap)
+       (font-lock-remove-keywords nil company-coq-features/code-folding--bullet-fl-keywords)
        (remove-hook 'post-command-hook #'company-coq-features/code-folding--unfold-at-point t)
        (remove-hook 'hack-local-variables-hook #'company-coq-features/code-folding-reset-to-initial-state t)
        (company-coq-request-refontification)))))
