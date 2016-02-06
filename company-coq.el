@@ -355,6 +355,8 @@ impossible, for example in `proof-shell-insert-hook'")
 (defconst company-coq-prefix-regexp "\\(?:[a-zA-Z0-9_][a-zA-Z0-9_.'!]*\\)?") ;; '!' included for patterns like [intros!]
 (defconst company-coq-symbol-regexp "\\(?:[a-zA-Z]\\(?:[a-zA-Z0-9_.']*[a-zA-Z0-9_']\\)?\\)")
 (defconst company-coq-symbol-regexp-no-numbers "\\(?:[a-zA-Z]\\(?:[a-zA-Z0-9_.']*[a-zA-Z]\\)?\\)")
+(defconst company-coq-module-chunk-regexp "\\(?:[A-Z][a-zA-Z0-9_]*\\)")
+(defconst company-coq-module-name-regexp (concat company-coq-module-chunk-regexp "\\(?:\\." company-coq-module-chunk-regexp "\\)*"))
 
 (defconst company-coq-all-symbols-slow-regexp (concat "^\\(" company-coq-symbol-regexp "\\):")
   "Regexp matching symbol names in search results.")
@@ -454,7 +456,10 @@ The result matches any symbol in HEADERS, followed by BODY."
 (defconst company-coq-locate-lib-cmd "Locate Library %s."
   "Command used to retrieve the qualified name of a library (to locate the corresponding source file).")
 
-(defconst company-coq-locate-lib-output-format "\\`\\(.*\\)\\s-*has\\s-*been\\s-*loaded\\s-*from\\s-*file\\s-*\\(.*\\.vi?o\\)"
+(defconst company-coq-locate-lib-output-format (replace-regexp-in-string
+                                     " " "[[:space:]]+"
+                                     (concat "\\`\\(" company-coq-module-name-regexp "\\)"
+                                             " \\(has been loaded from\\|is bound to\\) file \\(.*\\)\\.vi?o"))
   "Regexp matching the output of `company-coq-locate-lib-cmd'.")
 
 (defconst company-coq-compiled-regexp "\\.vi?o\\'"
@@ -1964,7 +1969,7 @@ to a non-existent file (for an example of such a case, try
            (output   (company-coq-ask-prover-swallow-errors (format company-coq-locate-lib-cmd lib-name))))
       (or (and output (save-match-data
                         (when (string-match company-coq-locate-lib-output-format output)
-                          (replace-regexp-in-string "\\.vi?o\\'" ".v" (match-string-no-properties 2 output)))))
+                          (concat (match-string-no-properties 2 output) ".v"))))
           (and fallback-spec (expand-file-name (concat mod-name ".v") (cdr fallback-spec)))))))
 
 (defun company-coq--locate-name (name functions)
