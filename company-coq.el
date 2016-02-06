@@ -461,7 +461,8 @@ The result matches any symbol in HEADERS, followed by BODY."
 (defconst company-coq-locate-lib-output-format (replace-regexp-in-string
                                      " " "[[:space:]]+"
                                      (concat "\\`\\(" company-coq-module-name-regexp "\\)"
-                                             " \\(has been loaded from\\|is bound to\\) file \\(.*\\)\\.vi?o"))
+                                             " \\(?:has been loaded from\\|is bound to\\) file "
+                                             "\\([^[:space:]]+\\)\\(\\.[^[:space:].]+\\)"))
   "Regexp matching the output of `company-coq-locate-lib-cmd'.")
 
 (defconst company-coq-compiled-regexp "\\.vi?o\\'"
@@ -1985,7 +1986,8 @@ to a non-existent file (for an example of such a case, try
     (let* ((lib-name (concat lib-path mod-name))
            (output   (company-coq-ask-prover-swallow-errors (format company-coq-locate-lib-cmd lib-name))))
       (or (and output (save-match-data
-                        (when (string-match company-coq-locate-lib-output-format output)
+                        (when (and (string-match company-coq-locate-lib-output-format output)
+                                   (string-match-p company-coq-compiled-regexp (match-string-no-properties 3 output)))
                           (concat (match-string-no-properties 2 output) ".v"))))
           (and fallback-spec (expand-file-name (concat mod-name ".v") (cdr fallback-spec)))))))
 
@@ -2043,7 +2045,7 @@ Returns a cons as specified by `company-coq--locate-name'."
       (company-coq--loc-with-regexp parent "Locate %s." '("Inductive")))))
 
 (defun company-coq--loc-module (module)
-  "Find the fully qualified name of MODULE.
+  "Find the location of MODULE.
 FIXME more docs"
   (let ((candidates (company-coq-candidates-modules module)))
     (cl-loop for candidate in candidates
@@ -4835,7 +4837,7 @@ Add a link to unification errors to show a diff."
     (`on (company-coq--listen-for-output #'company-coq-features/error-diffs--add-link))
     (`off (company-coq--unlisten-for-output #'company-coq-features/error-diffs--add-link))))
 
-(defun company-coq-features/refactorings--reqs-compute-module-name (mod-name)
+(defun company-coq-features/refactorings--reqs-compute-module-fqn (mod-name)
   "Find fully qualified name of MOD-NAME.
 In case of error return a cons (error . ERROR-MSG)"
   (save-match-data
@@ -4863,7 +4865,7 @@ Use overlays to display fully qualified names."
     (set-marker end-m limit)
     (while (re-search-forward company-coq-module-name-regexp end-m t)
       (let* ((rel-name (match-string 0))
-             (abs-name (company-coq-features/refactorings--reqs-compute-module-name rel-name)))
+             (abs-name (company-coq-features/refactorings--reqs-compute-module-fqn rel-name)))
         (unless (equal rel-name abs-name)
           (let ((ov (company-coq-features/refactorings--reqs-add-overlay
                      (match-beginning 0) (match-end 0) abs-name)))
