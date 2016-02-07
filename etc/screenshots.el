@@ -70,11 +70,12 @@
                       (format "%s.%s" name ext))
                     "img"))
 
-(defun my/save-screenshot (name width-spec gravity &optional ext frame-id)
+(defun my/save-screenshot (name width-spec gravity include-children &optional ext frame-id)
   (force-window-update)
   (redisplay t)
   (let ((png-fname (my/frame-file-name name "png" frame-id)))
-    (process-lines "import" "-window" (my/x-window-id) png-fname)
+    ;; The -screen flag captures children windows too
+    (apply #'process-lines `("import" ,@(when include-children "-screen") "-window" ,(my/x-window-id) ,png-fname))
     (apply #'process-lines
            "mogrify" "-strip" "-matte"
            "-bordercolor" (face-attribute 'fringe :background) "-border" (format "0x%d" my/fringe-width)
@@ -89,7 +90,7 @@
                              "-extent" (format "%dx%d" target-width (+ frame-h (* 2 my/fringe-width))))))
                    (list png-fname)))
     (unless (member ext '(nil "png"))
-      ;; We always produce a PNG copy of the file in addition to the requested
+      ;; We always produce a PNG original of the file in addition to the requested
       ;; one, so if the extension wasn't PNG we need an extra conversion here
       (process-lines "convert" png-fname (my/frame-file-name name ext frame-id)))
     (when gravity
@@ -135,12 +136,12 @@
                                   (setq default-directory --dir--)))
                    body)))))
 
-(defmacro my/with-screenshot (frame-w-spec frame-h-columns gravity buf-name capture-prefix &rest body)
+(defmacro my/with-screenshot (frame-w-spec frame-h-columns include-children gravity buf-name capture-prefix &rest body)
   (declare (indent defun))
   `(progn
      (my/with-coq-buffer-and-stable-windows ,frame-w-spec ,frame-h-columns ,buf-name ,capture-prefix
        ,@body)
-     (my/save-screenshot ,capture-prefix ,frame-w-spec ,gravity)
+     (my/save-screenshot ,capture-prefix ,frame-w-spec ,gravity ,include-children)
      (ignore-errors (proof-shell-exit t))))
 
 (eval-and-compile
@@ -169,16 +170,16 @@
 
 (defvar my/screencast-frame-id nil)
 
-(defun my/save-screencast-frame (name width-factor gravity)
-  (my/save-screenshot name width-factor gravity "gif" my/screencast-frame-id)
+(defun my/save-screencast-frame (name width-factor gravity include-children)
+  (my/save-screenshot name width-factor gravity include-children "gif" my/screencast-frame-id)
   (cl-incf my/screencast-frame-id))
 
-(defmacro my/with-screencast (frame-w-spec frame-h-columns gravity frame-duration last-frame-repeats buf-name capture-prefix &rest body)
+(defmacro my/with-screencast (frame-w-spec frame-h-columns include-children gravity frame-duration last-frame-repeats buf-name capture-prefix &rest body)
   (declare (indent defun))
   `(progn
      (my/with-coq-buffer-and-stable-windows ,frame-w-spec ,frame-h-columns ,buf-name ,capture-prefix
        (setq my/screencast-frame-id 0)
-       ,@(-mapcat (lambda (form) `(,form (my/save-screencast-frame ,capture-prefix ,frame-w-spec ,gravity)))
+       ,@(-mapcat (lambda (form) `(,form (my/save-screencast-frame ,capture-prefix ,frame-w-spec ,gravity ,include-children)))
                   (my/compile-screencast-dsl body)))
      (let ((last-frame (1- my/screencast-frame-id)))
        ;; repeat last frame to lengthen final image

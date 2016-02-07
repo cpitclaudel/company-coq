@@ -89,17 +89,17 @@
 ;; (set-fontset-font t 'unicode "Ubuntu Mono")
 ;; (set-fontset-font t 'unicode "Symbola Monospacified for Ubuntu Mono" nil 'append)
 
-;; (my/with-screenshot '(nil . 1280) 10 nil "Context-sensitive autocompletion with holes" "coq-pl-16-autocompletion"
+;; (my/with-screenshot '(nil . 1280) 10 nil nil "Context-sensitive autocompletion with holes" "coq-pl-16-autocompletion"
 ;;   (insert "appin")
 ;;   (my/send-keys "<C-return>"))
 
-;; (my/with-screenshot '(nil . 1280) 17 nil "Offline documentation" "coq-pl-16-documentation"
+;; (my/with-screenshot '(nil . 1280) 17 nil nil "Offline documentation" "coq-pl-16-documentation"
 ;;   (insert "appin")
 ;;   (my/send-keys "<C-return> C-h")
 ;;   (with-current-buffer company-coq--doc-buffer
 ;;     (text-scale-decrease 2)))
 
-;; (my/with-screenshot '(nil . 1280) 13 nil "Point and click documentation" "coq-pl-16-point-and-click"
+;; (my/with-screenshot '(nil . 1280) 13 nil nil "Point and click documentation" "coq-pl-16-point-and-click"
 ;;   (my/start-pg-no-windows)
 ;;   (my/insert-with-point "<|>plus\n")
 ;;   (my/send-keys "<menu>"))
@@ -110,12 +110,12 @@
 
 ;; Without | With
 
-(my/with-screenshot my/github-width/2 6 "west" "Prettification of math symbols (enabled)." "prettify"
+(my/with-screenshot my/github-width/2 6 nil "west" "Prettification of math symbols (enabled)." "prettify"
   (insert "Definition PrettySymbols : (nat -> nat -> Prop) :=
   (fun (n1 n2: nat) =>
      forall p, p <> n1 -> p >= n2 -> True \\/ False)."))
 
-(my/with-screenshot my/github-width/2 6 "east" "Prettification of math symbols (disabled)." "prettify-disabled"
+(my/with-screenshot my/github-width/2 6 nil "east" "Prettification of math symbols (disabled)." "prettify-disabled"
   (company-coq-features/prettify-symbols -1)
   (insert "Definition PrettySymbols : (nat -> nat -> Prop) :=
   (fun (n m: nat) =>
@@ -128,13 +128,13 @@
 
 ;; Tactics withs docs | Options with docs
 
-(my/with-screenshot my/github-width/2 18 "west" "Auto-completion of tactics, with documentation." "refman-tactics"
+(my/with-screenshot my/github-width/2 18 nil "west" "Auto-completion of tactics, with documentation." "refman-tactics"
   (insert "inve")
   (setq-local company-tooltip-limit 5)
   (split-window-vertically 8)
   (my/send-keys "<C-return> C-h"))
 
-(my/with-screenshot my/github-width/2 18 "east" "Auto-completion of commands, with documentation." "refman-commands"
+(my/with-screenshot my/github-width/2 18 nil "east" "Auto-completion of commands, with documentation." "refman-commands"
   (insert "SetA")
   (setq-local company-tooltip-limit 5)
   (split-window-vertically 8)
@@ -142,7 +142,7 @@
 
 ;; Local | Modules
 
-(my/with-screenshot my/github-width/2 13 "west" "Auto-completion of local definitions." "defun-completion"
+(my/with-screenshot my/github-width/2 13 nil "west" "Auto-completion of local definitions." "defun-completion"
   (insert "Theorem MyVeryOwnTheorem : True. Proof. apply I. Qed.
 Definition MyVeryOwnDefinition : nat -> Type. Proof. apply (fun _ => nat). Defined.
 Lemma MyVeryOwnLemma : 1 + 1 >= 2. Proof. auto. Qed.
@@ -151,14 +151,14 @@ Example MyVeryOwnExample : forall p, False -> p. Proof. tauto. Qed.")
   (insert "\n\nMyV")
   (my/send-keys "<C-return>"))
 
-(my/with-screenshot my/github-width/2 13 "east" "Auto-completion of module names." "modules-completion"
+(my/with-screenshot my/github-width/2 13 nil "east" "Auto-completion of module names." "modules-completion"
   (my/start-pg-no-windows)
   (insert "Require Import Co.N.Cy.Abs.")
   (my/send-keys "<C-return>"))
 
 ;; Hyps | Search | Unicode
 
-(my/with-screenshot my/github-width/3 16 "west" "Auto-completion of hypotheses." "hypotheses-completion"
+(my/with-screenshot my/github-width/3 16 nil "west" "Auto-completion of hypotheses." "hypotheses-completion"
   (my/start-pg-no-windows)
   (my/insert-with-point "Goal forall (myVar1 myVar2 myVar3: nat), nat.
 Proof.
@@ -167,7 +167,7 @@ Proof.
   (my/send-keys "C-c <C-return>")
   (my/send-keys "C-x 1 M-> <C-return>"))
 
-(my/with-screenshot my/github-width/3 16 "center" "Auto-completion of search results." "search-completion"
+(my/with-screenshot my/github-width/3 16 nil "center" "Auto-completion of search results." "search-completion"
   (my/start-pg-no-windows)
   (my/insert-with-point "Require Import NArith.
 Import Plus.
@@ -182,13 +182,13 @@ plus_")
     (visual-line-mode -1))
   (my/send-keys "M-> <C-return>"))
 
-(my/with-screenshot my/github-width/3 16 "east" "Insertion of Unicode symbols." "math-completion"
+(my/with-screenshot my/github-width/3 16 nil "east" "Insertion of Unicode symbols." "math-completion"
   (insert "forall α \\bet")
   (my/send-keys "<C-return>"))
 
 ;; Tactic notations | Source view
 
-(my/with-screenshot my/github-width/3 13 "west" "Auto-completion of user-defined tactic notations." "ltac-completion"
+(my/with-screenshot my/github-width/3 13 nil "west" "Auto-completion of user-defined tactic notations." "ltac-completion"
   (my/start-pg-no-windows)
   (toggle-truncate-lines 1) ;; 55 119
   (message nil)
@@ -205,7 +205,7 @@ myR")
   (my/send-keys "C-x 1 M-< M-> <C-return>")
   (set-window-start nil 1))
 
-(my/with-screenshot my/github-width*2/3 13 "east" "Source browser (w/ patch)." "source-view"
+(my/with-screenshot my/github-width*2/3 13 nil "east" "Source browser (w/ patch)." "source-view"
   (my/start-pg-no-windows)
   (my/insert-with-point "Require Import Arith.
 <|>le")
@@ -223,7 +223,7 @@ myR")
 
 ;; Deprecated | Titles in comments | Inline docs
 
-(my/with-screencast my/github-width/3 13 "west" 60 1 "Inline docs (C-Click, M-F12)." "inline-docs"
+(my/with-screencast my/github-width/3 13 nil "west" 60 1 "Inline docs (C-Click, M-F12)." "inline-docs"
   (progn
     (my/start-pg-no-windows)
     (company-coq-ask-prover "Set Printing Width 40.")
@@ -234,7 +234,7 @@ myR")
   (ignore)
   "<menu>")
 
-(my/with-screenshot my/github-width/3 13 "center" "Special comments for titles." "titles"
+(my/with-screenshot my/github-width/3 13 nil "center" "Special comments for titles." "titles"
   (progn
     (company-coq-features/smart-subscripts 'off)
     (insert "(***    H1 title    ***)
@@ -258,7 +258,7 @@ myR")
 
 (company-coq-features/smart-subscripts 'on)
 
-(my/with-screenshot my/github-width/3 13 "east" "Highlighting of deprecated forms." "deprecated"
+(my/with-screenshot my/github-width/3 13 nil "east" "Highlighting of deprecated forms." "deprecated"
   (my/insert-with-point "Set Undo 1.
 SearchAbout True.
 cutrewrite -> (1 + 1 = 2).
@@ -270,7 +270,7 @@ assert (x := y).")
 
 ;; Error diffs | Documentation of errors
 
-(my/with-screenshot my/github-width/2 16 "west" "Diff of unification errors (C-c C-a C-d)." "unification"
+(my/with-screenshot my/github-width/2 16 nil "west" "Diff of unification errors (C-c C-a C-d)." "unification"
   (my/start-pg-no-windows)
   (my/insert-with-point "Inductive Tree {T} :=
 | Leaf : T -> Tree
@@ -312,7 +312,7 @@ exact pr.")
         (set-window-buffer nil "*unification-diff*")
         (message nil)))))
 
-(my/with-screenshot my/github-width/2 16 "east" "Documentation of errors (C-c C-a C-e)." "errors-doc"
+(my/with-screenshot my/github-width/2 16 nil "east" "Documentation of errors (C-c C-a C-e)." "errors-doc"
   (my/start-pg-no-windows)
   (my/insert-with-point "Require Import Omega.
 Goal forall n: nat, exists m, n = m.
@@ -332,7 +332,7 @@ Goal forall n: nat, exists m, n = m.
 ;; Outlines | Code folding | Go to source
 ;; TODO: outline could be thinner, leaving space for something else (what?)
 
-(my/with-screenshot my/github-width/3 18 "west" "Buffer outlines (C-c C-,)." "outline"
+(my/with-screenshot my/github-width/3 18 nil "west" "Buffer outlines (C-c C-,)." "outline"
   (insert-file-contents "/usr/local/lib/coq/theories/Arith/Plus.v")
   (rename-buffer "Plus.v")
   (progn
@@ -345,7 +345,7 @@ Goal forall n: nat, exists m, n = m.
           (delete-char 4))))
     (message nil)))
 
-(my/with-screencast my/github-width/3 18 "center" 50 1 "Code folding (S-tab, C-c C-/)." "folding"
+(my/with-screencast my/github-width/3 18 nil "center" 50 1 "Code folding (S-tab, C-c C-/)." "folding"
   (my/insert-with-point "<|>Goal forall a b c d e: Prop,
   a -> b -> c -> d -> e ->
   (a /\\ b) /\\ (c /\\ (d /\\ e)).
@@ -377,7 +377,7 @@ Qed.")
   "M-<"
   "C-c C-/" "C-c C-/ C-c C-/" "C-c C-\\" "C-c C-\\ C-c C-\\");; HACK due to incorrect last-command
 
-(my/with-screencast my/github-width/3 18 "center" 100 0 "Jump to definition (M-.)." "jump-to-definition"
+(my/with-screencast my/github-width/3 18 nil "center" 100 0 "Jump to definition (M-.)." "jump-to-definition"
   (progn (my/insert-with-point "Require Import Coq.Logic.Eqdep_dec.
 Require Import Coq.Arith.Peano_dec.
 
@@ -415,7 +415,7 @@ Qed.")
 
 ;; Snippets | Match snippets | Smart intros
 
-(my/with-screencast my/github-width/3 13 "west" 20 8 "Match snippets (M-RET, C-c C-a RET)." "match-function"
+(my/with-screencast my/github-width/3 13 nil "west" 20 8 "Match snippets (M-RET, C-c C-a RET)." "match-function"
   (my/start-pg-no-windows)
 
   (:split "Fixpoint nsum l :=") "RET"
@@ -429,12 +429,12 @@ Qed.")
   (progn (company-coq-insert-match-construct "list") (message nil))
   (:split "l") "TAB" (:split "0") "TAB" (:split "x + nsum x0") "M->" ".")
 
-(my/with-screencast my/github-width/3 13 "center" 20 8 "Match goal snippets (M-S-RET)." "match-goal"
+(my/with-screencast my/github-width/3 13 nil "center" 20 8 "Match goal snippets (M-S-RET)." "match-goal"
   (:split "mgw") "<C-return>" "<C-return> RET"
   "<M-S-return>" "TAB" (:split "?a /\\ ?b") "TAB" (:split "?a") "TAB" "RET"
   (:split "destr") "<C-return>" "<C-return> RET" (:split "H; ass") "<C-return>" "<C-return> RET" "M->" ".")
 
-(my/with-screencast my/github-width/3 13 "east" 20 8 "Smart intros." "smart-intros"
+(my/with-screencast my/github-width/3 13 nil "east" 20 8 "Smart intros." "smart-intros"
   (progn
     (my/start-pg-no-windows)
     (insert "Goal forall x y z: nat,
