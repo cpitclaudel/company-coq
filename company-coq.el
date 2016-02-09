@@ -198,7 +198,7 @@ It isn't available in old versions of PG."
 (unless (require 'proof-site nil t)
   ;; No others `require's at this point: we don't want to start PG's machinery
   ;; just because a user `require'd company-coq.
-  (error "Company-coq: Unable to load proof-site.  Is Proof General installed properly?"))
+  (error "Company-Coq: Unable to load proof-site.  Is Proof General installed properly?"))
 
 (defgroup company-coq nil
   "Extensions for Proof General's Coq mode."
@@ -206,12 +206,12 @@ It isn't available in old versions of PG."
   :group 'company)
 
 (defgroup company-coq-obsolete nil
-  "Company-coq obsolete settings."
+  "Company-Coq obsolete settings."
   :prefix "company-coq-"
   :group 'company-coq)
 
 (defgroup company-coq-faces nil
-  "Company-coq faces."
+  "Company-Coq faces."
   :prefix "company-coq-"
   :group 'company-coq)
 
@@ -3979,7 +3979,7 @@ Shows a greeting when company-coq starts."
   (company-coq--keybindings-minor-mode -1))
 
 (company-coq-define-feature keybindings (arg)
-  "Company-coq keybindings.
+  "Company-Coq keybindings.
 Activates `company-coq-map', a keymap containing many shortcuts
 to commonly used company-coq features."
   (pcase arg
@@ -5334,15 +5334,15 @@ Must be tagged risky to display properly.")
 (define-minor-mode company-coq-mode
   "Toggle company-coq-mode on or off.
 
-With a prefix argument ARG, enable %s if ARG is
-positive, and disable it otherwise.  If called from Lisp, enable
-the mode if ARG is omitted or nil, and toggle it if ARG is `toggle'.
-
-Company-coq is a collection of Proof-General extensions.  See
+Company-Coq is a collection of Proof-General extensions.  See
 https://github.com/cpitclaudel/company-coq/ for a detailed
 description, including screenshots and documentation.  First time
 users may want to use \\[company-coq-tutorial] to open the
 tutorial.
+
+With a prefix argument ARG, enable %s if ARG is
+positive, and disable it otherwise.  If called from Lisp, enable
+the mode if ARG is omitted or nil, and toggle it if ARG is `toggle'.
 
 \\{company-coq-map}"
   :lighter company-coq--lighter-var
@@ -5352,7 +5352,7 @@ tutorial.
   (if company-coq-mode
       (if (company-coq-coq-mode-p)
           (company-coq-toggle-features (company-coq-enabled-features) t)
-        (user-error "Company-coq only works with coq-mode"))
+        (user-error "Company-Coq only works with `coq-mode'"))
     (company-coq-toggle-features (company-coq-enabled-features) nil)))
 
 ;;;###autoload
