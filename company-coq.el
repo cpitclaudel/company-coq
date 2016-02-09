@@ -1950,18 +1950,20 @@ KILL: See `quit-window'."
            (car (company-coq--get-comment-region)))
       (point)))
 
-(defun company-coq-search-then-scroll-up (target highlight-p)
+(defun company-coq-search-then-scroll-up (target fallback highlight-p)
   "Find a match for TARGET, then return a good point to scroll to.
 Returns a point before that definition: it can be a few lines
 higher or, if that's inside a comment, at the beginning of the
-comment.  If target is nil, go to the top.  If HIGHLIGHT-P is
-non-nil, highlight the definition."
+comment.  If target is nil, go to the top.  If target can't be
+found, look for FALLBACK instead.  If HIGHLIGHT-P is non-nil,
+highlight the definition."
   (save-excursion
     (if (or (and (number-or-marker-p target)
                  (goto-char target))
             (and (stringp target)
                  (goto-char (point-min))
-                 (re-search-forward target nil t)))
+                 (or (re-search-forward target nil t)
+                     (re-search-forward fallback nil t))))
         (progn (when highlight-p
                  (company-coq-make-title-line 'company-coq-doc-header-face-docs-and-sources t))
                (when (and (stringp target) (match-beginning 2))
@@ -2000,7 +2002,7 @@ Once location of NAME is found look for TARGET in it."
           (coq-mode)
           (company-coq-mode)
           (cons (current-buffer)
-                (company-coq-align-to (company-coq-search-then-scroll-up target t)))))))
+                (company-coq-align-to (company-coq-search-then-scroll-up target (when target name) t)))))))
 
 (defun company-coq-longest-matching-path-spec (qname)
   "Find the longest logical name matching QNAME.
@@ -2105,13 +2107,12 @@ INTERACTIVE, complain loudly if the location of NAME cannot be
 determined."
   (company-coq-dbg "company-coq-location-source: Called for [%s]" name)
   (pcase (company-coq--locate-name name fqn-functions)
-    (`(,fname . ,target)
-     (funcall display-fun target fname))
+    (`(,fname . ,target) (funcall display-fun target fname name))
     (_ (company-coq--maybe-complain-docs-not-found interactive "location" name))))
 
-(defun company-coq-location-source-1 (target location)
+(defun company-coq-location-source-1 (target location fallback)
   "Show TARGET in LOCATION."
-  (company-coq-location-simple (propertize target 'location location) target))
+  (company-coq-location-simple (propertize fallback 'location location) target))
 
 (defun company-coq-location-source (name fqn-functions)
   "Show the definition of NAME in source context.
@@ -2151,7 +2152,7 @@ FQN-FUNCTIONS: see `company-coq-locate-internal'."
 ;;                            nil nil 'company-coq-location-history (company-coq-symbol-at-point) t)
 ;;           t)))
 
-(defun company-coq-jump-to-definition-1 (target location)
+(defun company-coq-jump-to-definition-1 (target location fallback)
   "Jump to TARGET in LOCATION."
   (cond
    ((bufferp location)
@@ -2159,7 +2160,7 @@ FQN-FUNCTIONS: see `company-coq-locate-internal'."
    ((and (stringp location) (file-exists-p location))
     (find-file location))
    (t (user-error "Not found: %S" location)))
-  (company-coq-recenter-on (company-coq-search-then-scroll-up target nil))
+  (company-coq-recenter-on (company-coq-search-then-scroll-up target fallback nil))
   (pulse-momentary-highlight-one-line (point)))
 
 (defun company-coq-jump-to-definition (name &optional fqn-functions)
