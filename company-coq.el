@@ -31,7 +31,9 @@
 
 ;;; History:
 ;;
-;; 2016-02-02 — Lemma extraction now preserves names by inserting intros.
+;; 2016-02-07 — Support for changing [Require]s to use fully qualified names
+;; 2016-02-02 — Lemma extraction now preserves names by inserting intros
+;; 2016-01-26 — Detection and display of subscripts: a1 → a₁ and a__n → aₙ
 ;; 2016-01-20 — First stable release (~600 commits)
 ;; 2015-02-15 — First commit
 

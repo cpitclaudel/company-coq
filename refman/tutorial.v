@@ -128,7 +128,7 @@ Abort.
 (* Try clicking the words “le” and “exfalso” below, while holding the ‘Control’
    key down.  Release the mouse button to hide the info box.  This also works
    without a graphic environment; just enable ‘xterm-mouse-mode’ (alternatively,
-   you can use the ‘<menu>’ key). *)
+   you can use the ‘<menu>’ key, or even ‘M-F12’). *)
 Fail le.
 Fail exfalso.
 
@@ -158,7 +158,7 @@ Ltac BasicTactic :=
 (** Confused by an error message?  Company-Coq has documentation for (some) of
     them, auto-extracted from the manual. *)
 
-(* Consider the following attempt at using Omega: *)
+(* Consider the following attempt at using the [omega] tactic: *)
 
 Require Import Omega.
 Lemma refl : forall x, exists (y: nat), x = y.
@@ -213,8 +213,9 @@ Abort.
     that.  Let’s prove a theorem by induction: *)
 
 Lemma my_plus_comm :
-  forall p q r, (p < q /\ q < r) -> (p + q < q + r) ->
-           (exists s, p + q + r < s) -> forall m n, n + m = m + n.
+  forall p q r,
+    (p < q /\ q < r) -> (p + q < q + r) ->
+    (exists s, p + q + r < s) -> forall m n, n + m = m + n.
 Proof.
   induction m; intros.
   - simpl.
