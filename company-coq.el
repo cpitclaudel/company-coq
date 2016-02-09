@@ -356,9 +356,9 @@ impossible, for example in `proof-shell-insert-hook'")
 
 (defconst company-coq-id-regexp "\\(?:[a-zA-Z0-9_][a-zA-Z0-9_']*\\)")
 (defconst company-coq-prefix-regexp "\\(?:[a-zA-Z0-9_][a-zA-Z0-9_.'!]*\\)?") ;; '!' included for patterns like [intros!]
-(defconst company-coq-symbol-regexp "\\(?:[a-zA-Z]\\(?:[a-zA-Z0-9_.']*[a-zA-Z0-9_']\\)?\\)")
-(defconst company-coq-symbol-regexp-no-dots "\\(?:[a-zA-Z]\\(?:[a-zA-Z0-9_']*[a-zA-Z0-9_']\\)?\\)")
-(defconst company-coq-symbol-regexp-no-dots-no-numbers "\\(?:[a-zA-Z]\\(?:[a-zA-Z0-9_']*[a-zA-Z]\\)?\\)")
+(defconst company-coq-symbol-regexp "\\(?:[_a-zA-Z]\\(?:[a-zA-Z0-9_.']*[a-zA-Z0-9_']\\)?\\)")
+(defconst company-coq-symbol-regexp-no-dots "\\(?:_?[a-zA-Z]\\(?:[a-zA-Z0-9_']*[a-zA-Z0-9_']\\)?\\)")
+(defconst company-coq-symbol-regexp-no-dots-no-numbers "\\(?:_?[a-zA-Z]\\(?:[a-zA-Z0-9_']*[a-zA-Z]\\)?\\)")
 (defconst company-coq-module-chunk-regexp "\\(?:[A-Z][a-zA-Z0-9_]*\\)")
 (defconst company-coq-module-name-regexp (concat company-coq-module-chunk-regexp "\\(?:\\." company-coq-module-chunk-regexp "\\)*"))
 

@@ -2,7 +2,7 @@
 Require Import Utf8.
 
 (* Global folding should work here *)
-Ltac SimpleLtac a b cde := idtac.
+Ltac _SimpleLtac a b cde := idtac.
 
 Goal True = False -> False.
   intros.
@@ -200,7 +200,10 @@ Proof.
   | [ H: ?a |- _ ] => eauto (* Is the variable name highlighted? But not in comments: ?a *)
   end.
   Undo 1.
+  Definition __1 := 1.
+  _SimpleLtac 1 2 3. (* Does M-. work here? *)
   congruence.
+  Show Script.
 Qed.
 
 Inductive BlahI :=
