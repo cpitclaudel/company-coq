@@ -4972,7 +4972,7 @@ if CONFIRM-CHANGES is non-nil."
           (cond
            ((null ovs)
             (user-error "All module names on this line are already fully qualified"))
-           ((or (not confirm-changes) (y-or-n-p "Perform replacement? "))
+           ((or (not confirm-changes) (y-or-n-p "Apply changes? "))
             (company-coq-features/refactorings--reqs-commit ovs)))
         (mapc #'delete-overlay ovs)))))
 
@@ -4983,26 +4983,53 @@ BEG and END are as in
   (interactive (company-coq-features/refactorings--reqs-get-region))
   (company-coq-features/refactorings-qualify-module-names beg end nil))
 
+(defun company-coq--popup-menu-no-x--read-keymap (keymap)
+  "Compute a cons of title and menu entries from KEYMAP."
+  (cons (car (-filter #'stringp keymap))
+	(cl-loop for pair being the key-bindings of keymap
+		 for num = 0 then (1+ num)
+		 collect (cons num pair))))
+
+(defun company-coq--popup-menu-no-x--format-entries (entries prefix)
+  "Prepare a menu string from menu ENTRIES.
+Use PREFIX before each menu entry."
+  (mapconcat (lambda (entry)
+	       (pcase entry
+		 (`(,num ,desc . ,_)
+		  (format "%s%d → %s" prefix num desc))))
+             entries ""))
+
+(defun company-coq--popup-menu-no-x--prompt-string (entries title prefix)
+  "Compute a prompt string from ENTRIES using TITLE.
+Prefix each entry with PREFIX."
+  (let* ((menu (company-coq--popup-menu-no-x--format-entries entries prefix)))
+    (format "%s (press a key):%s" title menu)))
+
+(defun company-coq--popup-menu-no-x--prompt (entries title prefix)
+  "Prompt for a choice from ENTRIES.
+Pass TITLE and PREFIX to `company-coq--popup-menu-no-x--prompt-string'."
+  (let* ((prompt (company-coq--popup-menu-no-x--prompt-string entries title prefix)))
+    (message prompt)
+    (-when-let* ((input (ignore-errors (string-to-number (char-to-string (read-char))))))
+      (cddr (assoc input entries)))))
+
 (defun company-coq--popup-menu-no-x (keymap)
   "Emulate `popup-menu' on KEYMAP using text only.
 In Emacs 25 `popup-menu' emulation is not very usable, and on 24
 it doesn't work: sometimes it shows an error, sometimes (with
 position t) it segfaults."
-  (-when-let* ((title (or (car (-filter #'stringp keymap)) "Action"))
-               (menu-entries (cl-loop for pair being the key-bindings of keymap
-                                      for num = 0 then (1+ num)
-                                      collect (cons num pair)))
-               (menu (mapconcat (lambda (entry)
-                                  (pcase entry
-                                    (`(,num ,desc . ,_)
-                                     (format "%d → %s" num desc))))
-                                (-take 10 menu-entries)
-                                "   ")))
-    (message "%s:   %s" title menu)
-    (-when-let* ((input (ignore-errors (string-to-number (char-to-string (read-char)))))
-                 (choice (cddr (assoc input menu-entries))))
+  (let* ((title-entries (company-coq--popup-menu-no-x--read-keymap keymap))
+	 (title (or (car title-entries) "Action"))
+	 (entries (-take 10 title-entries)))
+    (-when-let* ((choice (company-coq--popup-menu-no-x--prompt entries title "\n  ")))
       (call-interactively choice))))
 
+(defun company-coq-features/refactorings--get-prompt-at-point (separator)
+  "Compute the refactoring prompt at point.
+Separate entries with SEPARATOR.  Useful for screenshot generation."
+  (pcase-let* ((keymap (company-coq-features/refactorings--get-menu-at-point))
+               (`(,title . ,entries) (company-coq--popup-menu-no-x--read-keymap keymap)))
+    (company-coq--popup-menu-no-x--prompt-string entries title separator)))
 
 (defun company-coq--popup-menu (keymap &optional position)
   "Show a popup menu (based on KEYMAP) at POSITION.
@@ -5020,17 +5047,18 @@ If POSITION is nil, show a text-only menu in the minibuffer."
   "Get refactoring menu at point PT."
   (get-text-property (or pt (point)) 'company-coq-features/refactorings--menu))
 
-(defun company-coq-features/refactorings--show-menu-at-point ()
-  "Show refactoring menu at point."
+(defun company-coq-features/refactorings--show-menu-at-point (&optional event)
+  "Show refactoring menu at point.
+With EVENT, position the menu according to that mouse event."
   (interactive)
-  (company-coq--popup-menu (company-coq-features/refactorings--get-menu-at-point)))
+  (company-coq--popup-menu (company-coq-features/refactorings--get-menu-at-point) event))
 
 (defun company-coq-features/refactorings--show-menu (event)
   "Show refactoring menu.
 EVENT is the corresponding mouse event."
   (interactive "e")
   (company-coq--with-point-at-click event
-    (company-coq--popup-menu (company-coq-features/refactorings--get-menu-at-point) event)))
+    (company-coq-features/refactorings--show-menu-at-point event)))
 
 (defconst company-coq-features/refactorings--keymap
   (let ((map (make-sparse-keymap)))
