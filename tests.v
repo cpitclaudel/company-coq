@@ -90,13 +90,12 @@ Proof.
     + destruct H.               (* + *)
       * apply I.                (* - *)
       * destruct H.             (* + *)
-        -- apply I.             (* - *)
-        -- apply I.             (* - *)
+        apply I.             (* - *)
+        apply I.             (* - *)
   - destruct H.                 (* + *)
     + apply I.                  (* - *)
     + destruct H.               (* = *)
       apply I.                  (* - *)
-      
 Qed.
 
 Definition more_bullets2: (True \/ (True \/ (True \/ (True \/ True)))) \/ (True \/ True) -> True.
@@ -116,7 +115,13 @@ Proof.
       apply I.
 Qed.
 
-(* How are HintResolve candidates ordered? *)
+Record Record1 := { Field1: nat; Field2: nat }.
+Check {| Field1 := 1; Field2 := 2 |}. (* Does jumping to field names work? *)
+Class Class1 := { CField1: nat; CField2: nat }.
+Check {| CField1 := 1; CField2 := 2 |}. (* Does jumping to field names work? *)
+(* Variant Variant1 := VConstructor1 | VConstructor2. *)
+
+(* How are [HintResolve] candidates ordered? *)
 (* Does jumping to these work?
 plus
 bool
@@ -155,9 +160,8 @@ Qed.
 
 Require Import BinPos.
 
-(* Run this:
-    (setq company-coq-completion-predicate 'company-coq-not-in-comment-p)
-   does completion still happen in comments? plus *)
+(* Does completion happen in comments? apply shouldn't suggest [apply …]. But
+   [apply] should. *)
 
 (** Is this comment highlighted differently? Does it fill? (try pressing M-q (fill-paragraph)) *)
 
