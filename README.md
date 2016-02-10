@@ -96,7 +96,7 @@ Use `M-x company-coq-cite` to insert the BibTeX entries for Coq, Proof General, 
   Year      = {2016},
   Month     = jan,
   Doi       = {10.5281/zenodo.44331},
-  Url       = {http://dx.doi.org/10.5281/zenodo.44331}
+  Url       = {http://hdl.handle.net/1721.1/101149}
 }
 ```
 
