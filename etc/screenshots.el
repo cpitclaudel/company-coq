@@ -159,7 +159,7 @@
                (string-to-list (cadr prog))))
       (`(:minibuf ,(and (pred stringp) prompt) ,(and (pred stringp) value))
        (mapcar (lambda (n)
-                 `(message "%s%s" ,(propertize prompt 'face 'minibuffer-prompt) ,(substring value 0 n)))
+                 `(message "%s%s" ,(apply #'propertize prompt minibuffer-prompt-properties) ,(substring value 0 n)))
                (cl-loop for i from 0 to (length value) collect i)))
       ((pred listp)
        (list prog))

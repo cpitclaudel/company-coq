@@ -425,6 +425,7 @@ Qed.")
   (:split "h :: t") "TAB" (:split "h + nsum t") "M->" "." "RET"
 
   (:split "Fixpoint nsum' l :=") "RET"
+  (:split "match!") "<C-backspace>"
   (:minibuf "Type to destruct (nat, list, …): " "list")
   (progn (company-coq-insert-match-construct "list") (message nil))
   (:split "l") "TAB" (:split "0") "TAB" (:split "x + nsum x0") "M->" ".")
@@ -445,6 +446,29 @@ Proof.
     (proof-shell-wait)
     (my/send-keys "C-x 1 M-< M->"))
   (:split "intros!") "<C-return>" "<C-return> RET")
+
+(defvar my/ovs nil)
+
+(my/with-screencast my/github-width/2 12 nil "west" 80 2 "Refactoring of [Import]s (right-click, <menu>)" "refactor-imports"
+  (progn
+    (my/start-pg-no-windows)
+    (my/insert-with-point "<|>Require Import
+        Setoid
+        MSetAVL
+        String
+        DoubleCyclic.")
+    (display-local-help))
+  (ignore)
+  (message (company-coq-features/refactorings--get-prompt-at-point "\n  "))
+  (ignore)
+  (save-excursion
+    (goto-char (point-at-eol))
+    (setq my/ovs (company-coq-features/refactorings--reqs-add-overlays (point-max) t))
+    (let ((resize-mini-windows t))
+      (message "Apply changes? (y or n) ")))
+  (ignore)
+  (progn (message "Apply changes? (y or n) y")
+         (company-coq-features/refactorings--reqs-commit my/ovs)))
 
 ;; (profiler-report)
 (kill-emacs)
