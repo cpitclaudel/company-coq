@@ -544,6 +544,7 @@ The result matches any symbol in HEADERS, followed by BODY."
                                      ("forall" . ?∀) ("exists" . ?∃) ("/\\" . ?∧)
                                      ("\\/" . ?∨) ("~" . ?¬) ("+-" . ?±)
                                      ("<=" . ?≤) (">=" . ?≥) ("<>" . ?≠) ("*" . ?×)
+                                     (">->" . ?↣)
                                      ;; ("++" . ?⧺) ;; Not present in TeX fonts
                                      ;; ("nat" . ?𝓝) ("Prop" . ?𝓟) ;; Rather uncommon
                                      ;; ("N" . ?ℕ) ("Z" . ?ℤ) ("Q" . ?ℚ) ;; Too invasive
