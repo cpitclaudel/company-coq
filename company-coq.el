@@ -2938,8 +2938,8 @@ order."
 
 (defun company-coq-set-backends (backends)
   "Set `company-coq-enabled-backends' to BACKENDS, sorted according to `company-coq-sorted-backends'."
-  (setq-local company-coq-enabled-backends (company-coq-sort-according-to-reference
-                                 backends company-coq-sorted-backends)))
+  (setq company-coq-enabled-backends (company-coq-sort-according-to-reference
+                           backends company-coq-sorted-backends)))
 
 (defun company-coq--mark-and-move-exact-matches (prefix sorted-candidates)
   "Return a copy of SORTED-CANDIDATES with all exact matches at the front.
@@ -4301,15 +4301,14 @@ Highlights uses of obsolete Coq constructs."
   "Proof outlines.
 Configures `outline-minor-mode' for use with Coq.  Supports
 folding at the level of Proofs."
-  (pcase arg
-    (`on
-     (company-coq-do-in-coq-buffers
+  (company-coq-do-in-coq-buffers
+    (pcase arg
+      (`on
        (setq-local outline-level #'company-coq-outline-level)
        (setq-local outline-regexp company-coq-outline-regexp)
        (setq-local outline-heading-end-regexp company-coq-outline-heading-end-regexp)
-       (outline-minor-mode)))
-    (`off
-     (company-coq-do-in-coq-buffers
+       (outline-minor-mode))
+      (`off
        (kill-local-variable 'outline-level)
        (kill-local-variable 'outline-regexp)
        (kill-local-variable 'outline-heading-end-regexp)
@@ -5098,16 +5097,15 @@ See `company-coq-features/code-folding--keymap' for more info.")
 (company-coq-define-feature refactorings (arg)
   "Various refactoring commands (experimental).
 Currently focuses on [Require Import/Export] statements."
-  (pcase arg
-    (`on
-     (company-coq-do-in-coq-buffers
+  (company-coq-do-in-coq-buffers
+    (pcase arg
+      (`on
        (progn ;; Prevent PG's overlays from capturing clicks on processed spans.
          (setq-local pg-span-context-menu-keymap nil))
        (company-coq--set-up-font-lock-for-links)
        (font-lock-add-keywords nil company-coq-features/refactorings--fl-keywords 'append)
-       (company-coq-request-refontification)))
-    (`off
-     (company-coq-do-in-coq-buffers
+       (company-coq-request-refontification))
+      (`off
        (kill-local-variable 'pg-span-context-menu-keymap)
        (font-lock-remove-keywords nil company-coq-features/refactorings--fl-keywords)
        (company-coq-request-refontification)))))
@@ -5115,15 +5113,15 @@ Currently focuses on [Require Import/Export] statements."
 (company-coq-define-feature company (arg)
   "Context-sensitive completion.
 Configures `company-mode' for use with Coq."
-  (pcase arg
-    (`on
-     (company-coq-do-in-coq-buffers
+  (company-coq-do-in-coq-buffers
+    (pcase arg
+      (`on
        (company-mode)
        (make-local-variable 'company-backends)
-       (push #'company-coq-master-backend company-backends)
-       (push #'company-coq-choices-backend company-backends)))
-    (`off
-     (company-coq-do-in-coq-buffers
+       (dolist (backend '(company-coq-master-backend company-coq-choices-backend))
+         (setq company-backends (remove backend company-backends))
+         (push backend company-backends)))
+      (`off
        (company-mode -1)
        (kill-local-variable 'company-backends)))))
 
@@ -5135,18 +5133,17 @@ Configures `company-mode' for use with Coq."
 (company-coq-define-feature company-defaults (arg)
   "Convenient defaults for `company-mode'.
 Tweaks company-mode settings for smoother use with Coq."
-  (pcase arg
-    (`on
-     (company-coq-do-in-coq-buffers
+  (company-coq-do-in-coq-buffers
+    (pcase arg
+      (`on
        (setq-local company-idle-delay 0.01)
        (setq-local company-tooltip-align-annotations t)
        (setq-local company-abort-manual-when-too-short t)
        ;; See https://github.com/cpitclaudel/company-coq/issues/42
        (unless (command-remapping #'company-complete-common nil company-active-map)
          (define-key company-active-map [remap company-complete-common]
-           #'company-coq-features/company-defaults--indent-or-complete-common))))
-    (`off
-     (company-coq-do-in-coq-buffers
+           #'company-coq-features/company-defaults--indent-or-complete-common)))
+      (`off
        (kill-local-variable 'company-idle-delay)
        (kill-local-variable 'company-tooltip-align-annotations)
        (kill-local-variable 'company-abort-manual-when-too-short)
@@ -5159,12 +5156,12 @@ Tweaks company-mode settings for smoother use with Coq."
 Inserts ⊕ when you type \oplus."
   ;; Insert directly in company's backend list, as it doesn't share the same
   ;; prefix as the other backends.
-  (setq-local company-backends
-              (delete #'company-math-symbols-unicode company-backends))
-  (pcase arg
-    (`on
-     (setq-local company-backends
-                 (cons #'company-math-symbols-unicode company-backends)))))
+  (company-coq-do-in-coq-buffers
+    (make-local-variable 'company-backends)
+    (setq company-backends (remove #'company-math-symbols-unicode company-backends))
+    (pcase arg
+      (`on
+       (push #'company-math-symbols-unicode company-backends)))))
 
 (company-coq-define-feature block-end-backend (arg)
   "Completion of Section and Module names.
