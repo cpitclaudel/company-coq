@@ -482,7 +482,7 @@ The result matches any symbol in HEADERS, followed by BODY."
                            "^No Ltac definition is referred to by"
                            "^Unable to locate library"
                            "^The command has indeed failed with message:"
-                           " not a defined object.\\s-$")
+                           " not a defined object.")
   "Regexps used to detect invalid output.")
 
 (defconst company-coq-error-regexp (concat "\\(" (mapconcat #'identity company-coq-error-regexps "\\|") "\\)")
