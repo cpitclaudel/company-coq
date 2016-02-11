@@ -3791,7 +3791,7 @@ of the function is BODY.
 
 Defining a feature adds it to `company-coq-available-features'."
   (declare (indent defun)
-           (debug t))
+           (debug (&define symbolp lambda-list stringp def-body)))
   (let* ((toggle-function (company-coq-feature-toggle-function symbol))
          (docs (format company-coq-define-feature-doc-format (symbol-name symbol) doc))
          (arg (car args)))
