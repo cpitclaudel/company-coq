@@ -3279,7 +3279,7 @@ in PROTECTED depend on."
   (let* ((tracker (mapconcat (lambda (hyp)
                                (format "let dummy := (%s) in" hyp))
                              protected " ")))
-    (format "repeat match goal with H:_ |- _ => clear dependent H; %s idtac end" tracker)))
+    (format "repeat match goal with __company_coq_hyp__: _ |- _ => clear dependent __company_coq_hyp__; %s idtac end" tracker)))
 
 (defconst company-coq-lemma-from-goal--generalization-forms
   "repeat match goal with H:_ |- _ => generalize dependent H; try (generalize dependent H; fail 1) end"
