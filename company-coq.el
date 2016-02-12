@@ -1146,10 +1146,10 @@ definitions in the unprocessed part of the buffer."
 Returns a list of pairs of (LOGICAL . PHYSICAL) paths."
   (when loadpath-output
     (save-match-data
-      (cdr-safe (cl-loop for     line
-                         in      (company-coq-split-wrapped-lines loadpath-output)
-                         if      (string-match company-coq-path-regexp line)
-                         collect (cons (match-string 1 line) (match-string 2 line)))))))
+      (cl-loop for     line
+               in      (cdr (company-coq-split-wrapped-lines loadpath-output))
+               if      (string-match company-coq-path-regexp line)
+               collect (cons (match-string 1 line) (match-string 2 line))))))
 
 (defun company-coq-get-path-specs ()
   "Load available modules by querying the prover.
