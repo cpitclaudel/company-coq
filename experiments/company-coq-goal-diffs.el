@@ -23,8 +23,9 @@
 
 (defun company-coq-features/goal-diffs--hyp-status (hyps hyp)
   "Compute the status of HYP against a collection of HYPS.
-Return `added', `changed', or `unchanged', depending on the status
-of HYP wrt HYPS."
+Return `added', or `unchanged' for new and unmodified hypotheses.
+For modified ones, return a string containing the body of the
+previous hypothesis."
   (catch 'found
     (dolist (other-hyp hyps)
       (when (string= (company-coq-hypothesis-names hyp)
@@ -33,7 +34,7 @@ of HYP wrt HYPS."
              (company-coq-hypothesis-type hyp)
              (company-coq-hypothesis-type other-hyp))
             (throw 'found 'unchanged)
-          (throw 'found 'changed))))
+          (throw 'found (company-coq-hypothesis-type other-hyp)))))
     (throw 'found 'added)))
 
 (defun company-coq-features/goal-diffs--make-annot-1 (str face status)
@@ -50,7 +51,7 @@ display of the goal."
               (company-coq-features/goal-diffs--make-annot-1
                "+" 'company-coq-features/goal-diffs-added-face 'added)
             "")
-          (if (memq 'changed statuses)
+          (if (cl-some #'stringp statuses)
               (company-coq-features/goal-diffs--make-annot-1
                "!" 'company-coq-features/goal-diffs-changed-face 'changed)
             "")))
@@ -64,15 +65,25 @@ display of the goal."
         (overlay-put ov 'company-coq-features/goal-diffs t)
         (overlay-put ov 'display annot)))))
 
+(defun company-coq-features/goal-diffs--indent (type)
+  "Indent all lines of TYPE by 2 characters."
+  (replace-regexp-in-string "^" "  " type t t))
+
 (defun company-coq-features/goal-diffs--highlight-1 (hyp status)
   "Highlight HYP (if STATUS isn't `unchanged')."
   (unless (eq status 'unchanged)
     (let* ((start (company-coq-hypothesis-names-position hyp))
            (end (+ start (length (company-coq-hypothesis-names hyp))))
-           (ov (make-overlay start end)))
+           (ov (make-overlay start end))
+           (help-echo (pcase status
+                        ((pred stringp)
+                         (format "This hypothesis was just changed from:\n%s"
+                                 (company-coq-features/goal-diffs--indent
+                                  (company-coq--fontify-string status))))
+                        (_ (format "This hypothesis was just %s." status)))))
       (overlay-put ov 'company-coq-features/goal-diffs t)
       (overlay-put ov 'face 'company-coq-features/goal-diffs-hyp-highlight-face)
-      (overlay-put ov 'help-echo (format "This hypothesis was just %s." status)))))
+      (overlay-put ov 'help-echo help-echo))))
 
 (defun company-coq-features/goal-diffs-hyperlink-action (_btn)
   "Handle a click on the “full diff” button."
