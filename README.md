@@ -5,7 +5,7 @@
 
 A collection of extensions for Proof General's Coq mode.
 
-See screenshots below, or jump right to [setup instructions](#setup) and try the tutorial with <kbd>M-x company-coq-tutorial</kbd> after setting up!
+See [screenshots](#screenshots) below, or jump right to [setup instructions](#setup) and try the tutorial with <kbd>M-x company-coq-tutorial</kbd> after setting up!
 
 ## Setup
 
@@ -15,14 +15,15 @@ Download and install Proof General from [GitHub](https://github.com/ProofGeneral
 
 ```bash
 git clone https://github.com/ProofGeneral/PG ~/.emacs.d/lisp/PG
-make -C ~/.emacs.d/lisp/PG
+cd ~/.emacs.d/lisp/PG
+make
 ```
 
 Then add the following to your `.emacs`:
 
 ```elisp
 ;; Open .v files with Proof General's Coq mode
-(require 'proof-site "~/.emacs.d/lisp/PG/generic/proof-site")
+(load "~/.emacs.d/lisp/PG/generic/proof-site")
 ```
 
 ### MELPA
