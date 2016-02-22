@@ -3720,16 +3720,16 @@ changes."
 
 (defun company-coq--set-disabled-features (symbol value)
   "Set SYMBOL to VALUE, toggling company-coq features as needed."
-  (when (and (eq symbol 'company-coq-disabled-features)
-             ;; Check that company-coq-mode is defined; if not, this call comes from the
-             ;; defcustom form at load time, and it should not do anything fancy
-             (functionp 'company-coq-mode))
-    (let* ((previously-disabled (company-coq-value-or-nil 'company-coq-disabled-features))
-           (newly-disabled (cl-set-difference value previously-disabled))
-           (newly-enabled (cl-set-difference previously-disabled value)))
-      (company-coq-do-in-coq-buffers
-        (company-coq-toggle-features newly-disabled nil)
-        (company-coq-toggle-features newly-enabled t))))
+  ;; First check that the whole file has been loaded; if not, this call comes
+  ;; from the defcustom form at load time, and it should not do anything fancy
+  (when (featurep 'company-coq)
+    (when (eq symbol 'company-coq-disabled-features)
+      (let* ((previously-disabled (company-coq-value-or-nil 'company-coq-disabled-features))
+             (newly-disabled (cl-set-difference value previously-disabled))
+             (newly-enabled (cl-set-difference previously-disabled value)))
+        (company-coq-do-in-coq-buffers
+          (company-coq-toggle-features newly-disabled nil)
+          (company-coq-toggle-features newly-enabled t)))))
   (set-default symbol value))
 
 (defcustom company-coq-disabled-features nil
