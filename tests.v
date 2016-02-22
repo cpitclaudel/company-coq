@@ -115,9 +115,15 @@ Proof.
       apply I.
 Qed.
 
-Record Record1 := { Field1: nat; Field2: nat }.
+Inductive foo := .
+
+Definition foo_recf : foo -> False.
+  apply foo_rec.                (* What happens when jumping to foo_rec? *)
+Qed.
+
+Record Record1 := { Field1:nat; Field2: nat }.
 Check {| Field1 := 1; Field2 := 2 |}. (* Does jumping to field names work? *)
-Class Class1 := { CField1: nat; CField2: nat }.
+Class Class1 A := { CField1:A; CField2: nat }.
 Check {| CField1 := 1; CField2 := 2 |}. (* Does jumping to field names work? *)
 (* Variant Variant1 := VConstructor1 | VConstructor2. *)
 

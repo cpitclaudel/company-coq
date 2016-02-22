@@ -1952,47 +1952,67 @@ KILL: See `quit-window'."
            (car (company-coq--get-comment-region)))
       (point)))
 
-(defun company-coq-search-then-scroll-up (target fallback highlight-p)
-  "Find a match for TARGET, then return a good point to scroll to.
-Returns a point before that definition: it can be a few lines
-higher or, if that's inside a comment, at the beginning of the
-comment.  If target is nil, go to the top.  If target can't be
-found, look for FALLBACK instead.  If HIGHLIGHT-P is non-nil,
-highlight the definition."
+(defun company-coq-search-then-scroll-up-1 (target fallback) ;; FIXME remove fallback?
+  "Compute target point and window pos from TARGET and FALLBACK."
+  (when (stringp fallback)
+    (setq fallback (concat "\\_<\\(?2:" (regexp-quote fallback) "\\)\\_>\\s-*:[^=]")))
   (save-excursion
     (if (or (and (number-or-marker-p target)
                  (goto-char target))
             (and (stringp target)
                  (goto-char (point-min))
                  (or (re-search-forward target nil t)
-                     (re-search-forward fallback nil t))))
-        (progn (when highlight-p
-                 (company-coq-make-title-line 'company-coq-doc-header-face-docs-and-sources t))
-               (when (and (stringp target) (match-beginning 2))
+                     (and (stringp fallback)
+                          (re-search-forward fallback nil t)))))
+        (progn (when (and (stringp target) (match-beginning 2))
                  (goto-char (match-beginning 2)))
-               (cons (point) (company-coq-scroll-above-definition-at-pt)))
-      (cons (point-min) (point-min)))))
+               (list (point) (company-coq-scroll-above-definition-at-pt)))
+      nil)))
 
-(defun company-coq-align-to (point-pos)
-  "Go to (car POINT-POS), and scroll to (cdr POINT-POS).
-Return the cdr of POINT-POS."
-  (goto-char (car point-pos))
+(defun company-coq-search-then-scroll-up (target fallback callback)
+  "Find a match for TARGET, then return a good point to scroll to.
+Returns a point before that definition; it be a few lines higher
+or, if that's inside a comment, at the beginning of the comment.
+If target is nil, go to the top.  If target can't be found, look
+for FALLBACK (followed by \\s-*:[^=]) instead.  If the target can
+be found, call CALLBACK with the point where TARGET or FALLBACK
+was found, and the value to be returned."
+  (let ((point-pos (company-coq-search-then-scroll-up-1 target fallback)))
+    (if point-pos
+        (when (functionp callback)
+          (apply callback point-pos))
+      (when target ;; Not found
+        (message "Definition came from this buffer, but precise location is unknown.")))
+    (or (cadr point-pos) (point-min))))
+
+(defun company-coq-align-to (point window-top)
+  "Go to POINT and scroll to WINDOW-TOP."
+  (goto-char point)
   (set-window-start (selected-window)
                     (save-excursion
                       ;; set-window-start needs pt at bol
-                      (goto-char (cdr point-pos))
-                      (point-at-bol)))
-  (cdr point-pos))
+                      (goto-char window-top)
+                      (point-at-bol))))
 
-(defun company-coq-recenter-on (point-pos)
-  "Go to (car POINT-POS), and scroll to (car POINT-POS).
-The cdr of POINT-POS is ignored."
-  (goto-char (car point-pos))
+(defun company-coq-recenter-on (point)
+  "Go to POINT and scroll to it."
+  (goto-char point)
   (recenter))
+
+(defun company-coq--highlight-and-align (point window-top)
+  "Go to POINT, highlight, and scroll to WINDOW-TOP."
+  (company-coq-align-to point window-top)
+  (company-coq-make-title-line 'company-coq-doc-header-face-docs-and-sources t))
+
+(defun company-coq--pulse-and-recenter (point _window-top)
+  "Go to POINT, then pulse."
+  (company-coq-recenter-on point)
+  (pulse-momentary-highlight-one-line (point)))
 
 (defun company-coq-location-simple (name &optional target)
   "Show context of NAME based on its location property.
-Once location of NAME is found look for TARGET in it."
+Once location of NAME is found look for TARGET in it.  Returns a
+cons suitable for passing to company's `location'."
   (company-coq-dbg "company-coq-location-simple: Called for name %s" name)
   (let* ((fname-or-buffer (company-coq-get-prop 'location name))
          (is-buffer       (and fname-or-buffer (bufferp fname-or-buffer)))
@@ -2004,7 +2024,9 @@ Once location of NAME is found look for TARGET in it."
           (coq-mode)
           (company-coq-mode)
           (cons (current-buffer)
-                (company-coq-align-to (company-coq-search-then-scroll-up target (when target name) t)))))))
+                (company-coq-search-then-scroll-up
+                 ;; When there's a TARGET, use NAME as the fallback
+                 target (when target name) #'company-coq--highlight-and-align))))))
 
 (defun company-coq-longest-matching-path-spec (qname)
   "Find the longest logical name matching QNAME.
@@ -2053,13 +2075,16 @@ in that file."
          (mod-name (replace-regexp-in-string "\\..*\\'" "" fqn nil nil nil (length logical))))
     (company-coq-library-path logical mod-name spec)))
 
-(defun company-coq--fqn-with-regexp (name cmd-format response-headers)
-  "Find qualified name of NAME using CMD-FORMAT and RESPONSE-HEADERS."
-  (-when-let* ((output (company-coq-ask-prover-swallow-errors (format cmd-format name)))
-               (response-format (company-coq--loc-output-regexp response-headers)))
+(defun company-coq--fqn-with-regexp-1 (name cmd-format response-format)
+  "Find qualified name of NAME using CMD-FORMAT and RESPONSE-FORMAT."
+  (-when-let* ((output (company-coq-ask-prover-swallow-errors (format cmd-format name))))
     (save-match-data
       (when (string-match response-format output)
         (match-string-no-properties 1 output)))))
+
+(defun company-coq--fqn-with-regexp (name cmd-format response-headers)
+  "Find qualified name of NAME using CMD-FORMAT and RESPONSE-HEADERS."
+  (company-coq--fqn-with-regexp-1 name cmd-format (company-coq--loc-output-regexp response-headers)))
 
 (defun company-coq--loc-with-regexp (name cmd-format response-headers)
   "Find location of NAME using CMD-FORMAT and RESPONSE-HEADERS.
@@ -2122,7 +2147,7 @@ determined."
     (_ (company-coq--maybe-complain-docs-not-found interactive "location" name))))
 
 (defun company-coq-location-source-1 (target location fallback)
-  "Show TARGET in LOCATION."
+  "Show TARGET in LOCATION; if not found, look for FALLBACK."
   (company-coq-location-simple (propertize fallback 'location location) target))
 
 (defun company-coq-location-source (name fqn-functions)
@@ -2164,15 +2189,14 @@ FQN-FUNCTIONS: see `company-coq-locate-internal'."
 ;;           t)))
 
 (defun company-coq-jump-to-definition-1 (target location fallback)
-  "Jump to TARGET in LOCATION."
+  "Jump to TARGET in LOCATION.  If not found, jump to FALLBACK."
   (cond
    ((bufferp location)
     (switch-to-buffer location))
    ((and (stringp location) (file-exists-p location))
     (find-file location))
    (t (user-error "Not found: %S" location)))
-  (company-coq-recenter-on (company-coq-search-then-scroll-up target fallback nil))
-  (pulse-momentary-highlight-one-line (point)))
+  (company-coq-search-then-scroll-up target fallback #'company-coq--pulse-and-recenter))
 
 (defun company-coq-jump-to-definition (name &optional fqn-functions)
   "Jump to the definition of NAME, using FQN-FUNCTIONS to find it.
