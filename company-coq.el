@@ -3207,15 +3207,26 @@ Execution of both forms is wrapped in `save-excursion'."
     (skip-chars-forward " \t\r\n" end)
     (equal (point) end)))
 
+(defmacro company-coq-on-blank-line (before after &rest body)
+  "Remove whitespace, add BEFORE and AFTER around point, run BODY, and reindent.
+BEFORE and AFTER can be the symbols space, newline, or nil."
+  (declare (indent defun)
+           (debug t))
+  `(progn
+     (delete-region (save-excursion (skip-chars-backward " " (point-at-bol)) (point))
+                    (save-excursion (skip-chars-forward " " (point-at-eol)) (point)))
+     (unless (eq (point) (point-at-bol))
+       (insert ,before))
+     (unless (eq (point) (point-at-eol))
+       (save-excursion (insert ,after)))
+     ,@body
+     (indent-according-to-mode)))
+
 (defun company-coq-insert-match-rule (snippet)
   "Insert SNIPPET on a blank line and indent."
   (when (featurep 'yasnippet)
-    (let ((empty-before (company-coq-region-whitespace-p (point-at-bol) (point)))
-          (empty-after  (company-coq-region-whitespace-p (point) (point-at-eol))))
-      (when (not empty-before) (newline))
-      (when (not empty-after)  (just-one-space))
-      (yas-expand-snippet snippet)
-      (indent-according-to-mode))))
+    (company-coq-on-blank-line "\n" ""
+      (yas-expand-snippet snippet))))
 
 (defun company-coq-insert-match-rule-simple (&optional arg)
   "Insert a simple match rule.
