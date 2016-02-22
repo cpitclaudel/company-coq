@@ -35,7 +35,9 @@ with BBBCCC :=
 (* Require Import String Reals Argh Bedrock. *)
 
 Goal (nat + bool).
-  (* constructor (apply true).     (* Is constructor @{tactic} documented? *) *)
+Proof.
+  (* Is constructor @{tactic} documented? *)
+  (* [constructor (apply true)]. *)
 Abort.
 
 (* Are symbols correctly prettified? *)
@@ -63,7 +65,9 @@ Proof.
 Qed.
 
 Locate "xx__abc".               (* Should not have a subscript *)
-(* Is [p1.p22.p3.P__abc.P__def] properly subscripted? *)
+(* Is [p1.p22.p3.P__abc.P__def] properly subscripted? Does moving the
+   cursor around it reveal subscript markers (__)? Does adding text in
+   the middle of the marker work? *)
 
 Inductive LongTypeName := II.
 Goal False.
@@ -83,7 +87,7 @@ Abort.
 
 Definition more_bullets: (True \/ (True \/ (True \/ (True \/ True)))) \/ (True \/ True) -> True.
 Proof.
-  intros.
+  intros. (* Does C-u S-tab fold bullets? Does repeating S-tab unfold them? *)
   destruct H.                   (* + *)
   - destruct H.                 (* + *)
     + apply I.                  (* - *)
@@ -135,7 +139,7 @@ true
 Require Import NArith.
  *)
 Require Import String
-        NArith ZArith.                     (* Does multiline completion or imports work? *)
+        NArith ZArith.                     (* Does multiline completion of imports work? *)
 
 (* But not here *)
 
