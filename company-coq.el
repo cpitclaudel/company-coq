@@ -2034,7 +2034,7 @@ to a non-existent file (for an example of such a case, try
           (and fallback-spec (expand-file-name (concat mod-name ".v") (cdr fallback-spec)))))))
 
 (defun company-coq--locate-name (name functions)
-  "Use FUNCTIONS to find the location of NAME.
+  "Find location of NAME using FUNCTIONS.
 FUNCTIONS are called successively with NAME until one of them
 returns proper output, which must be a cons of a file name or
 buffer, followed by a (possibly empty) regexp used to find NAME
@@ -2071,16 +2071,16 @@ Returns a cons as specified by `company-coq--locate-name'."
                       "\\s-*\\(" (regexp-quote short-name) "\\)\\_>"))))
 
 (defun company-coq--loc-symbol (symbol)
-  "Find the fully qualified name of SYMBOL."
+  "Find the location of SYMBOL."
   (company-coq--loc-with-regexp symbol "Locate %s." `("Notation" "Constant" ,@company-coq-definitions-kwds)))
 
 (defun company-coq--loc-tactic (tactic)
-  "Find the fully qualified name of TACTIC."
+  "Find the location of TACTIC."
   (company-coq--loc-with-regexp tactic "Locate Ltac %s." '("Ltac")))
 
 (defun company-coq--loc-constructor (constructor)
-  "Find the fully qualified name of CONSTRUCTOR."
-  ;; First check if CONSTRUCTOR is indeed a constructor?
+  "Find the location of CONSTRUCTOR."
+  ;; First check if CONSTRUCTOR is indeed a constructor
   (when (company-coq--fqn-with-regexp constructor "Locate %s." '("Constructor"))
     ;; Then obtain it's parent type using Print
     (-when-let* ((parent (company-coq--fqn-with-regexp constructor "Print %s." '("Inductive"))))
