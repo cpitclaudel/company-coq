@@ -4151,10 +4151,56 @@ comments).  Also returns an empty spec on non-graphic displays."
      (2 (company-coq-features/smart-subscripts--subscript-spec) append)))
   "Font-lock spec for subscripts in proof script.")
 
+(defun company-coq-features/smart-subscripts--sep-bounds (&optional point)
+  "Compute bounds of subscript marker around POINT, if any.
+Also see `company-coq-features/smart-subscripts--reveal-overlay'."
+  (unless point
+    (setq point (point)))
+  (let ((before (char-before point))
+        (after (char-after point)))
+    (cond
+     ((and (eq before ?_) (eq after ?_))
+      (cons (1- point) (1+ point)))
+     ((and (eq before ?_) (eq (char-before (1- point)) ?_))
+      (cons (- point 2) point))
+     ((and (eq after ?_) (eq (char-after (1+ point)) ?_))
+      (cons point (+ point 2))))))
+
+(defvar-local company-coq-features/smart-subscripts--reveal-overlay nil
+  "Saved bounds of subscript marker.")
+
+(defun company-coq-features/smart-subscripts--reveal ()
+  "Ensure that subscript marker at point is visible.
+Subscript markers are double underscores (“__”) that separate an
+identifier and a subscript."
+  ;; prettify-symbols-unprettify-at-point uses text properties to achieve an
+  ;; effect similar to this, but that forces it to fight against
+  ;; font-locking. Using an overlay is simpler and works in our case. The only
+  ;; tricky part is when “__” is changed to “_a_”. In that case we delete the
+  ;; overlay, and the command loop adjusts the point (Bug #22761)
+  (unless (overlayp company-coq-features/smart-subscripts--reveal-overlay)
+    (let ((ov (make-overlay 0 0 nil t)))
+      (overlay-put ov 'invisible 'company-coq-features/smart-subscripts--off)
+      (setq company-coq-features/smart-subscripts--reveal-overlay ov)))
+  ;; Inhibit point motion if point is was revealed
+  (when (eq (get-char-property (point) 'invisible)
+            'company-coq-features/smart-subscripts--off)
+    ;; This is needed in the case where “__” is changed to “_a_”, since in that
+    ;; case the overlay is deleted and not recreated, causing the point to be
+    ;; adjusted at the end of command loop
+    (setq disable-point-adjustment t))
+  ;; Hide previous marker
+  (delete-overlay company-coq-features/smart-subscripts--reveal-overlay)
+  ;; Reveal current marker
+  (-when-let* ((bounds (company-coq-features/smart-subscripts--sep-bounds)))
+    (move-overlay company-coq-features/smart-subscripts--reveal-overlay
+                  (car bounds) (cdr bounds))))
+
 (defun company-coq-features/smart-subscripts--enable ()
   "Enable subscript prettification in current buffer."
   (font-lock-add-keywords nil company-coq-features/smart-subscripts--spec 'add)
   (add-to-invisibility-spec 'company-coq-features/smart-subscripts)
+  (add-hook 'post-command-hook #'company-coq-features/smart-subscripts--reveal nil t)
   ;; hideshow and outline use overlays, so won't be confused by this:
   (make-local-variable 'font-lock-extra-managed-props)
   (add-to-list 'font-lock-extra-managed-props 'display)
@@ -4164,6 +4210,8 @@ comments).  Also returns an empty spec on non-graphic displays."
 (defun company-coq-features/smart-subscripts--disable ()
   "Disable subscript prettification in current buffer."
   (font-lock-remove-keywords nil company-coq-features/smart-subscripts--spec)
+  (remove-hook 'post-command-hook #'company-coq-features/smart-subscripts--reveal t)
+  (kill-local-variable 'company-coq-features/smart-subscripts--reveal-overlay)
   (remove-from-invisibility-spec 'company-coq-features/smart-subscripts)
   (company-coq-request-refontification))
 
