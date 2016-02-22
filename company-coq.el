@@ -3495,7 +3495,7 @@ to show at most MAX-LINES."
     (with-temp-buffer
       (cl-loop for str in strs
                do (insert str "\n"))
-      (company-coq-truncate-buffer (point-min) max-lines "…")
+      (company-coq-truncate-buffer (point-min) max-lines " …")
       (company-coq--fontify-buffer-with script-buf)
       (let ((real-offset (max 0 (min offset (- (window-body-width) (company-coq-max-line-length) 5)))))
         (company-coq-prefix-all-lines (make-string real-offset ?\s)))
