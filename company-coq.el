@@ -3878,21 +3878,22 @@ ENABLED-OR-DISABLED-FEATURES.  Otherwise, disable them."
       (let ((toggle-func (company-coq-feature-toggle-function feature)))
         (funcall toggle-func (if status 1 -1))))))
 
-(defun company-coq-read-feature ()
-  "Read a feature name from the user."
-  (list (intern (completing-read "Feature to describe? " (mapcar #'car company-coq-available-features) nil t))))
+(defun company-coq-read-feature (verb)
+  "Read a feature name with VERB from the user."
+  (list (intern (completing-read (format "Feature to %s? " verb)
+                                 (mapcar #'car company-coq-available-features) nil t))))
 
 ;;;###autoload
 (defun company-coq-describe-feature (feature)
   "Describe company-coq feature FEATURE."
-  (interactive (company-coq-read-feature))
+  (interactive (company-coq-read-feature "describe"))
   (describe-function (company-coq-feature-toggle-function feature)))
 
 (defun company-coq-toggle-feature (feature)
   "Toggle company-coq feature FEATURE.
 Interactively, prompt for FEATURE."
-  (interactive (company-coq-read-feature))
-  (funcall (company-coq-feature-toggle-function feature) 'toggle))
+  (interactive (company-coq-read-feature "toggle"))
+  (call-interactively (company-coq-feature-toggle-function feature)))
 
 (defun company-coq-add-backend (backend)
   "Add BACKEND to `company-coq-enabled-backends'."
