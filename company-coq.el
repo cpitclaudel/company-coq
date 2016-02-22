@@ -3452,7 +3452,8 @@ Useful for debugging tactics in versions of Coq prior to 8.5: use
     (if company-coq-emacs-below-25-p
         ;; Actually calls jit-lock-refontify, which doesn't refontify immediately
         (font-lock-fontify-buffer)
-      (font-lock-flush))))
+      (let ((font-lock-fontified t))
+        (font-lock-flush)))))
 
 (defconst company-coq--font-lock-vars '(font-lock-keywords
                              font-lock-keywords-only
