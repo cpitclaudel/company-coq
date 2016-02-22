@@ -4106,7 +4106,7 @@ comments).  Also returns an empty spec on non-graphic displays."
 (defun company-coq-features/smart-subscripts--separator-spec ()
   "Compute font-locking spec for subscript separator at point."
   (company-coq-features/smart-subscripts--compute-spec
-   '(nil invisible 'company-coq-features/smart-subscripts)))
+   '(nil invisible company-coq-features/smart-subscripts)))
 
 (defconst company-coq-features/smart-subscripts--spec
   ;; Works because '.' isn't part of symbols
