@@ -1133,7 +1133,8 @@ definitions in the unprocessed part of the buffer."
   "Return non-nil if current line is part of an Import statement."
   (save-excursion
     (let* ((limit (point))
-           (command-begin (or (re-search-backward "\\.[ \t\n]" nil t) (point-min))))
+           (command-begin (or (re-search-backward "\\.[ \t\n]" nil t) (point-min)))
+           (case-fold-search nil))
       (goto-char command-begin)
       (re-search-forward company-coq-import-regexp limit t))))
 
