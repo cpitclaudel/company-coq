@@ -3560,6 +3560,12 @@ to show at most MAX-LINES."
                do (vertical-motion -1)
                finally return available))))
 
+(defun company-coq-point-at-bovl ()
+  "Return point that `beginning-of-visual-line' would jump to."
+  (save-excursion
+    (beginning-of-visual-line)
+    (point)))
+
 (defun company-coq--show-definition-overlay-at-point ()
   "Show inline definition of symbol at point."
   (let* ((sb-pos  (company-coq-symbol-at-point-with-pos)))
@@ -3573,7 +3579,7 @@ to show at most MAX-LINES."
                                            company-coq-tactic-def-cmd
                                            company-coq-def-cmd)
                         (list company-coq-type-cmd))))
-          (let* ((offset  (company-coq-text-width (point-at-bol) (cdr sb-pos)))
+          (let* ((offset (company-coq-text-width (company-coq-point-at-bovl) (cdr sb-pos)))
                  (max-h (max 4 (min 16 (- (company-coq--count-lines-under-point) 2))))
                  (ins-str (company-coq--prepare-for-definition-overlay docs offset max-h)))
             (setq company-coq-definition-overlay (make-overlay ins-pos ins-pos))
