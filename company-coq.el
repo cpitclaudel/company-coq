@@ -2086,6 +2086,15 @@ Returns a cons as specified by `company-coq--locate-name'."
     (-when-let* ((parent (company-coq--fqn-with-regexp constructor "Print %s." '("Inductive"))))
       (company-coq--loc-with-regexp parent "Locate %s." '("Inductive")))))
 
+(defun company-coq--loc-field (field)
+  "Find the location of FIELD (from a record)."
+  ;; First check if RECORD is indeed a constructor
+  (-when-let* ((record (company-coq--fqn-with-regexp-1
+                        field
+                        "Check {| %s := _ |}"
+                        (concat "{|.*|}[ \n]+:[ \n]+\\(" company-coq-symbol-regexp "\\)"))))
+    (company-coq--loc-with-regexp record "Locate %s." '("Inductive" "Record" "Class"))))
+
 (defun company-coq--loc-module (module)
   "Find the location of MODULE.
 FIXME more docs"
@@ -2172,7 +2181,8 @@ Interactively, use the identifier at point."
   (company-coq-error-unless-feature-active 'cross-ref)
   (unless fqn-functions
     (setq fqn-functions (list #'company-coq--loc-module #'company-coq--loc-tactic
-                              #'company-coq--loc-symbol #'company-coq--loc-constructor)))
+                              #'company-coq--loc-field #'company-coq--loc-symbol
+                              #'company-coq--loc-constructor)))
   (company-coq-locate-internal name fqn-functions #'company-coq-jump-to-definition-1 t))
 
 (defun company-coq-make-title-line (face &optional skip-space)
