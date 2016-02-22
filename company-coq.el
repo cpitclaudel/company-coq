@@ -1859,8 +1859,7 @@ return the starting point as well."
                         (format company-coq-symbols-meta-cmd name))))
     (company-coq-truncate-to-minibuf
      (company-coq--fontify-string
-      (replace-regexp-in-string "\\s-+" " " (company-coq-trim output))
-      (or proof-script-buffer (current-buffer))))))
+      (replace-regexp-in-string "\\s-+" " " (company-coq-trim output))))))
 
 (defun company-coq-meta-refman (name)
   "Compute company's meta for value NAME.
@@ -3462,14 +3461,18 @@ Useful for debugging tactics in versions of Coq prior to 8.5: use
                              font-lock-syntactic-face-function)
   "Font-lock variables that influence fontification.")
 
-(defun company-coq--fontify-buffer-with (ref-buffer)
+(defun company-coq--fontify-buffer-with (&optional ref-buffer)
   "Fontify current buffer according to settings in REF-BUFFER."
+  (setq ref-buffer (or ref-buffer
+                       (when (buffer-live-p proof-script-buffer)
+                         proof-script-buffer)
+                       (current-buffer)))
   (cl-loop for var in company-coq--font-lock-vars
            do (set (make-local-variable var)
                    (buffer-local-value var ref-buffer)))
   (font-lock-default-fontify-region (point-min) (point-max) nil))
 
-(defun company-coq--fontify-string (str ref-buffer)
+(defun company-coq--fontify-string (str &optional ref-buffer)
   "Fontify STR, using font-locking settings of REF-BUFFER."
   (with-temp-buffer
     (insert str)
