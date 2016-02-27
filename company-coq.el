@@ -4733,6 +4733,14 @@ With FORCE, unfold everything before folding."
      (company-coq-features/code-folding-fold-all)
      (company-coq-call-compat 'outline-hide-body 'hide-body))))
 
+(defun company-coq--remove-pg-keymaps ()
+  "Ensure that PG overlays don't override out own local keymaps."
+  (setq-local pg-span-context-menu-keymap nil)
+  (dolist (ov (overlays-in (point-min) (point-max)))
+    (when (and (overlay-get ov 'pghelp)
+               (overlay-get ov 'keymap))
+      (overlay-put ov 'keymap nil))))
+
 (company-coq-define-feature code-folding (arg)
   "Code folding.
 Configures `hs-minor-mode' for use with Coq.  Supports folding
@@ -4744,8 +4752,7 @@ bullets and curly braces."
        (hs-minor-mode)
        (setq-local hs-allow-nesting t)
        (company-coq-features/code-folding--set-display-table)
-       (progn ;; Prevent PG's overlays from capturing clicks on processed spans.
-         (setq-local pg-span-context-menu-keymap nil))
+       (company-coq--remove-pg-keymaps)
        (company-coq--set-up-font-lock-for-links)
        (font-lock-add-keywords nil company-coq-features/code-folding--bullet-fl-keywords 'add)
        (add-hook 'post-command-hook #'company-coq-features/code-folding--unfold-at-point t t)
@@ -5221,8 +5228,7 @@ Currently focuses on [Require Import/Export] statements."
   (company-coq-do-in-coq-buffers
     (pcase arg
       (`on
-       (progn ;; Prevent PG's overlays from capturing clicks on processed spans.
-         (setq-local pg-span-context-menu-keymap nil))
+       (company-coq--remove-pg-keymaps)
        (company-coq--set-up-font-lock-for-links)
        (font-lock-add-keywords nil company-coq-features/refactorings--fl-keywords 'append)
        (company-coq-request-refontification))
