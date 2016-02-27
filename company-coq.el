@@ -5463,8 +5463,10 @@ window every time it changes."
                                :height ,(ceiling (* 0.14 mode-line-height))
                                ;; Inherit bg explicitly
                                :background ,mode-line-background))
-         (lighter-string (if (or (display-graphic-p)
-                                 company-coq-features/prettify-symbols-in-terminals)
+         (can-display-rooster-char (if (display-graphic-p)
+                                       (char-displayable-p ?🐤)
+                                     company-coq-features/prettify-symbols-in-terminals))
+         (lighter-string (if can-display-rooster-char
                              ;; 🐤 🐣 🐓 🐔
                              "company-🐤"
                            "company-coq")))
@@ -5472,7 +5474,8 @@ window every time it changes."
            (when (and (company-coq--icon) (image-type-available-p 'imagemagick))
              (list 'display display-spec)))))
 
-(defvar company-coq--lighter-var ;; See https://emacs.stackexchange.com/questions/18945/can-i-use-an-image-in-my-modeline-lighter
+(defvar company-coq--lighter-var
+  ;; See https://emacs.stackexchange.com/questions/18945/can-i-use-an-image-in-my-modeline-lighter
   '(:eval (list " " (company-coq--lighter-string)))
   "Lighter var for `company-coq-mode'.
 Must be tagged risky to display properly.")
