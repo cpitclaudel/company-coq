@@ -4701,12 +4701,12 @@ Suggested values: […] [⤶] [↲] [▶] [⏩] [▸]."
                                            company-coq-features/code-folding-ellipsis))))
 
 (defun company-coq--set-up-font-lock-for-links ()
-  "Configures font-lock to highlight bullets and braces."
+  "Configure font-lock to highlight bullets and braces."
   (make-local-variable 'font-lock-extra-managed-props)
   (add-to-list 'font-lock-extra-managed-props 'front-sticky)
   (add-to-list 'font-lock-extra-managed-props 'rear-nonsticky)
   (add-to-list 'font-lock-extra-managed-props 'mouse-face)
-  (add-to-list 'font-lock-extra-managed-props 'local-map))
+  (add-to-list 'font-lock-extra-managed-props 'keymap))
 
 (defcustom company-coq-initial-fold-state nil
   "Initial folding state of Coq buffers.
