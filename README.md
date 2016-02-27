@@ -189,8 +189,8 @@ Using a variable-width font for symbols will break indentation. See [this other 
 
 Adding the following header to a Coq file will make company-coq hide the bodies of all bullets when the file is opened. You can also customize the `company-coq-initial-state` variable to apply the setting globally.
 
-```elisp
-(* -*- company-coq-initial-fold-state: bullets -*- *)
+```coq
+(* -*- company-coq-initial-fold-state: bullets; -*- *)
 ```
 
 ### Showing alerts for long-running proofs
@@ -204,14 +204,49 @@ Goal True.
 
 ### Registering your own symbols and math operators
 
-Adjust and use the following snippet to register your own keywords. This must be called before `(company-coq-mode)`, so the code needs to be added after the code listed above.
+#### For a single file
+
+Add the following header to a Coq file, save, and run `M-x revert-buffer` to prettify squiggly arrows.
+
+```coq
+(* -*- company-coq-local-symbols: (("<~>" . ?↭) ("~>" . ?↝) ("<~" . ?⇜)); -*- *)
+```
+
+Alternatively, you can use a special comment at the end of the file:
+
+```coq
+(* Local Variables: *)
+(* company-coq-local-symbols: (("<~>" . ?↭) ("~>" . ?↝) ("<~" . ?⇜)) *)
+(* End: *)
+```
+
+Tip: you can use `M-x add-file-local-variable` to add this sort of variables.
+
+#### For a single project
+
+Create a `.dir-locals.el` file at the root of your project, and add following contents to it:
+
+```elisp
+;;; Directory Local Variables
+;;; For more information see (info "(emacs) Directory Variables")
+
+((coq-mode
+  (company-coq-dir-local-symbols
+   (("<~>" . ?↭) ("~>" . ?↝) ("<~" . ?⇜)))))
+```
+
+Tip: you can use `M-x add-dir-local-variable` to add this sort of variables.
+
+#### For all Coq files
+
+Adjust and use the following snippet to register your own prettifications for all Coq files. This must run before `(company-coq-mode)`, so it must be added after the `company-coq` setup code above.
 
 ```elisp
 (add-hook 'coq-mode-hook
           (lambda ()
-            (set (make-local-variable 'prettify-symbols-alist)
-                 '((":=" . ?≜) ("Proof." . ?∵) ("Qed." . ?■)
-                   ("Defined." . ?□) ("Time" . ?⏱) ("Admitted." . ?😱)))))
+            (setq-local prettify-symbols-alist
+                        '((":=" . ?≜) ("Proof." . ?∵) ("Qed." . ?■)
+                          ("Defined." . ?□) ("Time" . ?⏱) ("Admitted." . ?😱)))))
 ```
 
 Greek symbols can be obtained using the following mappings:

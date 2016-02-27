@@ -557,7 +557,15 @@ Assigned to `prettify-symbols-alist' in Emacs >= 24.4."
 (defcustom company-coq-local-symbols nil
   "An alist of file-specific symbols to prettify.
 Combined with `company-coq-prettify-symbols-alist' when loading
-the file.  Most useful as a file- or dir-local variable."
+the file.  Most useful as a file-local variable."
+  :group 'company-coq
+  :type 'alist
+  :safe 'listp)
+
+(defcustom company-coq-dir-local-symbols nil
+  "An alist of directory-specific symbols to prettify.
+Combined with `company-coq-prettify-symbols-alist' when loading
+the file.  Most useful as a dir-local variable."
   :group 'company-coq
   :type 'alist
   :safe 'listp)
@@ -4070,12 +4078,18 @@ REF-BUFFER is used to retrieve the buffer-local values of
   (when (boundp 'prettify-symbols-alist)
     (setq-local prettify-symbols-alist
                 (with-current-buffer ref-buffer
-                  (-distinct (append prettify-symbols-alist
+                  (-distinct (append company-coq-local-symbols
+                                     company-coq-dir-local-symbols
                                      company-coq-prettify-symbols-alist
-                                     company-coq-local-symbols)))))
+                                     prettify-symbols-alist)))))
   (when (and (or (display-graphic-p) company-coq-features/prettify-symbols-in-terminals)
              (fboundp #'prettify-symbols-mode))
-    (company-coq-suppress-warnings (prettify-symbols-mode))))
+    (company-coq-suppress-warnings
+      ;; Must explicitly turn off prettify-symbols-mode; otherwise its gets
+      ;; turned on twice, so its keywords get added twice. This is a bug in
+      ;; `prettify-symbols-mode'
+      (prettify-symbols-mode -1)
+      (prettify-symbols-mode))))
 
 (defun company-coq-features/prettify-symbols--enable-script ()
   "Set up prettify-symbols in the current (scripting) buffer."
