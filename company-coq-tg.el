@@ -114,7 +114,7 @@ Then, process REST."
     (`nil nil)
     (`(Entry ,name is ,(and entries (pred listp))     . ,rest) (company-coq-tg--parse-toplevel-helper name entries rest))
     (`(Entry ,name is ,_s ,(and entries (pred listp)) . ,rest) (company-coq-tg--parse-toplevel-helper name entries rest))
-    (_ (error "Toplevel parsing failure [%s]" sexp))))
+    (_ (error "Top level parsing failure [%s]" sexp))))
 
 (defun company-coq-tg--mk-placeholder (symbol sep)
   "Create a placeholder for SYMBOL, using SEP as the repetition marker."
@@ -166,9 +166,12 @@ SEP is used to separate repeating patterns."
   "Turn GRAMMAR-STR into a list of abbrevs.
 GRAMMAR-STR should be the output of a Print Grammar Tactic call."
   (let* ((sexp (company-coq-tg--preprocess-tactics-grammar grammar-str)))
-    (cl-loop for s-tac in (company-coq-tg--find-tactics (company-coq-tg--parse-toplevel sexp))
-             append (cl-loop for tac in (company-coq-tg--format-tactic s-tac)
-                             collect (mapconcat #'identity tac " ")))))
+    ;; Swallow errors to work around bug #94 (‘Time’ commands produce spurious output)
+    (condition-case-unless-debug err
+        (cl-loop for s-tac in (company-coq-tg--find-tactics (company-coq-tg--parse-toplevel sexp))
+                 append (cl-loop for tac in (company-coq-tg--format-tactic s-tac)
+                                 collect (mapconcat #'identity tac " ")))
+      (error (ignore (message "company-coq: Parsing of tactic grammar failed with error %S." err))))))
 
 ;; Local Variables:
 ;; checkdoc-arguments-in-order-flag: nil

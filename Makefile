@@ -32,6 +32,10 @@ no-company-coq: elc
 	$(CASK) exec $(EMACS) --debug-init -Q \
 		-L $(PG_GENERIC_ROOT) -l proof-site -L . $(COQ_85_ARGS) tests.v
 
+no-company-coq-old-pg: elc
+	$(CASK) exec $(EMACS) --debug-init -Q \
+		-L $(OLD_PG_GENERIC_ROOT) -l proof-site -L . $(COQ_85_ARGS) tests.v
+
 update:
 	$(CASK) install
 	$(CASK) update
