@@ -4121,7 +4121,8 @@ REF-BUFFER is used to retrieve the buffer-local values of
 
 (defun company-coq-features/prettify-symbols--update-table ()
   "Update table of prettification symbols from file-local vars."
-  (when (assoc 'company-coq-local-symbols file-local-variables-alist)
+  (when (or (assoc 'company-coq-local-symbols file-local-variables-alist)
+            (assoc 'company-coq-dir-local-symbols dir-local-variables-alist))
     (company-coq-features/prettify-symbols--enable)))
 
 (company-coq-define-feature prettify-symbols (arg)
