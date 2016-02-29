@@ -816,8 +816,8 @@ goals and response windows."
 
 (defun company-coq-ask-prover-swallow-errors (question)
   "Call `company-coq-ask-prover' with QUESTION, swallowing errors.
-Since the caller seems to be ok with this erroring out, we add
-seize the opportunity and wrap this in [Timeout 1] on Unixes."
+Since the caller seems to be ok with this erroring out, we seize
+the opportunity and wrap this in [Timeout 1] on Unixes."
   (unless (memq system-type '(cygwin windows-nt ms-dos))
     (setq question (format "Timeout 1 %s" question)))
   (company-coq-unless-error (company-coq-ask-prover question)))
@@ -3965,7 +3965,6 @@ loading as much as possible."
   (require 'coq-syntax)   ;; `coq-tactics-db'
   (require 'coq-indent)   ;; `coq-looking-at-comment'
   (require 'coq))         ;; `coq-insert-match'
-
 
 (defconst company-coq--input-hooks '(proof-assert-command-hook
                           proof-shell-insert-hook)
