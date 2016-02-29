@@ -4450,13 +4450,18 @@ ENTRIES is a list of (category latex-string symbol string?)
 lists.  TABLE is a hashtable."
   (dolist (entry entries)
     (pcase entry
-      ((or `(,_ ,latex ,symbol) `(,_ ,latex ,symbol ,_))
-       (puthash symbol (cons latex (gethash symbol table)) table)))))
+      ((or `(,_ ,latex ,symbol)           ; ("arrow" "\\mapsto" #X21A6)
+           `(,_ ,latex ,symbol ,_)        ; ("mathrel" "\\searrow" 8600 "↘")
+           `(,_ ,_ ,latex ,symbol ,_)     ; ("fourier" "mathrel" "\\leqslant" 10877 "⩽")
+           `(,_ ,_ ,latex ,symbol ,_ ,_)) ; ("amssymb" "mathord" "\\blacksquare" 11035 "⬛" t)
+       (when (eq (aref latex 0) ?\\) ;; Exclude ("literal" "mathalpha" "i" 105 "i" t)
+         (puthash symbol (cons latex (gethash symbol table)) table))))))
 
 (defconst company-coq-features/show-key--table
   (let ((table (make-hash-table :size 4096)))
     (company-coq-features/show-key--populate math-symbol-list-basic table)
     (company-coq-features/show-key--populate math-symbol-list-extended table)
+    (company-coq-features/show-key--populate (bound-and-true-p math-symbol-list-packages) table)
     table)
   "Table of (symbol → latex-string) mappings.")
 
