@@ -4,7 +4,7 @@
 ;; Author: Clément Pit--Claudel <clement.pitclaudel@live.com>
 ;; URL: https://github.com/cpitclaudel/company-coq
 ;; Keywords: convenience, languages
-;; Package-Requires: ((cl-lib "0.5") (dash "2.10.0") (yasnippet "0.9.0.1") (company "0.8.12") (company-math "1.0.1"))
+;; Package-Requires: ((cl-lib "0.5") (dash "2.12.1") (yasnippet "0.9.0.1") (company "0.8.12") (company-math "1.1"))
 ;; Version: 1.0
 
 ;; This program is free software; you can redistribute it and/or modify
