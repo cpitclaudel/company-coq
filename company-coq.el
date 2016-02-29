@@ -5208,7 +5208,7 @@ them visible properties."
           (delete-region (point) (overlay-end ov))
           (insert abs))))))
 
-(defconst company-coq-features/refactorings--reqs-header "\\(\\<Require \\(?:Import\\|Export\\)\\>\\)"
+(defconst company-coq-features/refactorings--reqs-header "\\(\\<Require\\(?: Import\\| Export\\)?\\>\\)"
   "Header of [Require] commands that can be fully qualified.")
 
 (defconst company-coq-features/refactorings--reqs-menu
