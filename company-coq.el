@@ -570,14 +570,13 @@ the file.  Most useful as a dir-local variable."
   :type 'alist
   :safe 'listp)
 
-(defcustom company-coq-completion-predicate #'company-coq-not-in-comment-text-or-string-p
+(defcustom company-coq-completion-predicate #'company-coq-in-code-p
   "Function called before offering company-coq completions, or nil.
 If nil, offer company-coq candidates everywhere.  If set to
 `company-coq-not-in-comment-p', offer completions in source code,
-but never in comments.  If set to
-`company-coq-not-in-comment-text-or-string-p', offer completion in source
-code, in code blocks in comments […], but not in comment text.
-This function should not change the point."
+but never in comments.  If set to `company-coq--in-code-p', offer
+completion in source code, in code blocks in comments […], but
+not in comment text.  This function should not change the point."
   :group 'company-coq)
 
 (defun company-coq-not-in-comment-p ()
@@ -585,18 +584,49 @@ This function should not change the point."
 Useful as a value for `company-coq-completion-predicate'"
   (not (coq-looking-at-comment)))
 
-(defun company-coq-not-in-comment-text-or-string-p ()
-  "Return nil if point is inside a comment or string, but not a code block.
-That is, returns non nil in “(* abc| ”, but nil in “(* abc [p| ”.
-Useful as a value for `company-coq-completion-predicate'"
-  (let* ((pp (syntax-ppss))
-         (in-comment-p (nth 4 pp))
+(defconst company-coq--notations-header
+  (regexp-opt '("Infix" "Notation" "Tactic Notation") 'symbols)
+  "Regexp for keywords introducing notations.")
+
+(defun company-coq--in-notation-string-1 (pp)
+  "Use PP to check if point in in a “Notation” string.
+That is, return non-nil in any string between “^Tactic? Notation”
+and “:=”.  PP should be the result of calling `syntax-ppss' on
+point."
+  (and (nth 3 pp) ;; In a string
+       (save-excursion
+         (save-match-data
+           (let ((bol (point-at-bol)))
+             (and (not (re-search-backward "[^\"]:=" bol t))
+                  (progn (goto-char bol)
+                         (looking-at company-coq--notations-header))))))))
+
+(defun company-coq--in-escaped-code-block-p (comment-beg)
+  "Check if point is in a code block.
+Point is assumed to be in a comment starting at COMMENT-BEG."
+  (save-excursion
+    (skip-chars-backward "^[]" (max comment-beg (point-at-bol)))
+    (eq (char-before (point)) ?\[)))
+
+(defun company-coq--in-code-p-1 (pp)
+  "Helper for `company-coq--in-code-p'.
+PP is the result of calling `syntax-ppss' on point."
+  (let* ((in-comment-p (nth 4 pp))
          (comment-or-str-beg (nth 8 pp)))
-    (or (not comment-or-str-beg)
-        (when in-comment-p
-          (save-excursion
-            (skip-chars-backward "^[]" (max comment-or-str-beg (point-at-bol)))
-            (eq (char-before (point)) ?\[))))))
+    (or (not comment-or-str-beg) ;; In code
+        (and in-comment-p ;; Or in a code block comment
+             (company-coq--in-escaped-code-block-p comment-or-str-beg)))))
+
+(defun company-coq-in-code-p ()
+  "Return non-nil if point is in code context.
+Code contexts are portions of the buffer outside comments and
+strings, and code blocks in comments.  Thus this function returns
+nil in “(* abc| ”, but t in “(* abc [p| ”.
+Useful as a value for `company-coq-completion-predicate'."
+  (company-coq--in-code-p-1 (syntax-ppss)))
+
+;; FIXME check that this works
+(defalias 'company-coq-not-in-comment-text-or-string-p 'company-coq-in-code-p)
 
 (defconst company-coq-unification-error-header
   "\\(?:The command has indeed failed with message\\|Error\\):"
@@ -4090,8 +4120,41 @@ REF-BUFFER is used to retrieve the buffer-local values of
       (prettify-symbols-mode -1)
       (prettify-symbols-mode))))
 
+(defun company-coq-features/prettify-symbols--same-ish-syntax (other ref)
+  "Check if the syntax class of OTHER is similar to that of REF."
+  (memq (char-syntax (or other ?\s))
+        (if (memq (char-syntax ref) '(?w ?_))
+            '(?w ?_)
+          '(?. ?\\))))
+
+(defun company-coq-features/prettify-symbols--predicate-1 (pos)
+  "Check if POS should be prettified."
+  (save-excursion
+    (goto-char pos)
+    (let ((pp (syntax-ppss)))
+      (or (company-coq--in-code-p-1 pp)
+          (company-coq--in-notation-string-1 pp)))))
+
+(defun company-coq-features/prettify-symbols--predicate (start end &optional _match)
+  "Decide whether START..END should be prettified.
+Differs from `prettify-symbols-default-compose-p' insofar as it
+allows composition in “Notation” strings, and in code comments.
+Only effective in Emacs 25."
+  (interactive "r")
+  (and (not (company-coq-features/prettify-symbols--same-ish-syntax
+             (char-before start) (char-after start)))
+       (not (company-coq-features/prettify-symbols--same-ish-syntax
+             (char-after end) (char-before end)))
+       ;; Test both endpoints, since both sides of the ‘*’ of comments are not
+       ;; in comments themselves
+       (company-coq-features/prettify-symbols--predicate-1 start)
+       (company-coq-features/prettify-symbols--predicate-1 end)))
+
 (defun company-coq-features/prettify-symbols--enable-script ()
   "Set up prettify-symbols in the current (scripting) buffer."
+  (when (boundp 'prettify-symbols-compose-predicate)
+    (setq-local prettify-symbols-compose-predicate
+                #'company-coq-features/prettify-symbols--predicate))
   (company-coq-features/prettify-symbols--enable-1 (current-buffer)))
 
 (defun company-coq-features/prettify-symbols--enable-other ()
