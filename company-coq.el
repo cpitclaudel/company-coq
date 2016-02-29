@@ -31,9 +31,12 @@
 
 ;;; History:
 ;;
+;; 2016-02-28 — Show input hints for Unicode and prettified symbols
+;; 2016-02-28 — Prettify symbols in notation strings and code blocks
 ;; 2016-02-07 — Support for changing [Require]s to use fully qualified names
-;; 2016-02-02 — Lemma extraction now preserves names by inserting intros
-;; 2016-01-26 — Detection and display of subscripts: a1 → a₁ and a__n → aₙ
+;; 2016-02-02 — Preserve names by inserting intros when extracting a lemma
+;; 2016-01-31 — Fall back to regular autocompletion in comments (except in code blocks)
+;; 2016-01-26 — Detect and display subscripts: a1 → a₁ and a__n → aₙ
 ;; 2016-01-20 — First stable release (~600 commits)
 ;; 2015-02-15 — First commit
 
