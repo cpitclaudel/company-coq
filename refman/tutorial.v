@@ -40,12 +40,14 @@ Ltac MySimpleTactic :=
   end.
 
 (* Try typing an arrow ‘->’ here: *) 
+(* Note that placing the point on a symbol displays the unprettified equivalent
+   in the echo area, too.  Try it here: *) Check nat.
 
 (******************************************************************************)
 
 (** Company-Coq knows most basic Coq tactics.  Typing just a few letters is
-    enough to locate a tactic, and pressing RET inserts it.  If a tactic contains
-    holes, you can navigate them using TAB. *)
+    enough to locate a tactic, and pressing RET inserts it.  If a tactic
+    contains holes, you can navigate them using TAB. *)
 
 (* Try typing ‘applin RET’ here: *) 
 (* Try typing ‘SLD RET’ here: *) 
@@ -60,7 +62,14 @@ Ltac MySimpleTactic :=
 
 (** You can also insert math symbols directly in the source file, using TeX. *)
 
-(* Try typing ‘\gam RET’ here: *) 
+(* Try typing ‘\opl RET’ here: *) 
+
+(******************************************************************************)
+
+(** It's not always obvious how to insert a symbol. For example, how do you
+    input ‘≡’?  What about ‘⋆’, ‘⊙’, or ‘⤨’? *)
+
+(* Put the point on one of the symbols above and look at the echo area. *)
 
 (******************************************************************************)
 
