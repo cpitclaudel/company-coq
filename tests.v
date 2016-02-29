@@ -1,8 +1,13 @@
-(* -*- company-coq-initial-fold-state: bullets -*- *)
+(* -*- company-coq-initial-fold-state: bullets; company-coq-local-symbols: (("<~>" . ?↭)); -*- *)
 Require Import Utf8.
 
 (* Global folding should work here *)
 Ltac _SimpleLtac a b cde := idtac.
+
+Infix "<~>" := iff (at level 0).   (* Is this prettified? But not the star at the beginning or end of the comment *)
+Check (True <~> False).                  (* Is this prettified (file-local)? *)
+Infix "--->" := implb (at level 0). (* Is this prettified? *)
+Check (true ---> false).           (* Is this prettified (dir-local)? *)
 
 Goal True = False -> False.
   intros.
@@ -53,7 +58,7 @@ Definition SLD := False.
 
 Definition bullets: True \/ (True \/ True) -> True.
 Proof.
-  - intros.                     (* Does this fold? *)
+- intros.                     (* Does this fold? *)
     destruct H.
     + {                         (* What about this (inside and outside the brackets)? *)
         apply I.
@@ -64,17 +69,22 @@ Proof.
       Show Script.
 Qed.
 
+(* What does the help string say for ⊕, α, and ∅? *)
+(* What about [forall], [->], and [True]? *)
+
 Locate "xx__abc".               (* Should not have a subscript *)
 (* Is [p1.p22.p3.P__abc.P__def] properly subscripted? Does moving the
    cursor around it reveal subscript markers (__)? Does adding text in
    the middle of the marker work? *)
+
+Infix "⊕" := plus (at level 10).
 
 Inductive LongTypeName := II.
 Goal False.
   pose proof I.
   pose (fix test (arg0 arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8
                        arg9 arg10 arg11 arg12 : nat) {struct arg0} : LongTypeName
-        := match arg0 with      (* LongTypeName := is not a hypothesis *)
+        := match arg0 with      (* [LongTypeName :=] is not a hypothesis *)
            | 0 => II
            | S n => II
            end).
@@ -476,6 +486,8 @@ Require Import Omega.
 (* Does [zif] yield a list of tactic names? Are they browsable? (C-w) o they have the right 'meta' property? *)
 (* Does [Simple] yield a tactic completion? Is it a snippet? Is there a source view feature? *)
 
+(* Is [->] prettified in this comment? In the notation string below?
+   But not here "->" or here ->? *)
 Tactic Notation "myR" constr(from) "->" constr(to) "by" tactic(tac) := idtac.
 Tactic Notation "myR" constr(from) "->" constr(to) "in" hyp(hyp) "by" tactic(tac) := idtac.
 
@@ -898,3 +910,4 @@ Require Import RelationPairs.
 (* Loaded 8092 symbols (0.088 seconds) With optimized proof-general search *)
 (* Loaded 8092 symbols (0.136 seconds) With plain proof-general search *)
 (* Loaded 8092 symbols (0.155 seconds) With optimized proof-general search on battery *)
+
