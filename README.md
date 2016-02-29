@@ -85,6 +85,8 @@ Then restart and launch the tutorial with <kbd>M-x company-coq-tutorial</kbd>!
 
 <img src="img/deprecated.png" alt="Highlighting of deprecated forms" /> <img src="img/titles.png" alt="Special syntax for titles in comments" /> <img src="img/inline-docs.gif" alt="Quick help (inline docs)" />
 
+<img src="img/unicode-help.png" alt="Help with Unicode input" /> <img src="img/prettify-help.png" alt="Details about prettifications" />
+
 ## Citing
 
 Use `M-x company-coq-cite` to insert the BibTeX entries for Coq, Proof General, and `company-coq` in the current buffer.

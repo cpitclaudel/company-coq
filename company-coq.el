@@ -4462,7 +4462,7 @@ lists.  TABLE is a hashtable."
 
 (defun company-coq-features/show-key--wrap (str)
   "Wrap STR in “`' RET”."
-  (concat "`" str "' RET"))
+  (concat "`" str " RET'"))
 
 (defun company-coq-features/show-key--echo-1 (char)
   "Find ways to input CHAR with company-math-symbols-unicode."

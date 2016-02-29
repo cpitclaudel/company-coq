@@ -110,17 +110,18 @@
 
 ;; Without | With
 
-(my/with-screenshot my/github-width/2 6 nil "west" "Prettification of math symbols (enabled)." "prettify"
-  (insert "Definition PrettySymbols : (nat -> nat -> Prop) :=
-  (fun (n1 n2: nat) =>
-     forall p, p <> n1 -> p >= n2 -> True \\/ False)."))
-
-(my/with-screenshot my/github-width/2 6 nil "east" "Prettification of math symbols (disabled)." "prettify-disabled"
+(my/with-screenshot my/github-width/2 6 nil "west" "Prettification of math symbols (disabled)." "prettify-disabled"
   (company-coq-features/prettify-symbols -1)
-  (insert "Definition PrettySymbols : (nat -> nat -> Prop) :=
+  (my/insert-with-point "Definition PrettySymbols : (<|>nat -> nat -> Prop) :=
   (fun (n m: nat) =>
      forall p, p <> n -> p >= m -> True \\/ False).")
   (message nil))
+
+(my/with-screenshot my/github-width/2 6 nil "east" "Prettification of math symbols (enabled)." "prettify"
+  (my/insert-with-point "Definition PrettySymbols : (<|>nat -> nat -> Prop) :=
+  (fun (n1 n2: nat) =>
+     forall p, p <> n1 -> p >= n2 -> True \\/ False).")
+  (company-coq-features/show-key--echo))
 
 ;;;;;;;;;;;;;;;;;;;;;
 ;; Auto completion ;;
@@ -447,6 +448,8 @@ Proof.
     (my/send-keys "C-x 1 M-< M->"))
   (:split "intros!") "<C-return>" "<C-return> RET")
 
+;; Refactorings (TODO: add to README)
+
 (defvar my/ovs nil)
 
 (my/with-screencast my/github-width/2 12 nil "west" 80 2 "Refactoring of [Import]s (right-click, <menu>)" "refactor-imports"
@@ -469,6 +472,18 @@ Proof.
   (ignore)
   (progn (message "Apply changes? (y or n) y")
          (company-coq-features/refactorings--reqs-commit my/ovs)))
+
+;; Help on prettifications | Help on symbols
+
+(my/with-screenshot my/github-width/2 3 nil "west" "Help with Unicode input in echo area." "unicode-help"
+  (my/insert-with-point "Notation \"A <|>∪ B\" := (fun x => A x \\/ B x)\n  (at level 0).")
+  (outline-hide-body)
+  (company-coq-features/show-key--echo))
+
+(my/with-screenshot my/github-width/2 3 nil "east" "Details about prettifications in echo area." "prettify-help"
+  (my/insert-with-point "Notation \"A ∪ B\" := (<|>fun x => A x \\/ B x)\n  (at level 0).")
+  (outline-hide-body)
+  (company-coq-features/show-key--echo))
 
 ;; (profiler-report)
 (kill-emacs)
