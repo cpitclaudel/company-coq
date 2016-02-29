@@ -4461,12 +4461,18 @@ lists.  TABLE is a hashtable."
   "Table of (symbol → latex-string) mappings.")
 
 (defun company-coq-features/show-key--wrap (str)
-  "Wrap STR in “`' RET”."
-  (concat "`" str " RET'"))
+  "Explain how to invoke company-math on STR.
+That is, wrap STR in “`' RET” or “`' \\[company-manual-begin]
+RET”, and substitute command keys."
+  (substitute-command-keys
+   (format (if (> (length str) 3)
+               "`%s RET'"
+             "`%s \\[company-manual-begin] RET'")
+           str)))
 
 (defun company-coq-features/show-key--echo-1 (char)
   "Find ways to input CHAR with company-math-symbols-unicode."
-  ;; Test on ‘⊕’, ‘β’, and ‘∅’
+  ;; Test on ‘∈’, ‘⊕’, ‘β’, and ‘∅’
   (when (> char 128)
     (let ((input-strings (-uniq (gethash char company-coq-features/show-key--table))))
       (cond

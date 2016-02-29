@@ -69,7 +69,7 @@ Proof.
       Show Script.
 Qed.
 
-(* What does the help string say for ⊕, α, and ∅? *)
+(* What does the input hints say for ∈, ⊕, α, and ∅? *)
 (* What about [forall], [->], and [True]? *)
 
 Locate "xx__abc".               (* Should not have a subscript *)
