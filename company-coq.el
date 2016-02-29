@@ -4488,7 +4488,7 @@ RET”, and substitute command keys."
 (defun company-coq-features/show-key--echo ()
   "Show a message describing how to input the symbol at point."
   (interactive)
-  (when (company-coq-coq-mode-p)
+  (when (or (company-coq-coq-mode-p) (memq major-mode '(coq-response-mode coq-goals-mode)))
     (let ((message-log-max nil))
       (-if-let* ((char (char-after (point)))
                  (desc (company-coq-features/show-key--echo-1 char)))
