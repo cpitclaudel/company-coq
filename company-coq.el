@@ -4441,6 +4441,74 @@ patterns, etc."
      (remove-hook 'coq-goals-mode-hook #'company-coq-features/pg-improvements--goals-buffer-enable)
      (remove-hook 'coq-response-mode-hook #'company-coq-features/pg-improvements--response-buffer-enable))))
 
+(defun company-coq-features/show-key--populate (entries table)
+  "Load ENTRIES into TABLE.
+ENTRIES is a list of (category latex-string symbol string?)
+lists.  TABLE is a hashtable."
+  (dolist (entry entries)
+    (pcase entry
+      ((or `(,_ ,latex ,symbol) `(,_ ,latex ,symbol ,_))
+       (puthash symbol (cons latex (gethash symbol table)) table)))))
+
+(defconst company-coq-features/show-key--table
+  (let ((table (make-hash-table :size 4096)))
+    (company-coq-features/show-key--populate math-symbol-list-basic table)
+    (company-coq-features/show-key--populate math-symbol-list-extended table)
+    table)
+  "Table of (symbol → latex-string) mappings.")
+
+(defun company-coq-features/show-key--wrap (str)
+  "Wrap STR in “`' RET”."
+  (concat "`" str "' RET"))
+
+(defun company-coq-features/show-key--echo-1 (char)
+  "Find ways to input CHAR with company-math-symbols-unicode."
+  ;; Test on ‘⊕’, ‘β’, and ‘∅’
+  (when (> char 128)
+    (let ((input-strings (-uniq (gethash char company-coq-features/show-key--table))))
+      (cond
+       ((cddr input-strings)
+        (concat (mapconcat #'company-coq-features/show-key--wrap (butlast input-strings) ", ")
+                ", or " (company-coq-features/show-key--wrap (car (last input-strings)))))
+       ((cdr input-strings)
+        (concat (company-coq-features/show-key--wrap (car input-strings))
+                " or " (company-coq-features/show-key--wrap (cadr input-strings))))
+       ((car input-strings)
+        (company-coq-features/show-key--wrap (car input-strings)))))))
+
+(defun company-coq-features/show-key--echo ()
+  "Show a message describing how to input the symbol at point."
+  (interactive)
+  (when (company-coq-coq-mode-p)
+    (let ((message-log-max nil))
+      (-if-let* ((char (char-after (point)))
+                 (desc (company-coq-features/show-key--echo-1 char)))
+          (-> "To input `%s', type %s."
+              (format (char-to-string char) desc)
+              (substitute-command-keys)
+              (message))
+        (-when-let* ((beg (get-text-property (point) 'prettify-symbols-start))
+                     (end (get-text-property (point) 'prettify-symbols-end)))
+          (-> "`%s' is a prettified version of `%s'." ;; FIXME do not print all these messages in the echo area
+              (format (buffer-substring beg end) (buffer-substring-no-properties beg end))
+              (message)))))))
+
+(defvar company-coq-features/show-key--timer nil
+  "Timer calling `company-coq-features/show-key--echo'.")
+
+(company-coq-define-feature show-key (arg)
+  "Tips on inputting special characters.
+Shows a message in the echo area when the cursor is on a special
+character."
+  (pcase arg
+    (`on
+     (unless company-coq-features/show-key--timer
+       (setq company-coq-features/show-key--timer
+             (run-with-idle-timer 0.2 t #'company-coq-features/show-key--echo))))
+    (`off
+     (when company-coq-features/show-key--timer
+       (cancel-timer company-coq-features/show-key--timer)))))
+
 (company-coq-define-feature title-comments (arg)
   "Special comments [(***, (*+, and (*!].
 Handles comments beginning with (***, (*+, and (*! as title
