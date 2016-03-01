@@ -4494,6 +4494,12 @@ RET”, and substitute command keys."
        ((car input-strings)
         (company-coq-features/show-key--wrap (car input-strings)))))))
 
+(defun company-coq--composition-bounds (pos)
+  "Compute bounds of composition at POS."
+  (when (get-text-property pos 'composition)
+    (cons (previous-single-char-property-change (1+ pos) 'composition nil (point-at-bol))
+          (next-single-char-property-change pos 'composition nil (point-at-eol)))))
+
 (defun company-coq-features/show-key--echo ()
   "Show a message describing how to input the symbol at point."
   (interactive)
@@ -4505,8 +4511,7 @@ RET”, and substitute command keys."
               (format (char-to-string char) desc)
               (substitute-command-keys)
               (message))
-        (-when-let* ((beg (get-text-property (point) 'prettify-symbols-start))
-                     (end (get-text-property (point) 'prettify-symbols-end)))
+        (-when-let* (((beg . end) (company-coq--composition-bounds (point))))
           (-> "`%s' is a prettified version of `%s'."
               (format (buffer-substring beg end) (buffer-substring-no-properties beg end))
               (message)))))))
