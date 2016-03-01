@@ -1840,6 +1840,11 @@ Nothing is reloaded immediately; instead the relevant flags are set."
   "Check if current buffer is in Coq mode."
   (derived-mode-p 'coq-mode))
 
+(defun company-coq--proof-buffer-p ()
+  "Check if current buffer is a Coq proof buffer."
+  (or (company-coq-coq-mode-p)
+      (memq major-mode '(coq-response-mode coq-goals-mode))))
+
 (defvar company-coq--use-special-set-unset-test-regexp nil
   "If non-nil, consider ‘Set ’ (etc.) as valid prefixes.")
 
@@ -3651,7 +3656,7 @@ function."
          (buffer  (and window (window-buffer window))))
     (if buffer
         (with-current-buffer buffer
-          (when (eq major-mode 'coq-mode)
+          (when (company-coq--proof-buffer-p)
             (save-excursion
               (mouse-set-point event)
               (company-coq-clear-definition-overlay)
@@ -4492,7 +4497,7 @@ RET”, and substitute command keys."
 (defun company-coq-features/show-key--echo ()
   "Show a message describing how to input the symbol at point."
   (interactive)
-  (when (or (company-coq-coq-mode-p) (memq major-mode '(coq-response-mode coq-goals-mode)))
+  (when (company-coq--proof-buffer-p)
     (let ((message-log-max nil)) ;; Don't record messages
       (-if-let* ((char (char-after (point)))
                  (desc (company-coq-features/show-key--echo-1 char)))
