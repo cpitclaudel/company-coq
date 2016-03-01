@@ -53,39 +53,39 @@ Then restart and launch the tutorial with <kbd>M-x company-coq-tutorial</kbd>!
 
 #### Prettification of operators, types, and subscripts
 
-<img src="img/prettify-disabled.png" alt="Prettification of math symbols (disabled)" /> <img src="img/prettify.png" alt="Prettification of math symbols (enabled)" />
+<img alt="Prettification of math symbols (disabled)" height="106px" src="img/prettify-disabled.png" width="440px"/> <img alt="Prettification of math symbols (enabled)" height="106px" src="img/prettify.png" width="440px"/>
 
 #### Auto-completion
 
-<img src="img/refman-tactics.png" alt="Auto-completion of tactics, with documentation" /> <img src="img/refman-commands.png" alt="Auto-completion of commands, with documentation" />
+<img alt="Auto-completion of tactics, with documentation" height="286px" src="img/refman-tactics.png" width="440px"/> <img alt="Auto-completion of commands, with documentation" height="286px" src="img/refman-commands.png" width="440px"/>
 
-<img src="img/defun-completion.png" alt="Auto-completion of local definitions" /> <img src="img/modules-completion.png" alt="Fuzzy auto-completion of module names" />
+<img alt="Auto-completion of local definitions" height="211px" src="img/defun-completion.png" width="440px"/> <img alt="Fuzzy auto-completion of module names" height="211px" src="img/modules-completion.png" width="440px"/>
 
-<img src="img/hypotheses-completion.png" alt="Auto-completion of hypotheses" /> <img src="img/search-completion.png" alt="Auto-completion of search results" /> <img src="img/math-completion.png" alt="Unicode math symbols" />
+<img alt="Auto-completion of hypotheses" height="256px" src="img/hypotheses-completion.png" width="293px"/> <img alt="Auto-completion of search results" height="256px" src="img/search-completion.png" width="293px"/> <img alt="Unicode math symbols" height="256px" src="img/math-completion.png" width="293px"/>
 
-<img src="img/ltac-completion.png" alt="Auto-completion of user-defined tactic notations" /> <img src="img/source-view.png" alt="Source browser (requires symbol completion)" />
+<img alt="Auto-completion of user-defined tactic notations" height="211px" src="img/ltac-completion.png" width="293px"/> <img alt="Source browser (requires symbol completion)" height="211px" src="img/source-view.png" width="586px"/>
 
 #### Snippets and smart commands
 
-<img src="img/match-function.gif" alt="Insertion of new match cases" />
-<img src="img/match-goal.gif" alt="Insertion of new match goal rules" />
-<img src="img/smart-intros.gif" alt="Fully explicit intros (smart intros)" />
+<img alt="Insertion of new match cases" height="211px" src="img/match-function.gif" width="293px"/>
+<img alt="Insertion of new match goal rules" height="211px" src="img/match-goal.gif" width="293px"/>
+<img alt="Fully explicit intros (smart intros)" height="211px" src="img/smart-intros.gif" width="293px"/>
 
 #### Outlines, code folding, and jumping to definition
 
-<img src="img/outline.png" alt="Outline of Coq source files" />
-<img src="img/folding.gif" alt="Code folding" />
-<img src="img/jump-to-definition.gif" alt="Jumping to definition (cross references)" />
+<img alt="Outline of Coq source files" height="286px" src="img/outline.png" width="293px"/>
+<img alt="Code folding" height="286px" src="img/folding.gif" width="293px"/>
+<img alt="Jumping to definition (cross references)" height="286px" src="img/jump-to-definition.gif" width="293px"/>
 
 #### Help with errors
 
-<img src="img/unification.png" alt="Diffs of unification errors" /> <img src="img/errors-doc.png" alt="Documentation for (documented) error messages" />
+<img alt="Diffs of unification errors" height="256px" src="img/unification.png" width="440px"/> <img alt="Documentation for (documented) error messages" height="256px" src="img/errors-doc.png" width="440px"/>
 
 #### Misc. extensions of Proof General
 
-<img src="img/deprecated.png" alt="Highlighting of deprecated forms" /> <img src="img/titles.png" alt="Special syntax for titles in comments" /> <img src="img/inline-docs.gif" alt="Quick help (inline docs)" />
+<img alt="Highlighting of deprecated forms" height="211px" src="img/deprecated.png" width="293px"/> <img alt="Special syntax for titles in comments" height="211px" src="img/titles.png" width="293px"/> <img alt="Quick help (inline docs)" height="211px" src="img/inline-docs.gif" width="293px"/>
 
-<img src="img/unicode-help.png" alt="Help with Unicode input" /> <img src="img/prettify-help.png" alt="Details about prettifications" />
+<img alt="Help with Unicode input" height="91px" src="img/unicode-help.png" width="440px"/> <img alt="Details about prettifications" height="91px" src="img/prettify-help.png" width="440px"/>
 
 ## Citing
 
