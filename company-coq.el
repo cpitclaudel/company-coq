@@ -628,7 +628,6 @@ nil in “(* abc| ”, but t in “(* abc [p| ”.
 Useful as a value for `company-coq-completion-predicate'."
   (company-coq--in-code-p-1 (syntax-ppss)))
 
-;; FIXME check that this works
 (defalias 'company-coq-not-in-comment-text-or-string-p 'company-coq-in-code-p)
 
 (defconst company-coq-unification-error-header
@@ -4494,7 +4493,7 @@ RET”, and substitute command keys."
   "Show a message describing how to input the symbol at point."
   (interactive)
   (when (or (company-coq-coq-mode-p) (memq major-mode '(coq-response-mode coq-goals-mode)))
-    (let ((message-log-max nil))
+    (let ((message-log-max nil)) ;; Don't record messages
       (-if-let* ((char (char-after (point)))
                  (desc (company-coq-features/show-key--echo-1 char)))
           (-> "To input `%s', type %s."
@@ -4503,7 +4502,7 @@ RET”, and substitute command keys."
               (message))
         (-when-let* ((beg (get-text-property (point) 'prettify-symbols-start))
                      (end (get-text-property (point) 'prettify-symbols-end)))
-          (-> "`%s' is a prettified version of `%s'." ;; FIXME do not print all these messages in the echo area
+          (-> "`%s' is a prettified version of `%s'."
               (format (buffer-substring beg end) (buffer-substring-no-properties beg end))
               (message)))))))
 
