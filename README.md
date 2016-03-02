@@ -291,6 +291,12 @@ This feature won't work unless you build and use a patched coq REPL: see [this f
 
 You can download these changes as patches for [8.4](etc/8.4-additions.patch), [8.5](etc/8.5-additions.patch) or [trunk](etc/trunk-additions.patch).
 
+To find everything on 8.4 you'll need this extra bit:
+
+```elisp
+(setq company-coq-extra-symbols-cmd "SearchAbout -\"____\"")
+```
+
 ### Installing from source
 
 Use Cask.
