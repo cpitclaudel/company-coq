@@ -2,7 +2,7 @@
 Require Import Utf8.
 
 (* Global folding should work here *)
-Ltac _SimpleLtac a b cde := idtac.
+Ltac __SimpleLtac a b cde := idtac.
 
 Infix "<~>" := iff (at level 0).   (* Is this prettified? But not the star at the beginning or end of the comment *)
 Check (True <~> False).                  (* Is this prettified (file-local)? *)
@@ -253,6 +253,8 @@ Proof.
   intros.                       (* EX2 [EX2] *)
   pose proof I as a123.         (* subscript, a123 [a123] a123 *)
   pose proof I as a123'.        (* subscript, a123' [a123'] a123' *)
+  pose proof I as a''123.       (* subscript, a''123 [a''123] a''123 *)
+  pose proof I as a''123'.      (* subscript, a''123' [a''123'] a''123' *)
   pose proof I as a__abc.         (* __ hidden, a__abc [a__abc] a__abc *)
   pose proof I as a__abc''.       (* __ hidden, a__abc' [a__abc'] a__abc' *)
   pose proof I as a_123.        (* _ not hidden, a_123 [a_123] a_123 *)
