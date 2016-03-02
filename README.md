@@ -211,14 +211,14 @@ Goal True.
 Add the following header to a Coq file, save, and run `M-x revert-buffer` to prettify squiggly arrows.
 
 ```coq
-(* -*- company-coq-local-symbols: (("<~>" . ?↭) ("~>" . ?↝) ("<~" . ?⇜)); -*- *)
+(* -*- company-coq-local-symbols: (("<~>" . ?↭) ("~>" . ?↝) ("<~" . ?↜)); -*- *)
 ```
 
 Alternatively, you can use a special comment at the end of the file:
 
 ```coq
 (* Local Variables: *)
-(* company-coq-local-symbols: (("<~>" . ?↭) ("~>" . ?↝) ("<~" . ?⇜)) *)
+(* company-coq-local-symbols: (("<~>" . ?↭) ("~>" . ?↝) ("<~" . ?↜)) *)
 (* End: *)
 ```
 
@@ -234,7 +234,7 @@ Create a `.dir-locals.el` file at the root of your project, and add following co
 
 ((coq-mode
   (company-coq-dir-local-symbols
-   (("<~>" . ?↭) ("~>" . ?↝) ("<~" . ?⇜)))))
+   (("<~>" . ?↭) ("~>" . ?↝) ("<~" . ?↜)))))
 ```
 
 Tip: you can use `M-x add-dir-local-variable` to add this sort of variables.
