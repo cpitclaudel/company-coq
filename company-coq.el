@@ -2053,7 +2053,8 @@ was found, and the value to be returned."
 (defun company-coq--pulse-and-recenter (point _window-top)
   "Go to POINT, then pulse."
   (company-coq-recenter-on point)
-  (pulse-momentary-highlight-one-line (point)))
+  (unless (eq system-type 'darwin) ;; Pulsing is slow on MacOS
+    (pulse-momentary-highlight-one-line (point))))
 
 (defun company-coq-location-simple (name &optional target)
   "Show context of NAME based on its location property.
@@ -5613,6 +5614,11 @@ window every time it changes."
   "Compute the match to the modeline icon."
   (company-coq--icon (max company-coq-features/spinner--rotation 0)))
 
+(defconst company-coq--rooster-char-displayable
+  (char-displayable-p ?🐤)
+  "Whether 🐤 can be displayed.
+This check is costly, so do it only once.")
+
 (defun company-coq--lighter-string ()
   "Compute a string to display in the modeline."
   (let* ((selected-p (eq (selected-window) company-coq--selected-window))
@@ -5627,7 +5633,7 @@ window every time it changes."
                                ;; Inherit bg explicitly
                                :background ,mode-line-background))
          (can-display-rooster-char (if (display-graphic-p)
-                                       (char-displayable-p ?🐤)
+                                       company-coq--rooster-char-displayable
                                      company-coq-features/prettify-symbols-in-terminals))
          (lighter-string (if can-display-rooster-char
                              ;; 🐤 🐣 🐓 🐔
