@@ -539,19 +539,24 @@ The result matches any symbol in HEADERS, followed by BODY."
 (defconst company-coq-outline-heading-end-regexp "\\.[ \t\n]\\|\n"
   "Regexp used to locate the end of a heading.")
 
-(defcustom company-coq-prettify-symbols-alist '(("|-" . ?⊢) ("True" . ?⊤) ("False" . ?⊥)
-                                     ("->" . ?→) ("-->" . ?⟶) ("<-" . ?←)
-                                     ("<--" . ?⟵) ("<->" . ?↔) ("<-->" . ?⟷)
-                                     ("=>" . ?⇒) ("==>" . ?⟹) ("<==" . ?⟸)
-                                     ("~~>" . ?⟿) ("<~~" . ?⬳) ("fun" . ?λ)
-                                     ("forall" . ?∀) ("exists" . ?∃) ("/\\" . ?∧)
-                                     ("\\/" . ?∨) ("~" . ?¬) ("+-" . ?±)
-                                     ("<=" . ?≤) (">=" . ?≥) ("<>" . ?≠) ("*" . ?×)
-                                     (">->" . ?↣)
-                                     ;; ("++" . ?⧺) ;; Not present in TeX fonts
-                                     ;; ("nat" . ?𝓝) ("Prop" . ?𝓟) ;; Rather uncommon
-                                     ;; ("N" . ?ℕ) ("Z" . ?ℤ) ("Q" . ?ℚ) ;; Too invasive
-                                     ("nat" . ?ℕ) ("Prop" . ?ℙ) ("Real" . ?ℝ) ("bool" . ?𝔹))
+(defcustom company-coq-prettify-symbols-alist '(;; Disabled
+                                     ;; ("~" . ?¬)  ; Too invasive
+                                     ;; ("++" . ?⧺) ; Not present in TeX fonts
+                                     ;; ("nat" . ?𝓝) ("Prop" . ?𝓟) ; Rather uncommon
+                                     ;; ("N" . ?ℕ) ("Z" . ?ℤ) ("Q" . ?ℚ) ; Too invasive
+
+                                     ;; Core Coq symbols
+                                     ("|-" . ?⊢) ("||" . ?‖) ("/\\" . ?∧) ("\\/" . ?∨)
+                                     ("->" . ?→) ("<-" . ?←) ("<->" . ?↔) ("=>" . ?⇒)
+                                     ("<=" . ?≤) (">=" . ?≥) ("<>" . ?≠)
+                                     ("True" . ?⊤) ("False" . ?⊥)
+                                     ("fun" . ?λ) ("forall" . ?∀) ("exists" . ?∃)
+                                     ("nat" . ?ℕ) ("Prop" . ?ℙ) ("Real" . ?ℝ) ("bool" . ?𝔹)
+
+                                     ;; Extra symbols
+                                     ("+-" . ?±) ("*" . ?×) (">->" . ?↣)
+                                     ("-->" . ?⟶) ("<--" . ?⟵) ("<-->" . ?⟷)
+                                     ("==>" . ?⟹) ("<==" . ?⟸) ("~~>" . ?⟿) ("<~~" . ?⬳))
   "An alist of symbols to prettify.
 Assigned to `prettify-symbols-alist' in Emacs >= 24.4."
   :group 'company-coq
