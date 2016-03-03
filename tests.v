@@ -225,7 +225,7 @@ Proof.
   end.
   Undo 1.
   Definition __1 := 1.
-  _SimpleLtac 1 2 3. (* Does M-. work here? *)
+  __SimpleLtac 1 2 3. (* Does M-. work here? *)
   congruence.
   Show Script.
 Qed.

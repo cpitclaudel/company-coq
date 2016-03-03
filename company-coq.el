@@ -4039,8 +4039,8 @@ Do not disable this feature"
   (pcase arg
     (`on
      (company-coq--init-pg)
-     (yas-minor-mode)
      (company-coq--record-selected-window)
+     (company-coq-do-in-coq-buffers (yas-minor-mode))
      (add-hook 'post-command-hook #'company-coq--record-selected-window)
      (add-hook 'proof-shell-init-hook #'company-coq-prover-init)
      (add-hook 'proof-state-change-hook #'company-coq-state-change)
@@ -4049,7 +4049,7 @@ Do not disable this feature"
      (add-hook 'proof-shell-handle-error-or-interrupt-hook #'company-coq--update-context)
      (add-hook 'yas-after-exit-snippet-hook #'company-coq-forget-choices))
     (`off
-     (yas-minor-mode -1)
+     (company-coq-do-in-coq-buffers (yas-minor-mode -1))
      (remove-hook 'post-command-hook #'company-coq--record-selected-window)
      (remove-hook 'proof-shell-init-hook #'company-coq-prover-init)
      (remove-hook 'proof-state-change-hook #'company-coq-state-change)
@@ -5611,7 +5611,9 @@ company-coq."
 There is no way to access the selected window from
 `company-coq--lighter-string', as it is always called with the
 current window selected.  Instead, we simply save the selected
-window every time it changes."
+window every time it changes.  We need to know the selected
+window, because we want to adjust the spinning rooster's
+background."
   (unless (eq (selected-window) (minibuffer-window))
     (setq company-coq--selected-window (selected-window))))
 
