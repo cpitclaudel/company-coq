@@ -540,7 +540,9 @@ The result matches any symbol in HEADERS, followed by BODY."
   "Regexp used to locate the end of a heading.")
 
 (defcustom company-coq-prettify-symbols-alist '(;; Disabled
+                                     ;; ("*" . ?×)  ; Inconsistent (‘intros H *’, rewrite in *, etc.)
                                      ;; ("~" . ?¬)  ; Too invasive
+                                     ;; ("+-" . ?±) ; Too uncommon
                                      ;; ("++" . ?⧺) ; Not present in TeX fonts
                                      ;; ("nat" . ?𝓝) ("Prop" . ?𝓟) ; Rather uncommon
                                      ;; ("N" . ?ℕ) ("Z" . ?ℤ) ("Q" . ?ℚ) ; Too invasive
@@ -554,7 +556,7 @@ The result matches any symbol in HEADERS, followed by BODY."
                                      ("nat" . ?ℕ) ("Prop" . ?ℙ) ("Real" . ?ℝ) ("bool" . ?𝔹)
 
                                      ;; Extra symbols
-                                     ("+-" . ?±) ("*" . ?×) (">->" . ?↣)
+                                     (">->" . ?↣)
                                      ("-->" . ?⟶) ("<--" . ?⟵) ("<-->" . ?⟷)
                                      ("==>" . ?⟹) ("<==" . ?⟸) ("~~>" . ?⟿) ("<~~" . ?⬳))
   "An alist of symbols to prettify.
