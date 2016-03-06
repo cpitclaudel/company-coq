@@ -595,7 +595,7 @@ Useful as a value for `company-coq-completion-predicate'"
   (not (coq-looking-at-comment)))
 
 (defconst company-coq--notations-header
-  (regexp-opt '("Infix" "Notation" "Tactic Notation") 'symbols)
+  (regexp-opt '("Infix" "Notation" "Tactic Notation" "Reserved Notation") 'symbols)
   "Regexp for keywords introducing notations.")
 
 (defun company-coq--in-notation-string-1 (pp)
