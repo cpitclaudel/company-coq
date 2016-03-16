@@ -360,7 +360,7 @@ impossible, for example in `proof-shell-insert-hook'")
   "Overlay used to show inline definitions.")
 
 (defconst company-coq-id-regexp "\\(?:[a-zA-Z0-9_][a-zA-Z0-9_']*\\)")
-(defconst company-coq-prefix-regexp "\\(?:[a-zA-Z0-9_][a-zA-Z0-9_.'!]*\\)?") ;; '!' included for patterns like [intros!]
+(defconst company-coq-prefix-regexp "\\(?:[a-zA-Z0-9_][a-zA-Z0-9_.']*!?\\)?") ;; '!' included for patterns like [intros!]
 (defconst company-coq-symbol-regexp "\\(?:[_a-zA-Z]\\(?:[a-zA-Z0-9_.']*[a-zA-Z0-9_']\\)?\\)")
 (defconst company-coq-symbol-regexp-no-dots "\\(?:_*[a-zA-Z]\\(?:[a-zA-Z0-9_']*[a-zA-Z0-9_']\\)?\\)")
 (defconst company-coq-symbol-regexp-no-dots-no-numbers "\\(?:_*[a-zA-Z]\\(?:[a-zA-Z0-9_']*[a-zA-Z']\\)?\\)")
