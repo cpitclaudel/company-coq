@@ -240,7 +240,7 @@ Proof.
 Abort.
 
 (** By the way, did you notice the links on the bullets? Try clicking them! (or
-pressing RET on them) **)
+    pressing RET on them) **)
 
 (******************************************************************************)
 

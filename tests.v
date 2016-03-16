@@ -58,7 +58,7 @@ Definition SLD := False.
 
 Definition bullets: True \/ (True \/ True) -> True.
 Proof.
-- intros.                     (* Does this fold? *)
+  - intros.                     (* Does this fold? *)
     destruct H.
     + {                         (* What about this (inside and outside the brackets)? *)
         apply I.
