@@ -3450,7 +3450,9 @@ This is experimental, and only supported in 8.5."
   (unless (and (fboundp 'coq-hack-cmd-for-infoH)
                (fboundp 'coq-find-real-start))
     (error "This feature requires a recent version of Proof General (it's on GitHub now)"))
-  (insert (company-coq-insert-as-clause-1)))
+  (insert (company-coq-insert-as-clause-1))
+  (let ((last-command-event ?.))
+    (proof-electric-terminator)))
 
 (defun company-coq-normalize-error (msg)
   "Normalize error MSG to look it up in a list of errors."
