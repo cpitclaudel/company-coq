@@ -1618,7 +1618,6 @@ Updated when `company-coq-shell-output-is-error' is called.")
     (company-coq-init-symbols)
     (company-coq-init-modules)))
 
-
 (defun company-coq--narrow-to-matches (opener closer)
   "Narrow current buffer to first matches of OPENER and CLOSER.
 Returns non-nil iff narrowing was successful."
@@ -1796,9 +1795,14 @@ If CLEAR is non-nil, clear all caches."
       (setq company-coq-tactics-reload-needed (or company-coq-tactics-reload-needed is-end-of-def))
       (company-coq--update-context (or is-end-of-def is-end-of-proof))
       (if is-error (company-coq-dbg "Last output was an error; not reloading")
-        ;; Delay call until after we have returned to the command loop
         (company-coq-dbg "This could be a good time to reload things?")
-        (run-with-timer 0 nil #'company-coq-maybe-reload-each)))))
+        ;; Delay call until after we have returned to the command loop.  The
+        ;; “0.02” part is a fix for #121.  This timer may run while PG
+        ;; busy-waits for a command to return, e.g. when user calls a command
+        ;; that runs “Show Intros”.  Unfortunately, there doesn't seem to be a
+        ;; way to detect this condition (the `proof-shell-busy' flag can be
+        ;; unset just before our timer runs).
+        (run-with-timer 0.02 nil #'company-coq-maybe-reload-each)))))
 
 (defun company-coq-maybe-proof-input-reload-things ()
   "Parse output of prover, looking for signals that things need to be reloaded.
