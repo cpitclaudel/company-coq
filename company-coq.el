@@ -1841,7 +1841,9 @@ Nothing is reloaded immediately; instead the relevant flags are set."
     (bury-buffer doc-buf))
   (-when-let* ((goals-buf proof-goals-buffer)
                (goals-win (company-coq-get-goals-window)))
-    (set-window-buffer goals-win goals-buf)))
+    ;; Removing this test makes everything orders of magnitude slower on Jonathan's machine
+    (unless (eq (window-buffer goals-win) goals-buf)
+      (set-window-buffer goals-win goals-buf))))
 
 (defun company-coq-coq-mode-p ()
   "Check if current buffer is in Coq mode."
