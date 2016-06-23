@@ -3577,7 +3577,12 @@ Useful for debugging tactics in versions of Coq prior to 8.5: use
   (cl-loop for var in company-coq--font-lock-vars
            do (set (make-local-variable var)
                    (buffer-local-value var ref-buffer)))
-  (font-lock-default-fontify-region (point-min) (point-max) nil))
+  (ignore-errors
+    ;; Some modes, such as whitespace-mode, rely on buffer-local state to do
+    ;; their fontification.  Thus copying only font-lock variables is not
+    ;; enough; one would need to copy these modes private variables as well.
+    ;; See GH-124.
+    (font-lock-default-fontify-region (point-min) (point-max) nil)))
 
 (defun company-coq--fontify-string (str &optional ref-buffer)
   "Fontify STR, using font-locking settings of REF-BUFFER."
