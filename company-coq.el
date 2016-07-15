@@ -394,7 +394,7 @@ The result matches any symbol in HEADERS, followed by BODY."
   (concat "^[[:blank:]]*\\_<\\(" (regexp-opt headers) "\\)\\_>"
           (when body (concat "\\s-*\\(" body "\\)"))))
 
-(defconst company-coq-definitions-kwds `("Class" "CoFixpoint" "CoInductive" "Corollary"
+(defconst company-coq-definitions-kwds `("Class" "CoFixpoint" "CoInductive" "Coercion" "Corollary"
                               "Declare Module" "Definition" "Example" "Fact" "Fixpoint"
                               "Function" "Functional Scheme" "Inductive" "Instance" "Lemma"
                               "Let" "Ltac" "Program" "Program Definition" "Program Fixpoint"
