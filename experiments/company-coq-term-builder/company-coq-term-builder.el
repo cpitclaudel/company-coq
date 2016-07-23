@@ -5,11 +5,6 @@
   (replace-regexp-in-string (regexp-quote "failwith \"AXIOM TO BE REALIZED\"")
                             "??" program t))
 
-(defun company-coq-backto (state)
-  "Reqing Coq to STATE, if non-nil."
-  (when state
-    (company-coq-ask-prover (format "BackTo %d." state))))
-
 (defun company-coq-ask-prover-throw-errors (command)
   "Run COMMAND, and fail if it returns an error.
 If UNDO-STATE is non-nil, go back to that Coq state before throwing."
@@ -24,19 +19,27 @@ If UNDO-STATE is non-nil, go back to that Coq state before throwing."
 (defconst company-coq--extraction-command "Show Proof."
   "Command to show the current proof term.")
 
+(defun company-coq--ask-prover-then-rewind (&rest cmds)
+  "Run CMDS, then rewind to state before running them."
+  (unless proof-shell-busy
+    (-when-let* ((statenum (car (coq-last-prompt-info-safe))))
+      (unwind-protect
+          (let* ((proof-shell-eager-annotation-start nil)
+                 (retval nil)) ;; Disable capture of urgent messages
+            (dolist (cmd cmds retval)
+              (setq retval (company-coq-ask-prover-throw-errors cmd))))
+        (company-coq-ask-prover (format "BackTo %d." statenum))))))
+
 (defun company-coq--extract-partial ()
   "Extract the current proof, plugging holes with _UNFINISHED_GOAL."
   (interactive)
-  (unless (or proof-shell-busy company-coq--extraction-busy)
-    (-when-let* ((statenum (car (coq-last-prompt-info-safe))))
-      (setq company-coq--extraction-busy t)
-      (unwind-protect
-          (let* ((proof-shell-eager-annotation-start nil) ;; Disable capture of urgent messages
-                 (extraction (company-coq-ask-prover-throw-errors company-coq--extraction-command))
-                 (program (company-coq--cleanup-program extraction)))
-            (company-coq--display-extraction program))
-        (company-coq-backto statenum)
-        (setq company-coq--extraction-busy nil)))))
+  (unless company-coq--extraction-busy
+    (setq company-coq--extraction-busy t)
+    (unwind-protect
+        (let* ((response (company-coq--ask-prover-then-rewind company-coq--extraction-command))
+               (program (company-coq--cleanup-program response)))
+          (company-coq--display-extraction program))
+      (setq company-coq--extraction-busy nil))))
 
 (defvar company-coq--extraction-buffer-name "*Proof term*")
 
@@ -71,7 +74,7 @@ If UNDO-STATE is non-nil, go back to that Coq state before throwing."
     (run-with-timer 0 nil #'company-coq--extract-partial-in-bg)))
 
 (define-minor-mode company-coq-TermBuilder
-  "Render Coq goals using LaTeX."
+  "Show terms as they are built in tactics mode."
   :lighter " 🐤—TB"
   (if company-coq-TermBuilder
       (progn
