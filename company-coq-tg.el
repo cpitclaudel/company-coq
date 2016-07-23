@@ -29,7 +29,7 @@
 (require 'cl-lib)
 
 (defconst company-coq-tg--preprocessor-substitutions '(("\n"  . " ") ("[ "  . "( OR-GROUP ") (" ]"  . " )")
-                                                       (" | " . " OR ") ("; "  . " AND "))
+                                         (" | " . " OR ") ("; "  . " AND ") ("'" . "’"))
   "List of replacements to facilitate parsing.")
 
 (defun company-coq--split-seq (seq sep)
