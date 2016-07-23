@@ -5731,6 +5731,7 @@ When on, print debug messages during operation."
 
 ;; Local Variables:
 ;; checkdoc-arguments-in-order-flag: nil
+;; checkdoc-verb-check-experimental-flag: nil
 ;; End:
 
 (provide 'company-coq)
