@@ -534,7 +534,7 @@ The result matches any symbol in HEADERS, followed by BODY."
   "Regexp matching terms to show in outline mode and in `company-coq-occur'.")
 
 (defun company-coq-outline-level ()
-  "Function used to determine the current outline level."
+  "Determine the current outline level (always 0)."
   0)
 
 (defconst company-coq-outline-heading-end-regexp "\\.[ \t\n]\\|\n"
@@ -3538,7 +3538,7 @@ With prefix ARG, insert output at point."
                           (buffer-substring-no-properties
                            (save-excursion (backward-sexp) (point))
                            (point)))))
-    (message (company-coq-ask-prover question))))
+    (message "%s" (company-coq-ask-prover question))))
 
 (defun company-coq-search-in-coq-buffer (regexp)
   "Search for REGEXP in *coq* buffer.
