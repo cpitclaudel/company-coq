@@ -183,6 +183,7 @@ forward-declare; instead, check that the declaration is valid."
   (company-coq-forward-declare-fun proof-shell-live-buffer "ext:proof-shell.el")
   (company-coq-forward-declare-fun proof-shell-ready-prover "ext:proof-shell.el")
   (company-coq-forward-declare-fun proof-unprocessed-begin "ext:proof-script.el")
+  (company-coq-forward-declare-fun proof-electric-terminator "ext:pg-user.el")
   (company-coq-forward-declare-fun proof-goto-point "ext:pg-user.el")
   (company-coq-forward-declare-fun coq-mode "ext:coq.el")
   (company-coq-forward-declare-fun coq-response-mode "ext:coq.el")
