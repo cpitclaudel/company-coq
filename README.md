@@ -40,7 +40,7 @@ MELPA is a repository of Emacs packages. Skip this step if you already use [MELP
 
 This should be easier: `company-coq` is on [MELPA](http://melpa.org/#/getting-started). Just use <kbd>M-x package-refresh-contents RET</kbd> followed by <kbd>M-x package-install RET company-coq RET</kbd> to install and byte-compile `company-coq` and its dependencies (some of them will produce a few warnings; that's OK).
 
-To enabled company-coq automatically, add the following to your `.emacs`:
+To enable company-coq automatically, add the following to your `.emacs`:
 
 ```elisp
 ;; Load company-coq when opening Coq files
