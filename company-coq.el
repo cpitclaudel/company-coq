@@ -886,7 +886,7 @@ REGEXP and LIMIT are as in `looking-back'."
 
 (defun company-coq-text-width (from to)
   "Measure the width of the text between FROM and TO.
-Results are meaninful only if FROM and TO are on the same line."
+Results are meaningful only if FROM and TO are on the same line."
   ;; (current-column) takes prettification into account
   (- (save-excursion (goto-char to)   (current-column))
      (save-excursion (goto-char from) (current-column))))
@@ -1020,7 +1020,7 @@ the second clause is ignored."
   (symbol-value db))
 
 (defun company-coq-prepare-redirection-command (cmd fname)
-  "Prepare a command redirection output of CMD to FNAME."
+  "Prepare a command redirecting output of CMD to FNAME."
   (format company-coq-redirection-template fname cmd))
 
 (defun company-coq-read-and-delete (fname)
@@ -3946,7 +3946,7 @@ Defining a feature adds it to `company-coq-available-features'."
            (put ',toggle-function 'company-coq-feature-active nil)))
          (prog1 (progn ,@body)
            (when (called-interactively-p 'interactive)
-             (message "Feature %s %s" ,(symbol-name symbol) (if (company-coq-feature-active-p ',symbol) "enabled" "disabled"))))))))
+             (message "Feature %s %s" ,(symbol-name symbol) (if (company-coq-feature-active-p ',symbol) "activated" "deactivated"))))))))
 
 (defvar company-coq--refontification-requested nil
   "Whether a refontification is needed, due to feature changes.")
@@ -4617,7 +4617,7 @@ folding at the level of Proofs."
 (defconst company-coq-features/code-folding--bullet-regexp
   "^\\s-*\\(?1:[*+-]+\\)\\(?:[ \t]\\|$\\)"
   "Regexp matching bullets.
-This uses $ instead of \n because \n would confuse hideshow into
+This uses $ instead of \\n because \\n would confuse hideshow into
 thinking that the line to fold from is the next one.")
 
 (defconst company-coq-features/code-folding--brace-regexp
