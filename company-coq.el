@@ -305,8 +305,8 @@ customize `company-coq-disabled-features'.")
   "List of patterns that are not imported from Proof General's list.")
 
 (defcustom company-coq-sorted-backends '(company-coq-reserved-keywords-backend
-                              company-coq-user-snippets-backend
                               company-coq-block-end-backend
+                              company-coq-user-snippets-backend
                               company-coq-modules-backend
                               company-coq-context-backend
                               company-coq-refman-ltac-abbrevs-backend
