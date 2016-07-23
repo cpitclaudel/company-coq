@@ -516,10 +516,11 @@ The result matches any symbol in HEADERS, followed by BODY."
   "Keywords opening a new section.")
 
 (defconst company-coq-named-outline-kwds `("Equations" "Remark"
+                                "Add" ;; Add (Parametric)? Morphism
                                 ,@company-coq-section-kwds ,@company-coq-definitions-kwds)
   "Headers used in outline mode and in `company-coq-occur'.")
 
-(defconst company-coq-anonymous-outline-kwds '("Goal" "Notation" "Tactic Notation")
+(defconst company-coq-anonymous-outline-kwds '("Goal" "Notation" "Tactic Notation" "Hint")
   "Extra headers to show in outline mode and in `company-coq-occur'.")
 
 (defconst company-coq-section-regexp (company-coq-make-headers-regexp company-coq-section-kwds
