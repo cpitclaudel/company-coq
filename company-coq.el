@@ -810,11 +810,14 @@ Normally PG strips eager annotations, but
 `company-coq-ask-prover' turns that mechanism off to not loose
 output."
   (when proof-shell-last-output
-    (replace-regexp-in-string
-     (concat "\\(?:" (or proof-shell-eager-annotation-start "") "\\)"
-             "\\(?1:[^0]+\\)"
-             "\\(?:" (or proof-shell-eager-annotation-end "") "\\)")
-     "\\1" proof-shell-last-output t)))
+    (if (or proof-shell-eager-annotation-start
+            proof-shell-eager-annotation-end)
+        (replace-regexp-in-string
+         (concat "\\(?:" (or proof-shell-eager-annotation-start "") "\\)"
+                 "\\(?1:[^0]+\\)"
+                 "\\(?:" (or proof-shell-eager-annotation-end "") "\\)")
+         "\\1" proof-shell-last-output t)
+      proof-shell-last-output)))
 
 (defun company-coq-trim (str)
   "Trim STR."
