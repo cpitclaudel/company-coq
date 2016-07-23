@@ -287,6 +287,8 @@ Proof.
   Require Import Coq.NArith.NArith.
 
   assert (x := plus_0_r). (* This should be underlined *)
+  assert (let x := plus_0_r in True). (* This should NOT be underlined *)
+  apply I.
 
   apply lt_n_S.
   apply lt_S_n in hypothesis.

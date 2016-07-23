@@ -689,7 +689,7 @@ Useful as a value for `company-coq-completion-predicate'."
 
 (defconst company-coq-deprecated-man-re
   (mapconcat (lambda (x) (concat "\\(?:\\_<" x "\\)"))
-             '("\\(?1:assert\\) (.* := .*)" "\\(?1:double induction\\)"
+             '("\\(?1:assert\\) ([a-zA-Z_]+ ?:= .*)" "\\(?1:double induction\\)"
                "\\(?1:appcontext\\_>\\)[ a-zA-Z]*\\[" "\\(?1:cutrewrite\\) \\(?:<-\\|->\\)"
                "\\(?1:Backtrack [[:digit:]]+ [[:digit:]]+ [[:digit:]]+\\)" "\\(?1:SearchAbout\\_>\\)"
                "\\(?1:Save\\_>\\(?: \\(?:Lemma\\|Theorem\\|Remark\\|Fact\\|Corollary\\|Proposition\\)\\_>\\)?\\)"
