@@ -2507,14 +2507,16 @@ returning it if it matches PREFIX."
   (when (and prefix (company-coq-line-is-block-end-p))
     (save-excursion
       ;; Find matching delimiter
-      (when (re-search-backward company-coq-block-end-regexp)
-        (goto-char (match-beginning 1))
-        (backward-up-list)
-        (when (re-search-backward company-coq-section-regexp nil t)
-          (let ((nearest-section-name (match-string-no-properties 2)))
-            (when (and nearest-section-name
-                       (string-match-p (concat "\\`" (regexp-quote prefix)) nearest-section-name))
-              (list nearest-section-name))))))))
+      (condition-case-unless-debug _
+          (when (re-search-backward company-coq-block-end-regexp)
+            (goto-char (match-beginning 1))
+            (backward-up-list)
+            (when (re-search-backward company-coq-section-regexp nil t)
+              (let ((nearest-section-name (match-string-no-properties 2)))
+                (when (and nearest-section-name
+                           (string-match-p (concat "\\`" (regexp-quote prefix)) nearest-section-name))
+                  (list (company-coq-propertize-match nearest-section-name 0 (length prefix)))))))
+        (scan-error)))))
 
 (defun company-coq-candidates-reserved (prefix)
   "Find reserved keywords matching PREFIX."
