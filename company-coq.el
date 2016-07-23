@@ -528,16 +528,20 @@ The result matches any symbol in HEADERS, followed by BODY."
   "Regexp matching section openings.")
 
 ;; NOTE: Would be nice to fold [Require Import]s together instead of hiding them entirely
-(defconst company-coq-outline-regexp
-  (concat "\\(?:" (company-coq-make-headers-regexp company-coq-named-outline-kwds company-coq-id-regexp)
-          "\\)\\|\\(?:" (company-coq-make-headers-regexp company-coq-anonymous-outline-kwds nil) "\\)")
+(defconst company-coq-outline-regexp-base
+  (concat "\\(?:" (company-coq-make-headers-regexp company-coq-named-outline-kwds company-coq-id-regexp) "\\)" "\\|"
+          "\\(?:" (company-coq-make-headers-regexp company-coq-anonymous-outline-kwds nil) "\\)")
   "Regexp matching terms to show in outline mode and in `company-coq-occur'.")
+
+(defconst company-coq-outline-regexp
+  ;; Include preceeding blank space, if any.
+  (concat "\\(?:" "\n?" company-coq-outline-regexp-base "\\)"))
 
 (defun company-coq-outline-level ()
   "Determine the current outline level (always 0)."
   0)
 
-(defconst company-coq-outline-heading-end-regexp "\\.[ \t\n]\\|\n"
+(defconst company-coq-outline-heading-end-regexp "\\.[ \t\n]"
   "Regexp used to locate the end of a heading.")
 
 (defcustom company-coq-prettify-symbols-alist '(;; Disabled
@@ -2637,7 +2641,7 @@ Before calling INSERT-FUN, delete BEG .. END."
     (-when-let* ((buf (get-buffer occur-title)))
       (when (buffer-live-p buf)
         (kill-buffer buf)))
-    (occur company-coq-outline-regexp)
+    (occur company-coq-outline-regexp-base)
     (company-coq-with-current-buffer-maybe "*Occur*"
       (rename-buffer occur-title t)
       (toggle-truncate-lines t)
