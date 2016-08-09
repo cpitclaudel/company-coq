@@ -397,9 +397,10 @@ The result matches any symbol in HEADERS, followed by BODY."
 
 (defconst company-coq-definitions-kwds `("Class" "CoFixpoint" "CoInductive" "Coercion" "Corollary"
                               "Declare Module" "Definition" "Example" "Fact" "Fixpoint"
-                              "Function" "Functional Scheme" "Inductive" "Instance" "Lemma"
-                              "Let" "Ltac" "Program" "Program Definition" "Program Fixpoint"
-                              "Record" "Scheme" "Theorem" "Variant" "with")
+                              "Function" "Functional Scheme" "Global Instance" "Inductive"
+                              "Instance" "Lemma" "Let" "Ltac" "Program" "Program Definition"
+                              "Program Instance" "Program Fixpoint" "Record" "Scheme" "Theorem"
+                              "Variant" "with")
   "Keywords that introduce a definition.")
 
 (defconst company-coq-definitions-regexp (company-coq-make-headers-regexp company-coq-definitions-kwds
