@@ -1,7 +1,7 @@
 SANDBOX := ./sandbox
-TAGGED_REFMAN_ROOT := /build/coq-8.5-tagged-refman/
-PG_GENERIC_ROOT := ~/.emacs.d/lisp/ProofGeneral/generic/
-OLD_PG_GENERIC_ROOT := ~/.emacs.d/lisp/ProofGeneral-4.2/generic/
+TAGGED_REFMAN_ROOT := /build/coq/8.5-tagged-refman/
+PG_GENERIC_ROOT := ~/.emacs.d/lisp/PG/generic/
+OLD_PG_GENERIC_ROOT := ~/.emacs.d/lisp/PG-4.2/generic/
 EMACS ?= emacs
 CASK = env --unset INSIDE_EMACS EMACS=$(EMACS) cask
 COMPANY_COQ_ARGS := --debug-init --eval "(progn (setq-default company-coq--check-forward-declarations t) (add-hook 'coq-mode-hook (lambda () (require 'company-coq) (company-coq-mode))))"
