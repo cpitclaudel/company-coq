@@ -3033,6 +3033,17 @@ COMMAND, ARG and IGNORED: see `company-backends'."
     (`comparison-fun #'company-coq-string-lessp-match-beginning)
     (`require-match 'never)))
 
+(defun company-coq-math-symbols-backend (command &optional arg &rest ignored)
+  "A thin wrapper around `company-math-symbols-unicode'.
+COMMAND, ARG and IGNORED: see `company-backends'."
+  (interactive (list 'interactive))
+  (pcase command
+    (`interactive (company-begin-backend 'company-coq-math-symbols-backend))
+    (_ (let ((result (apply #'company-math-symbols-unicode command arg ignored)))
+         (pcase command
+           (`prefix (when result (cons result t)))
+           (_ result))))))
+
 (defun company-coq-tagged-candidates (backend prefix)
   "Compute and tag candidates from BACKEND for PREFIX."
   (let ((candidates (cl-loop for candidate in (funcall backend 'candidates prefix)
@@ -4528,7 +4539,7 @@ RET”, and substitute command keys."
            str)))
 
 (defun company-coq-features/show-key--echo-1 (char)
-  "Find ways to input CHAR with company-math-symbols-unicode."
+  "Find ways to input CHAR with `company-coq-math-symbols-backend'."
   ;; Test on ‘∈’, ‘⊕’, ‘β’, and ‘∅’
   (when (> char 128)
     (let ((input-strings (-uniq (gethash char company-coq-features/show-key--table))))
@@ -5490,10 +5501,10 @@ Inserts ⊕ when you type \oplus."
   ;; prefix as the other backends.
   (company-coq-do-in-coq-buffers
     (make-local-variable 'company-backends)
-    (setq company-backends (remove #'company-math-symbols-unicode company-backends))
+    (setq company-backends (remove #'company-coq-math-symbols-backend company-backends))
     (pcase arg
       (`on
-       (push #'company-math-symbols-unicode company-backends)))))
+       (push #'company-coq-math-symbols-backend company-backends)))))
 
 (company-coq-define-feature block-end-backend (arg)
   "Completion of Section and Module names.
