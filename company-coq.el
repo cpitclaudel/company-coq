@@ -1405,7 +1405,7 @@ comparison function."
   (declare (indent 1)
            (debug ((&rest (sexp form)) body body)))
   (let ((var1 (caar bindings))
-        (var2 (caadr bindings)))
+        (var2 (cl-caadr bindings)))
     `(let ,bindings
        (cond
         ((and ,var1 (not ,var2)) t)
