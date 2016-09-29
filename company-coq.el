@@ -245,7 +245,8 @@ Feel free to share your snippets on company-coq's GitHub!"
 
 This is an experimental feature.  It requires Coq 8.5 beta 3 or a
 patched version of Coq 8.4 to work properly."
-  :group 'company-coq-obsolete)
+  :group 'company-coq-obsolete
+  :type 'boolean)
 (make-obsolete-variable 'company-coq-dynamic-autocompletion 'company-coq-live-on-the-edge "company-coq 1.0")
 
 (defconst company-coq--capability-detection-cmd "Test Search Output Name Only"
@@ -261,35 +262,41 @@ One of 'unknown, 'yes, 'no.")
 (defcustom company-coq-autocomplete-context t
   "Autocomplete hypotheses by parsing the latest Goals output.
 This is an experimental feature."
-  :group 'company-coq-obsolete)
+  :group 'company-coq-obsolete
+  :type 'boolean)
 (make-obsolete-variable 'company-coq-autocomplete-context 'company-coq-disabled-features "company-coq 1.0")
 
 (defcustom company-coq-autocomplete-modules t
   "Autocomplete module names from Coq's load path."
-  :group 'company-coq-obsolete)
+  :group 'company-coq-obsolete
+  :type 'boolean)
 (make-obsolete-variable 'company-coq-autocomplete-modules 'company-coq-disabled-features "company-coq 1.0")
 
 (defcustom company-coq-autocomplete-block-end t
   "Autocomplete the name of the last opened block."
-  :group 'company-coq-obsolete)
+  :group 'company-coq-obsolete
+  :type 'boolean)
 (make-obsolete-variable 'company-coq-autocomplete-block-end 'company-coq-disabled-features "company-coq 1.0")
 
 (defcustom company-coq-autocomplete-search-results t
   "Autocomplete symbol names pulled from the results of the last search."
-  :group 'company-coq-obsolete)
+  :group 'company-coq-obsolete
+  :type 'boolean)
 (make-obsolete-variable 'company-coq-autocomplete-search-results 'company-coq-disabled-features "company-coq 1.0")
 
 (defcustom company-coq-autocomplete-symbols t
   "Autocomplete symbols by searching in the buffer for lemmas and theorems.
 If the dynamic completion feature is on, query the proof
 assistant in addition to searching."
-  :group 'company-coq-obsolete)
+  :group 'company-coq-obsolete
+  :type 'boolean)
 (make-obsolete-variable 'company-coq-autocomplete-symbols 'company-coq-disabled-features "company-coq 1.0")
 
 (defcustom company-coq-prettify-symbols t
   "Transparently replace keywords by the corresponding symbols.
 The contents of the buffer are not changed."
-  :group 'company-coq-obsolete)
+  :group 'company-coq-obsolete
+  :type 'boolean)
 (make-obsolete-variable 'company-coq-prettify-symbols 'company-coq-disabled-features "company-coq 1.0")
 
 (defcustom company-coq-snippet-default-hole-contents "_"
@@ -322,7 +329,8 @@ customize `company-coq-disabled-features'.")
   "All completion backends, ordered by display priority.
 Do not remove entries from this list (but feel free to reorder
 them).  To disable backends, customize `company-coq-disabled-features'."
-  :group 'company-coq)
+  :group 'company-coq
+  :type '(repeat symbol))
 
 (defvar company-coq-talking-to-prover nil
   "Indicates whether a interaction has been initiated with the prover, to disable the input and output hooks.")
@@ -591,10 +599,13 @@ the file.  Most useful as a dir-local variable."
   "Function called before offering company-coq completions, or nil.
 If nil, offer company-coq candidates everywhere.  If set to
 `company-coq-not-in-comment-p', offer completions in source code,
-but never in comments.  If set to `company-coq--in-code-p', offer
+but never in comments.  If set to `company-coq-in-code-p', offer
 completion in source code, in code blocks in comments […], but
 not in comment text.  This function should not change the point."
-  :group 'company-coq)
+  :group 'company-coq
+  :type '(choice (const :tag "Complete in code and code comments" company-coq-in-code-p)
+                 (const :tag "Complete only in code" company-coq-not-in-comment-p)
+                 (const :tag "Offer completions everywhere" nil)))
 
 (defun company-coq-not-in-comment-p ()
   "Return nil if point is inside a comment.
@@ -4138,7 +4149,8 @@ types using <C-click> or <menu>."
 
 (defcustom company-coq-features/prettify-symbols-in-terminals nil
   "If set, set up prettification in TTY frames as well."
-  :group 'company-coq)
+  :group 'company-coq
+  :type 'boolean)
 
 (defun company-coq-features/prettify-symbols--enable-1 (ref-buffer)
   "Set up prettify-symbols in the current buffer.
@@ -4967,15 +4979,18 @@ Notifications are shown after Coq finishes processing all
 commands, for any sequence of commands that took more than this
 many seconds to complete (completion time is counted starting
 after the last user input)."
-  :group 'company-coq)
+  :group 'company-coq
+  :type 'integer)
 
 (defcustom company-coq-features/alerts-title-format "Prover ready! (proof took %s)"
   "Format string for the title of notifications."
-  :group 'company-coq)
+  :group 'company-coq
+  :type 'string)
 
 (defcustom company-coq-features/alerts-body-function #'company-coq-features/alerts--alert-body
   "Function called to compute the body of notifications."
-  :group 'company-coq)
+  :group 'company-coq
+  :type 'function)
 
 (defvar company-coq-features/alerts--last-interaction nil
   "Last time input was sent to the prover.")
