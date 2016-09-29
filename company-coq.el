@@ -2061,7 +2061,7 @@ was found, and the value to be returned."
     (if point-pos
         (when (functionp callback)
           (apply callback point-pos))
-      (when target ;; Not found
+      (when target ;; Not found ;; FIXME this happens when using ‘M-.’ in goals buffer for local def
         (message "Definition came from this buffer, but precise location is unknown.")))
     (or (cadr point-pos) (point-min))))
 
@@ -2202,8 +2202,10 @@ Returns a cons as specified by `company-coq--locate-name'."
     (company-coq--loc-with-regexp record "Locate %s." '("Inductive" "Record" "Class"))))
 
 (defun company-coq--loc-module (module)
-  "Find the location of MODULE.
-FIXME more docs"
+  "Find the location of MODULE."
+  ;; FIXME more docs.
+  ;; FIXME this doesn't find modules other than file-level ones.
+  ;; Try using Locate Module.
   (let ((candidates (company-coq-candidates-modules module)))
     (cl-loop for candidate in candidates
              when (string= module candidate)
@@ -2678,7 +2680,7 @@ Before calling INSERT-FUN, delete BEG .. END."
             (company-coq-make-title-line 'company-coq-doc-header-face-about)))))))
 
 (defun company-coq-grep-symbol (regexp)
-  "Recursively find REGEXP in Coq subdirectories."
+  "Recursively find REGEXP in .v files, starting from current directory."
   (interactive
    (list (cond
           ((use-region-p)
