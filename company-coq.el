@@ -667,20 +667,20 @@ Useful as a value for `company-coq-completion-predicate'."
   "Fast regexp to check if current response is a unification error.")
 
 (defconst company-coq-unification-error-messages
-  '("Refiner was given an argument \".*\" of type \"\\(?1:.*\\)\" instead of \"\\(?2:.*\\)\"."
-    "Unable to unify \"\\(?1:.*\\)\" with \"\\(?2:.*\\)\"."
-    "Impossible to unify \"\\(?1:.*\\)\" with \"\\(?2:.*\\)\"."
-    "\\(In environment.*\\)?The term \".*\" has type \"\\(?1:.*\\)\" while it is expected to have type \"\\(?2:.*\\)\".")
+  '("Refiner was given an argument \".*\" of type \"\\(?1:.*?\\)\" instead of \"\\(?2:.*?\\)\"."
+    "Unable to unify \"\\(?1:.*?\\)\" with \"\\(?2:.*?\\)\"."
+    "Impossible to unify \"\\(?1:.*?\\)\" with \"\\(?2:.*?\\)\"."
+    "\\(In environment.*\\)?The term \".*\" has type \"\\(?1:.*?\\)\" while it is expected to have type \"\\(?2:.*?\\)\".")
   "Bodies of unification errors.")
 
 (defconst company-coq-unification-error-message
   (replace-regexp-in-string
    (regexp-quote ".") (replace-quote "\\(?:.\\|[\n]\\)")
    (replace-regexp-in-string
-    (regexp-quote " ") (replace-quote "\\s-*")
+    "[ \n]" (replace-quote "\\s-*")
     (concat "\\(?:" company-coq-unification-error-header " \\)+" "\\(?:"
             (mapconcat #'identity company-coq-unification-error-messages "\\|")
-            "\\)\\s-*")))
+            "\\)\\s-*\\(?:" "(cannot unify \"\\(?3:.*?\\)\" and \"\\(?4:.*?\\)\")." "\\)?")))
   "Rexep matching unification error messages.")
 
 (defconst company-coq-deprecated-options '("Equality Scheme" "Record Elimination Schemes"
@@ -2747,9 +2747,19 @@ of context around differences."
       (rename-buffer diff-buffer-name)
       (save-excursion
         (goto-char (point-min))
-        (when (re-search-forward "^@@" nil t)
-          (let ((inhibit-read-only t))
-            (delete-region (point-min) (match-beginning 0))))))))
+        (let ((inhibit-read-only t))
+          (when (re-search-forward "^@@" nil t)
+            (delete-region (point-min) (match-beginning 0)))
+          (while (re-search-forward " *\n *\n\\( *\n\\)+" nil t)
+            ;; Remove spurious spacing added to prevent diff from mixing terms
+            (replace-match "\n" t t)))))))
+
+(defconst company-coq--diff-separator
+  (concat (make-string 5 ?\n) (make-string 60 ?-) (make-string 5 ?\n)))
+
+(defun company-coq--prepare-diff-chunks (&rest chunks)
+  "Concat non-nil CHUNKS, adding lots of space in-between."
+  (mapconcat #'identity (delq nil chunks) company-coq--diff-separator))
 
 (defun company-coq-diff-unification-error (&optional context)
   "Compare two terms of a unification error, highlighting differences.
@@ -2761,8 +2771,10 @@ differences."
       (save-excursion
         (goto-char (point-min))
         (if (re-search-forward company-coq-unification-error-message nil t)
-            (let ((pre (match-string-no-properties 1))
-                  (post (match-string-no-properties 2)))
+            (let ((pre (company-coq--prepare-diff-chunks (match-string-no-properties 1)
+                                              (match-string-no-properties 3)))
+                  (post (company-coq--prepare-diff-chunks (match-string-no-properties 2)
+                                               (match-string-no-properties 4))))
               (with-selected-window (or (company-coq-get-response-window) (selected-window))
                 (company-coq-diff-strings pre post " " "unification" (or context 10))))
           (user-error "No unification error message found"))))))
