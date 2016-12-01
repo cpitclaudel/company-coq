@@ -4,7 +4,7 @@
 ;; Author: Clément Pit--Claudel <clement.pitclaudel@live.com>
 ;; URL: https://github.com/cpitclaudel/company-coq
 ;; Keywords: convenience, languages
-;; Package-Requires: ((cl-lib "0.5") (dash "2.12.1") (yasnippet "0.9.0.1") (company "0.8.12") (company-math "1.1"))
+;; Package-Requires: ((cl-lib "0.5") (dash "2.12.1") (yasnippet "0.11.0") (company "0.8.12") (company-math "1.1"))
 ;; Version: 1.0
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -3227,7 +3227,7 @@ These keybindings are activated by `company-coq--keybindings-minor-mode'.")
 
 (defun company-coq-snippet-at-point ()
   "Get the snippet under the current point."
-  (car (yas--snippets-at-point)))
+  (car (yas-active-snippets)))
 
 (defun company-coq-exit-snippet-if-at-exit-point ()
   "Check if exiting the CURRENT-SNIPPET would be a good idea."
