@@ -9,12 +9,12 @@
 
 (defvar-local presenter-mode nil)
 
-(defvar presenter-centered-lines-delimiters '(("(*** " . " ***)")
-                                     ("(*+ " . " +*)")
-                                     ("(*! " . " !*)"))
+(defvar-local presenter-centered-lines-delimiters '(("(*** " . " ***)")
+                                           ("(*+ " . " +*)")
+                                           ("(*! " . " !*)"))
   "Markers indicating centered lines.")
 
-(defvar presenter-hidden-block-delimiters
+(defvar-local presenter-hidden-block-delimiters
   '(("(* begin hide *)" . "(* end hide *)")))
 
 (defconst presenter--auto-inserted-symbol 'presenter--auto-inserted)
@@ -24,10 +24,10 @@
 (defconst presenter--separator-symbol 'separator)
 (defconst presenter--narrowing-symbol 'narrowing)
 
-(defvar presenter--narrowing-left-overlay nil
+(defvar-local presenter--narrowing-left-overlay nil
   "Overlay used to narrow the buffer on the left.")
 
-(defvar presenter--narrowing-right-overlay nil
+(defvar-local presenter--narrowing-right-overlay nil
   "Overlay used to narrow the buffer on the right.")
 
 (defconst presenter-zero-width-space (propertize "​" 'face 'default))
