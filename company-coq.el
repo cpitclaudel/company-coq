@@ -3227,7 +3227,9 @@ These keybindings are activated by `company-coq--keybindings-minor-mode'.")
 
 (defun company-coq-snippet-at-point ()
   "Get the snippet under the current point."
-  (car (yas-active-snippets)))
+  (car (if (fboundp 'yas-active-snippets)
+           (yas-active-snippets) ;; FIXME remove check when yas 0.12 lands
+         (yas--snippets-at-point))))
 
 (defun company-coq-exit-snippet-if-at-exit-point ()
   "Check if exiting the CURRENT-SNIPPET would be a good idea."
