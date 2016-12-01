@@ -368,12 +368,12 @@ impossible, for example in `proof-shell-insert-hook'")
 (defvar company-coq-definition-overlay nil
   "Overlay used to show inline definitions.")
 
-(defconst company-coq-id-regexp "\\(?:[a-zA-Z0-9_][a-zA-Z0-9_']*\\)")
-(defconst company-coq-prefix-regexp "\\(?:[a-zA-Z0-9_][a-zA-Z0-9_.']*!?\\)?") ;; '!' included for patterns like [intros!]
-(defconst company-coq-symbol-regexp "\\(?:[_a-zA-Z]\\(?:[a-zA-Z0-9_.']*[a-zA-Z0-9_']\\)?\\)")
-(defconst company-coq-symbol-regexp-no-dots "\\(?:_*[a-zA-Z]\\(?:[a-zA-Z0-9_']*[a-zA-Z0-9_']\\)?\\)")
-(defconst company-coq-symbol-regexp-no-dots-no-numbers "\\(?:_*[a-zA-Z]\\(?:[a-zA-Z0-9_']*[a-zA-Z']\\)?\\)")
-(defconst company-coq-module-chunk-regexp "\\(?:[A-Z][a-zA-Z0-9_]*\\)")
+(defconst company-coq-id-regexp "\\(?:[a-zA-Zα-ωΑ-Ω0-9_][a-zA-Zα-ωΑ-Ω0-9_']*\\)")
+(defconst company-coq-prefix-regexp "\\(?:[a-zA-Zα-ωΑ-Ω0-9_][a-zA-Zα-ωΑ-Ω0-9_.']*!?\\)?") ;; '!' included for [intros!] etc.
+(defconst company-coq-symbol-regexp "\\(?:[_a-zA-Zα-ωΑ-Ω]\\(?:[a-zA-Zα-ωΑ-Ω0-9_.']*[a-zA-Zα-ωΑ-Ω0-9_']\\)?\\)")
+(defconst company-coq-symbol-regexp-no-dots "\\(?:_*[a-zA-Zα-ωΑ-Ω]\\(?:[a-zA-Zα-ωΑ-Ω0-9_']*[a-zA-Zα-ωΑ-Ω0-9_']\\)?\\)")
+(defconst company-coq-symbol-regexp-no-dots-no-numbers "\\(?:_*[a-zA-Zα-ωΑ-Ω]\\(?:[a-zA-Zα-ωΑ-Ω0-9_']*[a-zA-Zα-ωΑ-Ω']\\)?\\)")
+(defconst company-coq-module-chunk-regexp "\\(?:[A-Z][a-zA-Zα-ωΑ-Ω0-9_]*\\)")
 (defconst company-coq-module-name-regexp (concat company-coq-module-chunk-regexp "\\(?:\\." company-coq-module-chunk-regexp "\\)*"))
 
 (defconst company-coq-all-symbols-slow-regexp (concat "^\\(" company-coq-symbol-regexp "\\):")
@@ -3629,7 +3629,8 @@ Useful for debugging tactics in versions of Coq prior to 8.5: use
     ;; Some modes, such as whitespace-mode, rely on buffer-local state to do
     ;; their fontification.  Thus copying only font-lock variables is not
     ;; enough; one would need to copy these modes private variables as well.
-    ;; See GH-124.
+    ;; See GH-124.  FIXME we could just create a temporary Coq buffer at the
+    ;; beginning of the session, and reuse it
     (font-lock-default-fontify-region (point-min) (point-max) nil)))
 
 (defun company-coq--fontify-string (str &optional ref-buffer)
@@ -4310,7 +4311,7 @@ comments).  Also returns an empty spec on non-graphic displays."
     ;; (,(concat "\\_<" company-coq-symbol-regexp-no-dots "\\(''\\)\\([0-9a-zA-Z]+\\)'*\\_>")
     ;;  (1 (company-coq-features/smart-subscripts--separator-spec) prepend)
     ;;  (2 (company-coq-features/smart-subscripts--supscript-spec) append))
-    (,(concat "\\_<" company-coq-symbol-regexp-no-dots "\\(__\\)\\([a-zA-Z][0-9a-zA-Z]*\\)'*\\_>")
+    (,(concat "\\_<" company-coq-symbol-regexp-no-dots "\\(__\\)\\([a-zA-Zα-ωΑ-Ω][0-9a-zA-Zα-ωΑ-Ω]*\\)'*\\_>")
      (1 (company-coq-features/smart-subscripts--separator-spec) prepend)
      (2 (company-coq-features/smart-subscripts--subscript-spec) append)))
   "Font-lock spec for subscripts in proof script.")
