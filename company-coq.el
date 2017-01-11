@@ -3747,7 +3747,7 @@ subsequent invocations)."
 
 (defun company-coq-syntactic-face-function (state)
   "Determine which face to use based on parsing state STATE."
-  (pcase-let ((`(_ _ _ ,in-string ,comment-depth _ _ _ ,comment-opener-pos _) state))
+  (pcase-let ((`(_ _ _ ,in-string ,comment-depth _ _ _ ,comment-opener-pos . ,_) state))
     (cond
      (in-string font-lock-string-face)
      ((or comment-depth (numberp comment-depth))
