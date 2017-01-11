@@ -4,7 +4,7 @@
 ;; Author: Clément Pit--Claudel <clement.pitclaudel@live.com>
 ;; URL: https://github.com/cpitclaudel/company-coq
 ;; Keywords: convenience, languages
-;; Package-Requires: ((cl-lib "0.5") (dash "2.12.1") (yasnippet "0.9.0.1") (company "0.8.12") (company-math "1.1"))
+;; Package-Requires: ((cl-lib "0.5") (dash "2.12.1") (yasnippet "0.11.0") (company "0.8.12") (company-math "1.1"))
 ;; Version: 1.0
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -3275,7 +3275,9 @@ These keybindings are activated by `company-coq--keybindings-minor-mode'.")
 
 (defun company-coq-snippet-at-point ()
   "Get the snippet under the current point."
-  (car (yas--snippets-at-point)))
+  (car (if (fboundp 'yas-active-snippets)
+           (yas-active-snippets) ;; FIXME remove check when yas 0.12 lands
+         (yas--snippets-at-point))))
 
 (defun company-coq-exit-snippet-if-at-exit-point ()
   "Check if exiting the CURRENT-SNIPPET would be a good idea."
@@ -3794,7 +3796,7 @@ subsequent invocations)."
 
 (defun company-coq-syntactic-face-function (state)
   "Determine which face to use based on parsing state STATE."
-  (pcase-let ((`(_ _ _ ,in-string ,comment-depth _ _ _ ,comment-opener-pos _) state))
+  (pcase-let ((`(_ _ _ ,in-string ,comment-depth _ _ _ ,comment-opener-pos . ,_) state))
     (cond
      (in-string font-lock-string-face)
      ((or comment-depth (numberp comment-depth))
