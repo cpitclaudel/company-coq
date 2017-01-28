@@ -3390,16 +3390,21 @@ With prefix ARG, insert an inductive constructor with arguments."
       (company-coq-insert-match-rule "| ${constructor} : ${args} -> $0")
     (company-coq-insert-match-rule "| [ ${H: ${hyps}} |- ${_} ] => $0")))
 
+(defconst company-coq--lemma-from-goal-prompt
+  "Hypothesis to keep (name of hypothesis, or %s when done)? ")
+
 (defun company-coq-lemma-from-goal-interact ()
   "Interactively collect a lemma name and hypothesis names."
   (let ((hyps       nil)
         (lemma-name "")
-        (candidates (cons "" (car (company-coq-run-then-collect-hypotheses-and-goal "Show")))))
+        (candidates `(,@(car (company-coq-run-then-collect-hypotheses-and-goal "Show")) "[done]")))
     (while (string-equal lemma-name "")
       (setq lemma-name (read-string "Lemma name? ")))
-    (while (> (length candidates) 1) ;; "" is always in there
-      (let ((hyp (completing-read "Hypothesis to keep (name of hypothesis, or C-j when done)? " candidates nil t)))
-        (if (string-equal hyp "")
+    (while (> (length candidates) 1) ;; "[done]" is always in there
+      (let* ((key (if (bound-and-true-p helm-mode) "C-RET" "C-j"))
+             (prompt (format company-coq--lemma-from-goal-prompt key))
+             (hyp (completing-read prompt candidates nil t)))
+        (if (member hyp '("" "[done]"))
             (setq candidates nil)
           (setq candidates (remove hyp candidates))
           (push hyp hyps))))
