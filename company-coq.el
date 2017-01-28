@@ -1,7 +1,7 @@
 ;;; company-coq.el --- A collection of extensions for Proof General's Coq mode -*- lexical-binding: t -*-
 
-;; Copyright (C) 2015, 2016  Clément Pit--Claudel
-;; Author: Clément Pit--Claudel <clement.pitclaudel@live.com>
+;; Copyright (C) 2015, 2016, 2017  Clément Pit-Claudel
+;; Author: Clément Pit-Claudel <clement.pitclaudel@live.com>
 ;; URL: https://github.com/cpitclaudel/company-coq
 ;; Keywords: convenience, languages
 ;; Package-Requires: ((cl-lib "0.5") (dash "2.12.1") (yasnippet "0.11.0") (company "0.8.12") (company-math "1.1"))
