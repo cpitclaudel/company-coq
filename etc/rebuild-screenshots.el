@@ -477,12 +477,10 @@ Proof.
 
 (my/with-screenshot my/github-width/2 3 nil "west" "Help with Unicode input in echo area." "unicode-help"
   (my/insert-with-point "Notation \"A <|>∪ B\" := (fun x => A x \\/ B x)\n  (at level 0).")
-  (outline-hide-body)
   (company-coq-features/show-key--echo))
 
 (my/with-screenshot my/github-width/2 3 nil "east" "Details about prettifications in echo area." "prettify-help"
   (my/insert-with-point "Notation \"A ∪ B\" := (<|>fun x => A x \\/ B x)\n  (at level 0).")
-  (outline-hide-body)
   (company-coq-features/show-key--echo))
 
 ;; (profiler-report)
