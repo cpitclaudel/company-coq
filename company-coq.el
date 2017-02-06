@@ -671,7 +671,7 @@ Useful as a value for `company-coq-completion-predicate'."
   '("Refiner was given an argument \".*\" of type \"\\(?1:.*?\\)\" instead of \"\\(?2:.*?\\)\"."
     "Unable to unify \"\\(?1:.*?\\)\" with \"\\(?2:.*?\\)\"."
     "Impossible to unify \"\\(?1:.*?\\)\" with \"\\(?2:.*?\\)\"."
-    "\\(In environment.*\\)?The term \".*\" has type \"\\(?1:.*?\\)\" while it is expected to have type \"\\(?2:.*?\\)\".")
+    "\\(?:In environment.*\\)?The term \".*\" has type \"\\(?1:.*?\\)\" while it is expected to have type \"\\(?2:.*?\\)\".")
   "Bodies of unification errors.")
 
 (defconst company-coq-unification-error-message
