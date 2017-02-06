@@ -5,7 +5,7 @@ OLD_PG_GENERIC_ROOT := ~/.emacs.d/lisp/PG-4.2/generic/
 EMACS ?= emacs
 CASK = env --unset INSIDE_EMACS EMACS=$(EMACS) cask
 COMPANY_COQ_ARGS := --debug-init --eval "(progn (setq-default company-coq--check-forward-declarations t) (add-hook 'coq-mode-hook (lambda () (require 'company-coq) (company-coq-mode))))"
-COQ_85_ARGS := --eval '(setq coq-prog-name "/build/coq-8.5/dist/bin/coqtop")'
+COQ_85_ARGS := --eval '(setq coq-prog-name "/build/coq/8.5/bin/coqtop")'
 
 all: elc package
 
@@ -46,7 +46,7 @@ pkg-file:
 clean-elc:
 	$(CASK) clean-elc
 
-elc: update clean-elc pkg-file
+elc: clean-elc pkg-file
 	$(CASK) build
 
 pkg-def:
