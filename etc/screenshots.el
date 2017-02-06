@@ -17,10 +17,14 @@
   (column-number-mode)
   (fringe-mode (cons my/fringe-width my/fringe-width))
   (blink-cursor-mode -1)
-  (setq-default cursor-type 'bar
+  (setq-default line-spacing 1
+                cursor-type 'bar
+                cursor-in-non-selected-windows 'bar
                 debug-on-error t
                 shr-use-fonts nil
                 split-width-threshold 140
+                company-idle-delay 0.01
+                mode-line-end-spaces (propertize "​" 'display '(space :height (+ height (1))))
                 mode-line-format '("%e" mode-line-front-space mode-line-buffer-identification " " ;; Only show company-coq
                                    "(" mode-name (:eval (-filter (lambda (m) (equal (car m) 'company-coq-mode)) minor-mode-alist)) ")"
                                    mode-line-end-spaces))
@@ -71,6 +75,7 @@
                     "img"))
 
 (defun my/save-screenshot (name width-spec gravity include-children &optional ext frame-id)
+  (accept-process-output nil 0.02) ;; Wait for company's pop-up
   (force-window-update)
   (redisplay t)
   (let ((png-fname (my/frame-file-name name "png" frame-id)))
@@ -84,8 +89,6 @@
                                    (mapcar #'string-to-number (process-lines "identify" "-ping" "-format" "%h\n%w" png-fname)))
                                   (target-width
                                    (floor (* (car width-spec) my/github-w))))
-                       (when (and (>= emacs-major-version 25) (> frame-w target-width))
-                         (error "Frame is too large (%d > %d)" frame-w target-width))
                        (list "-background" "none" "-gravity" gravity
                              "-extent" (format "%dx%d" target-width (+ frame-h (* 2 my/fringe-width))))))
                    (list png-fname)))
@@ -94,7 +97,7 @@
       ;; one, so if the extension wasn't PNG we need an extra conversion here
       (process-lines "convert" png-fname (my/frame-file-name name ext frame-id)))
     (when gravity
-      (process-lines "optipng" "-o3" png-fname))))
+      (process-lines "optipng" "-strip" "all" "-o3" png-fname))))
 
 (defun my/save-screencast (name frame-duration frame-ids)
   (apply #'process-lines
@@ -117,7 +120,7 @@
      ;; (setq-default frame-resize-pixelwise t)
      (if (< emacs-major-version 25)
          (set-frame-size (selected-frame) (floor (/ (cdr ,frame-w-spec) (frame-char-width))) ,frame-h-columns)
-       (set-frame-size nil (floor (cdr ,frame-w-spec)) (floor (* ,frame-h-columns (frame-char-height))) t))
+       (set-frame-size nil (floor (cdr ,frame-w-spec)) (floor (* ,(1+ frame-h-columns) (frame-char-height))) t))
      (redisplay t)
      (let ((--buf-- (get-buffer-create (replace-regexp-in-string "\\.?\\'" "." ,buf-name)))
            (--dir-- default-directory))
@@ -127,13 +130,13 @@
        (message nil)
        (noflet ((set-window-dedicated-p (&rest args) nil))
          ,@(mapcar (lambda (f) `(progn
-                                  (proof-shell-wait)
-                                  (unless (or (eq last-command 'my/keep-window) (minibuffer-window-active-p (selected-window)))
-                                    (set-buffer-modified-p nil)
-                                    (set-window-buffer nil --buf--)
-                                    (set-window-point nil  (point)))
-                                  ,f
-                                  (setq default-directory --dir--)))
+                             (proof-shell-wait)
+                             (unless (or (eq last-command 'my/keep-window) (minibuffer-window-active-p (selected-window)))
+                               (set-buffer-modified-p nil)
+                               (set-window-buffer nil --buf--)
+                               (set-window-point nil  (point)))
+                             ,f
+                             (setq default-directory --dir--)))
                    body)))))
 
 (defmacro my/with-screenshot (frame-w-spec frame-h-columns include-children gravity buf-name capture-prefix &rest body)
