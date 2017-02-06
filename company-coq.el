@@ -185,6 +185,7 @@ forward-declare; instead, check that the declaration is valid."
   (company-coq-forward-declare-fun proof-unprocessed-begin "ext:proof-script.el")
   (company-coq-forward-declare-fun proof-electric-terminator "ext:pg-user.el")
   (company-coq-forward-declare-fun proof-goto-point "ext:pg-user.el")
+  (company-coq-forward-declare-fun proof-electric-terminator "ext:pg-user.el")
   (company-coq-forward-declare-fun coq-mode "ext:coq.el")
   (company-coq-forward-declare-fun coq-response-mode "ext:coq.el")
   (company-coq-forward-declare-fun coq-insert-match "ext:coq.el")
@@ -330,7 +331,7 @@ customize `company-coq-disabled-features'.")
 Do not remove entries from this list (but feel free to reorder
 them).  To disable backends, customize `company-coq-disabled-features'."
   :group 'company-coq
-  :type '(repeat symbol))
+  :type '(repeat function))
 
 (defvar company-coq-talking-to-prover nil
   "Indicates whether a interaction has been initiated with the prover, to disable the input and output hooks.")
@@ -695,8 +696,8 @@ Useful as a value for `company-coq-completion-predicate'."
   "Regexp matching uses of deprecated options.")
 
 (defconst company-coq-deprecated-vernacs-re (concat "\\(?1:" (regexp-opt '("Include Type"
-                                                               "Arguments Scope"
-                                                               "Implicit Arguments")) "\\)")
+                                                              "Arguments Scope"
+                                                              "Implicit Arguments")) "\\)")
   "Regexp matching uses of deprecated vernacs.")
 
 (defconst company-coq-deprecated-man-re
@@ -3277,7 +3278,7 @@ These keybindings are activated by `company-coq--keybindings-minor-mode'.")
   "Get the snippet under the current point."
   (car (if (fboundp 'yas-active-snippets)
            (yas-active-snippets) ;; FIXME remove check when yas 0.12 lands
-         (yas--snippets-at-point))))
+         (with-no-warnings (yas--snippets-at-point)))))
 
 (defun company-coq-exit-snippet-if-at-exit-point ()
   "Check if exiting the CURRENT-SNIPPET would be a good idea."
