@@ -227,15 +227,15 @@ It isn't available in old versions of PG."
     "Debug mode for company-coq."))
 
 (defcustom company-coq-custom-snippets '("Section ${1:SectionName}.\n$0\nEnd $1."
-                              "Module ${1:ModuleName}.\n$0\nEnd $1."
-                              "Module Type ${1:ModuleTypeName}.\n$0\nEnd $1."
-                              "match ${ident} with\n$0\nend"
-                              "lazymatch ${ident} with\n$0\nend"
-                              "multimatch ${ident} with\n$0\nend"
-                              "match constr:($1) with\n$0\nend"
-                              "lazymatch constr:($1) with\n$0\nend"
-                              "match goal with\n$0\nend"
-                              "lazymatch goal with\n$0\nend")
+                                         "Module ${1:ModuleName}.\n$0\nEnd $1."
+                                         "Module Type ${1:ModuleTypeName}.\n$0\nEnd $1."
+                                         "match ${ident} with\n$0\nend"
+                                         "lazymatch ${ident} with\n$0\nend"
+                                         "multimatch ${ident} with\n$0\nend"
+                                         "match constr:($1) with\n$0\nend"
+                                         "lazymatch constr:($1) with\n$0\nend"
+                                         "match goal with\n$0\nend"
+                                         "lazymatch goal with\n$0\nend")
   "Custom snippets.
 Feel free to share your snippets on company-coq's GitHub!"
   :group 'company-coq
@@ -314,19 +314,19 @@ customize `company-coq-disabled-features'.")
   "List of patterns that are not imported from Proof General's list.")
 
 (defcustom company-coq-sorted-backends '(company-coq-reserved-keywords-backend
-                              company-coq-block-end-backend
-                              company-coq-user-snippets-backend
-                              company-coq-modules-backend
-                              company-coq-context-backend
-                              company-coq-refman-ltac-abbrevs-backend
-                              company-coq-refman-tactic-abbrevs-backend
-                              company-coq-refman-vernac-abbrevs-backend
-                              company-coq-refman-scope-abbrevs-backend
-                              company-coq-pg-backend
-                              company-coq-local-definitions-backend
-                              company-coq-search-results-backend
-                              company-coq-dynamic-tactics-backend
-                              company-coq-dynamic-symbols-backend)
+                                         company-coq-block-end-backend
+                                         company-coq-user-snippets-backend
+                                         company-coq-modules-backend
+                                         company-coq-context-backend
+                                         company-coq-refman-ltac-abbrevs-backend
+                                         company-coq-refman-tactic-abbrevs-backend
+                                         company-coq-refman-vernac-abbrevs-backend
+                                         company-coq-refman-scope-abbrevs-backend
+                                         company-coq-pg-backend
+                                         company-coq-local-definitions-backend
+                                         company-coq-search-results-backend
+                                         company-coq-dynamic-tactics-backend
+                                         company-coq-dynamic-symbols-backend)
   "All completion backends, ordered by display priority.
 Do not remove entries from this list (but feel free to reorder
 them).  To disable backends, customize `company-coq-disabled-features'."
@@ -405,15 +405,15 @@ The result matches any symbol in HEADERS, followed by BODY."
           (when body (concat "\\s-*\\(" body "\\)"))))
 
 (defconst company-coq-definitions-kwds `("Class" "CoFixpoint" "CoInductive" "Coercion" "Corollary"
-                              "Declare Module" "Definition" "Example" "Fact" "Fixpoint"
-                              "Function" "Functional Scheme" "Global Instance" "Inductive"
-                              "Instance" "Lemma" "Let" "Ltac" "Program" "Program Definition"
-                              "Program Instance" "Program Fixpoint" "Record" "Scheme" "Theorem"
-                              "Variant" "with")
+                                         "Declare Module" "Definition" "Example" "Fact" "Fixpoint"
+                                         "Function" "Functional Scheme" "Global Instance" "Inductive"
+                                         "Instance" "Lemma" "Let" "Ltac" "Program" "Program Definition"
+                                         "Program Instance" "Program Fixpoint" "Record" "Scheme" "Theorem"
+                                         "Variant" "with")
   "Keywords that introduce a definition.")
 
 (defconst company-coq-definitions-regexp (company-coq-make-headers-regexp company-coq-definitions-kwds
-                                                    company-coq-id-regexp)
+                                                                          company-coq-id-regexp)
   "Regexp used to locate symbol definitions in the current buffer.")
 
 (defconst company-coq-block-end-regexp (company-coq-make-headers-regexp '("End") company-coq-id-regexp)
@@ -425,16 +425,16 @@ The result matches any symbol in HEADERS, followed by BODY."
   :type '(repeat string))
 
 (defconst company-coq-search-blacklist-str (mapconcat (lambda (str) (concat "\"" str "\""))
-                                           company-coq-search-blacklist " "))
+                                                      company-coq-search-blacklist " "))
 
 (defconst company-coq-search-blacklist-add-cmd (concat "Add Search Blacklist "
-                                            company-coq-search-blacklist-str))
+                                                       company-coq-search-blacklist-str))
 
 (defconst company-coq-search-blacklist-rem-cmd (concat "Remove Search Blacklist "
-                                            company-coq-search-blacklist-str))
+                                                       company-coq-search-blacklist-str))
 
 (defconst company-coq-all-symbols-prelude (cons company-coq-search-blacklist-add-cmd
-                                     '("Set Search Output Name Only"))
+                                                '("Set Search Output Name Only"))
   "Commands to run before asking the prover for symbols.")
 
 (defconst company-coq-redirection-template "Redirect \"%s\" %s")
@@ -452,7 +452,7 @@ The result matches any symbol in HEADERS, followed by BODY."
   "Command used to list extra symbols ([SearchPattern _] doesn't search inside modules in 8.4).")
 
 (defconst company-coq-all-symbols-coda (cons company-coq-search-blacklist-rem-cmd
-                                  '("Unset Search Output Name Only"))
+                                             '("Unset Search Output Name Only"))
   "Command to run after asking the prover for symbols.")
 
 (defconst company-coq-doc-cmd "About %s"
@@ -477,10 +477,10 @@ The result matches any symbol in HEADERS, followed by BODY."
   "Command used to retrieve the qualified name of a library (to locate the corresponding source file).")
 
 (defconst company-coq-locate-lib-output-format (replace-regexp-in-string
-                                     " " "[[:space:]]+"
-                                     (concat "\\`\\(" company-coq-module-name-regexp "\\)"
-                                             " \\(?:has been loaded from\\|is bound to\\) file "
-                                             "\\([^[:space:]]+\\)\\(\\.[^[:space:].]+\\)"))
+                                                " " "[[:space:]]+"
+                                                (concat "\\`\\(" company-coq-module-name-regexp "\\)"
+                                                        " \\(?:has been loaded from\\|is bound to\\) file "
+                                                        "\\([^[:space:]]+\\)\\(\\.[^[:space:].]+\\)"))
   "Regexp matching the output of `company-coq-locate-lib-cmd'.")
 
 (defconst company-coq-compiled-regexp "\\.vi?o\\'"
@@ -490,13 +490,13 @@ The result matches any symbol in HEADERS, followed by BODY."
   "Regexp used to detect signs that new symbols have been defined.")
 
 (defconst company-coq-error-regexps `("^Error:"
-                           "^Syntax error:"
-                           "^No object of basename"
-                           "^Toplevel input, characters"
-                           "^No Ltac definition is referred to by"
-                           "^Unable to locate library"
-                           "^The command has indeed failed with message:"
-                           " not a defined object.")
+                                      "^Syntax error:"
+                                      "^No object of basename"
+                                      "^Toplevel input, characters"
+                                      "^No Ltac definition is referred to by"
+                                      "^Unable to locate library"
+                                      "^The command has indeed failed with message:"
+                                      " not a defined object.")
   "Regexps used to detect invalid output.")
 
 (defconst company-coq-error-regexp (concat "\\(" (mapconcat #'identity company-coq-error-regexps "\\|") "\\)")
@@ -531,7 +531,10 @@ The result matches any symbol in HEADERS, followed by BODY."
                                 ,@company-coq-section-kwds ,@company-coq-definitions-kwds)
   "Headers used in outline mode and in `company-coq-occur'.")
 
-(defconst company-coq-anonymous-outline-kwds '("Goal" "Notation" "Tactic Notation" "Hint")
+(defconst company-coq-anonymous-outline-kwds
+  '("Goal" "Notation" "Tactic Notation" "Hint" "Hint Constructors" "Hint Cut"
+    "Hint Extern" "Hint Local" "Hint Rewrite" "Hint Unfold" "Hint Immediate"
+    "Hint Resolve")
   "Extra headers to show in outline mode and in `company-coq-occur'.")
 
 (defconst company-coq-section-regexp (company-coq-make-headers-regexp company-coq-section-kwds
@@ -685,19 +688,19 @@ Useful as a value for `company-coq-completion-predicate'."
   "Rexep matching unification error messages.")
 
 (defconst company-coq-deprecated-options '("Equality Scheme" "Record Elimination Schemes"
-                                "Tactic Evars Pattern Unification" "Undo")
+                                           "Tactic Evars Pattern Unification" "Undo")
   "Deprecated options, as reported by [Print Tables].")
 
 (defconst company-coq-options-header-re (regexp-opt '("Set " "Unset " "Test "))
   "Regexp matching keywords starting option-related vernacs.")
 
 (defconst company-coq-deprecated-options-re (concat "\\(?1:" company-coq-options-header-re
-                                         (regexp-opt company-coq-deprecated-options) "\\)")
+                                                    (regexp-opt company-coq-deprecated-options) "\\)")
   "Regexp matching uses of deprecated options.")
 
 (defconst company-coq-deprecated-vernacs-re (concat "\\(?1:" (regexp-opt '("Include Type"
-                                                              "Arguments Scope"
-                                                              "Implicit Arguments")) "\\)")
+                                                                           "Arguments Scope"
+                                                                           "Implicit Arguments")) "\\)")
   "Regexp matching uses of deprecated vernacs.")
 
 (defconst company-coq-deprecated-man-re
@@ -711,10 +714,10 @@ Useful as a value for `company-coq-completion-predicate'."
   "Regexp matching deprecating forms described by the manual.")
 
 (defconst company-coq-deprecated-re (concat "^[[:blank:]]*\\(?:"
-                                 "\\(?:" company-coq-deprecated-options-re "\\)\\|"
-                                 "\\(?:" company-coq-deprecated-vernacs-re "\\)\\|"
-                                 "\\(?:" company-coq-deprecated-man-re "\\)"
-                                 "\\)")
+                                            "\\(?:" company-coq-deprecated-options-re "\\)\\|"
+                                            "\\(?:" company-coq-deprecated-vernacs-re "\\)\\|"
+                                            "\\(?:" company-coq-deprecated-man-re "\\)"
+                                            "\\)")
   "Regexp matching all deprecated forms.")
 
 (defvar company-coq--reserved-keywords-regexp nil
@@ -801,8 +804,8 @@ Useful as a value for `company-coq-completion-predicate'."
 
 (defconst company-coq-deprecated-spec
   `((,company-coq-deprecated-re 1 '(face (:underline (:color "#FF0000" :style wave))
-                              help-echo "This form is deprecated (8.5)")
-                     append))
+                                         help-echo "This form is deprecated (8.5)")
+                                append))
   "Font-lock spec for deprecated forms.")
 
 (defmacro company-coq-dbg (format &rest args)
@@ -1089,7 +1092,7 @@ Do not call if the prover process is busy."
          (lines          (company-coq-split-wrapped-lines output t))
          (tactics        (mapcar #'company-coq-parse-dynamic-ltacs-db-entry lines)))
     (company-coq-dbg "Loaded %d tactics in %.03f seconds"
-          (length tactics) (float-time (time-since start-time)))
+                     (length tactics) (float-time (time-since start-time)))
     tactics))
 
 (defun company-coq-get-all-notations ()
@@ -1169,7 +1172,7 @@ definitions in the unprocessed part of the buffer."
             (append
              ;; New elements before cache
              (company-coq-find-all company-coq-definitions-regexp should-be-valid-from
-                        (min should-be-valid-up-to company-coq-local-definitions-valid-from))
+                                   (min should-be-valid-up-to company-coq-local-definitions-valid-from))
              ;; Old cache, minus stale elements
              (-filter (lambda (def)
                         (and (>= (cdr def) should-be-valid-from)
@@ -1177,7 +1180,7 @@ definitions in the unprocessed part of the buffer."
                       company-coq-local-definitions)
              ;; New elements after cache
              (company-coq-find-all company-coq-definitions-regexp (max should-be-valid-from company-coq-local-definitions-valid-up-to)
-                        should-be-valid-up-to)))
+                                   should-be-valid-up-to)))
       (setq company-coq-local-definitions-valid-from should-be-valid-from
             company-coq-local-definitions-valid-up-to should-be-valid-up-to))
     (mapcar (lambda (pair) (propertize (car pair)
@@ -1417,7 +1420,7 @@ comparison function."
   "Order STR1 and STR2 by match-begining being 0.
 Falls back to `company-coq-string-lessp-foldcase'."
   (company-coq-bool-lessp ((m1 (eq 0 (company-coq-get-prop 'match-beginning str1)))
-                (m2 (eq 0 (company-coq-get-prop 'match-beginning str2))))
+                           (m2 (eq 0 (company-coq-get-prop 'match-beginning str2))))
     (company-coq-string-lessp-foldcase str1 str2)))
 
 (defun company-coq-collect-user-snippets ()
@@ -1627,13 +1630,13 @@ Updated when `company-coq-shell-output-is-error' is called.")
         (when (and (cl-some #'company-coq-feature-active-p risky-features)
                    (not (company-coq--coqtop-patched-p)))
           (company-coq-warn (concat "Dynamic completion is enabled, but "
-                         "your version of coqtop does not seem to support it.")))))))
+                                    "your version of coqtop does not seem to support it.")))))))
 
 (defun company-coq-maybe-reload-each ()
   "Reload dynamic completion databases if needed."
   (company-coq-dbg "company-coq-maybe-reload-each: [%s] [%s]"
-        company-coq-symbols-reload-needed
-        company-coq-modules-reload-needed)
+                   company-coq-symbols-reload-needed
+                   company-coq-modules-reload-needed)
   (when (company-coq-prover-available-p)
     (company-coq-detect-capabilities)
     (company-coq-init-tactics)
@@ -1687,7 +1690,7 @@ Return a `company-coq-hypothesis'.  SEP is ‘:’ or ‘:=’.  NAMES
 may contain multiple names."
   (save-restriction
     (when (company-coq--narrow-to-matches company-coq--hypotheses-block-opener
-                               company-coq--hypotheses-block-closer)
+                                          company-coq--hypotheses-block-closer)
       (cl-loop for match = (company-coq--bounded-re-search-forward company-coq--hypothesis-header-regexp)
                while match collect (company-coq--parse-hypothesis-match match)))))
 
@@ -1800,8 +1803,8 @@ If CLEAR is non-nil, clear all caches."
                 company-coq--previous-context-parse company-coq--current-context-parse
                 company-coq--current-context-parse (company-coq--parse-context-and-goals new-context)
                 company-coq--hyp-names (mapcar #'company-coq-hypothesis-names
-                                    (company-coq--split-merged-hypotheses
-                                     (car company-coq--current-context-parse)))))))))
+                                               (company-coq--split-merged-hypotheses
+                                                (car company-coq--current-context-parse)))))))))
 
 (defun company-coq-maybe-proof-output-reload-things ()
   "Parse output of prover, looking for signals that things need to be reloaded, and reload them."
@@ -2342,13 +2345,13 @@ If INTERACTIVE is non-nil and no help is found, complain loudly."
 (defun company-coq-doc-buffer-symbol (name)
   "Prepare a company doc buffer for symbol NAME."
   (company-coq-doc-buffer-generic name (list company-coq-doc-cmd
-                                  company-coq-def-cmd)))
+                                             company-coq-def-cmd)))
 
 (defun company-coq-doc-buffer-definition (name)
   "Prepare a company doc buffer for definition NAME."
   (company-coq-doc-buffer-generic name (list company-coq-doc-cmd
-                                  company-coq-def-cmd
-                                  company-coq-tactic-def-cmd)))
+                                             company-coq-def-cmd
+                                             company-coq-tactic-def-cmd)))
 
 (defun company-coq-doc-buffer-tactic (name)
   "Prepare a company doc buffer for tactic NAME."
@@ -2594,9 +2597,9 @@ in `company-coq-last-search-scan-size'."
                               #'company-coq-yasnippet-choicify-one snippet)))
 
 (defconst company-coq-abbrevs-transforms-alist '((man  . company-coq-dabbrev-to-yas-with-choices)
-                                      (ltac . company-coq-dabbrev-to-yas)
-                                      (tacn . company-coq-dabbrev-to-yas)
-                                      (pg   . company-coq-dabbrev-to-yas))
+                                                 (ltac . company-coq-dabbrev-to-yas)
+                                                 (tacn . company-coq-dabbrev-to-yas)
+                                                 (pg   . company-coq-dabbrev-to-yas))
   "Map of conversion functions to use on different abbrev sources.")
 
 (defun company-coq-abbrev-to-yas (abbrev source)
@@ -2773,9 +2776,9 @@ differences."
         (goto-char (point-min))
         (if (re-search-forward company-coq-unification-error-message nil t)
             (let ((pre (company-coq--prepare-diff-chunks (match-string-no-properties 1)
-                                              (match-string-no-properties 3)))
+                                                         (match-string-no-properties 3)))
                   (post (company-coq--prepare-diff-chunks (match-string-no-properties 2)
-                                               (match-string-no-properties 4))))
+                                                          (match-string-no-properties 4))))
               (with-selected-window (or (company-coq-get-response-window) (selected-window))
                 (company-coq-diff-strings pre post " " "unification" (or context 10))))
           (user-error "No unification error message found"))))))
@@ -2789,7 +2792,7 @@ differences."
   (unless company-coq--previous-context (user-error "Previous goal unknown"))
   (with-selected-window (or (company-coq-get-goals-window) (selected-window))
     (company-coq-diff-strings company-coq--previous-context company-coq--current-context
-                   " " "goals" (or context 5))))
+                              " " "goals" (or context 5))))
 
 (defun company-coq-diff-dwim ()
   "Compare unification error messages (if any) or goals."
@@ -3082,7 +3085,7 @@ order."
 (defun company-coq-set-backends (backends)
   "Set `company-coq-enabled-backends' to BACKENDS, sorted according to `company-coq-sorted-backends'."
   (setq company-coq-enabled-backends (company-coq-sort-according-to-reference
-                           backends company-coq-sorted-backends)))
+                                      backends company-coq-sorted-backends)))
 
 (defun company-coq--mark-and-move-exact-matches (prefix sorted-candidates)
   "Return a copy of SORTED-CANDIDATES with all exact matches at the front.
@@ -3618,10 +3621,10 @@ Useful for debugging tactics in versions of Coq prior to 8.5: use
         (font-lock-flush)))))
 
 (defconst company-coq--font-lock-vars '(font-lock-keywords
-                             font-lock-keywords-only
-                             font-lock-keywords-case-fold-search
-                             font-lock-syntax-table
-                             font-lock-syntactic-face-function)
+                                        font-lock-keywords-only
+                                        font-lock-keywords-case-fold-search
+                                        font-lock-syntax-table
+                                        font-lock-syntactic-face-function)
   "Font-lock variables that influence fontification.")
 
 (defun company-coq--fontify-buffer-with (&optional ref-buffer)
@@ -4082,7 +4085,7 @@ loading as much as possible."
   (require 'coq))         ;; `coq-insert-match'
 
 (defconst company-coq--input-hooks '(proof-assert-command-hook
-                          proof-shell-insert-hook)
+                                     proof-shell-insert-hook)
   "Hooks that denote user input.")
 
 (defun company-coq--listen-for-input (handler)
@@ -4094,7 +4097,7 @@ loading as much as possible."
   (mapc (lambda (hook) (add-hook hook handler)) company-coq--input-hooks))
 
 (defconst company-coq--output-hooks '(proof-shell-handle-delayed-output-hook
-                           proof-shell-handle-error-or-interrupt-hook)
+                                      proof-shell-handle-error-or-interrupt-hook)
   "Hooks that denote prover output.")
 
 (defun company-coq--listen-for-output (handler)
@@ -4246,8 +4249,8 @@ Only effective in Emacs 25."
 (defun company-coq-features/prettify-symbols--enable-other ()
   "Set up prettify-symbols in the current (goals or response) buffer."
   (company-coq-features/prettify-symbols--enable-1 (if (buffer-live-p proof-script-buffer)
-                                            proof-script-buffer
-                                          (current-buffer))))
+                                                       proof-script-buffer
+                                                     (current-buffer))))
 
 (defun company-coq-features/prettify-symbols--enable-others ()
   "Enable prettify-symbols in response and goals buffers."
@@ -5225,7 +5228,7 @@ library."
 (defun company-coq-features/error-diffs--make-link-string ()
   "Create link to diff of unification error."
   (company-coq--make-link-string " (" "diff" ")" #'company-coq-features/error-diffs--hyperlink-action
-                      "Compare the terms mentioned by this error message."))
+                                 "Compare the terms mentioned by this error message."))
 
 (defun company-coq-features/error-diffs--add-link ()
   "Add a link to current response if it's a unification error."
