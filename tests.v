@@ -132,7 +132,7 @@ Qed.
 Inductive foo := .
 
 Definition foo_recf : foo -> False.
-  apply foo_rec.                (* What happens when jumping to foo_rec? *)
+  apply foo_rec.                (* What happens when jumping to foo_rec? (Should say location unknown) *)
 Qed.
 
 Record Record1 := { Field1:nat; Field2: nat }.
@@ -283,7 +283,7 @@ Proof.
 
   simpl in *.
   (* This should be typeable using:
-  Require Import C.NA.NA *)
+  [Require Import C.NA.NA] *)
   Require Import Coq.NArith.NArith.
 
   assert (x := plus_0_r). (* This should be underlined *)
