@@ -2277,6 +2277,8 @@ FQN-FUNCTIONS: see `company-coq-locate-internal'."
 
 (defun company-coq-jump-to-definition-1 (target location fallback)
   "Jump to TARGET in LOCATION.  If not found, jump to FALLBACK."
+  (when (functionp #'xref-push-marker-stack)
+    (xref-push-marker-stack))
   (cond
    ((bufferp location)
     (switch-to-buffer location))
