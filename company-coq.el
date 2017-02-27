@@ -2281,8 +2281,10 @@ FQN-FUNCTIONS: see `company-coq-locate-internal'."
     (xref-push-marker-stack))
   (cond
    ((bufferp location)
+    (push-mark)
     (switch-to-buffer location))
    ((and (stringp location) (file-exists-p location))
+    (push-mark)
     (find-file location))
    (t (user-error "Not found: %S" location)))
   (company-coq-search-then-scroll-up target fallback #'company-coq--pulse-and-recenter))
