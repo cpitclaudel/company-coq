@@ -2275,16 +2275,20 @@ FQN-FUNCTIONS: see `company-coq-locate-internal'."
 ;;                            nil nil 'company-coq-location-history (company-coq-symbol-at-point) t)
 ;;           t)))
 
+(defun company-coq--save-location ()
+  "Push point to xref marker stack and to global mark ring."
+  (push-mark nil t)
+  (when (functionp #'xref-push-marker-stack)
+    (xref-push-marker-stack)))
+
 (defun company-coq-jump-to-definition-1 (target location fallback)
   "Jump to TARGET in LOCATION.  If not found, jump to FALLBACK."
-  (when (functionp #'xref-push-marker-stack)
-    (xref-push-marker-stack))
   (cond
    ((bufferp location)
-    (push-mark)
+    (company-coq--save-location)
     (switch-to-buffer location))
    ((and (stringp location) (file-exists-p location))
-    (push-mark)
+    (company-coq--save-location)
     (find-file location))
    (t (user-error "Not found: %S" location)))
   (company-coq-search-then-scroll-up target fallback #'company-coq--pulse-and-recenter))
