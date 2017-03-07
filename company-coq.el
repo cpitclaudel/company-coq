@@ -732,6 +732,12 @@ Useful as a value for `company-coq-completion-predicate'."
 (defconst company-coq--doc-buffer "*company-coq: documentation*"
   "Name to give to company-coq documentation buffers.")
 
+(defconst company-coq--goal-diff-buffer "*goal-diff*"
+  "Name to give to company-coq goal diff buffers.")
+
+(defconst company-coq--unification-diff-buffer "*unification-diff*"
+  "Name to give to company-coq unification diff buffers.")
+
 (defconst company-coq-script-full-path
   (or (and load-in-progress load-file-name)
       (bound-and-true-p byte-compile-current-file)
@@ -1861,13 +1867,24 @@ Nothing is reloaded immediately; instead the relevant flags are set."
   "Return the goals window."
   (and proof-response-buffer (get-buffer-window proof-response-buffer)))
 
+(defun company-coq--quit-window (buf-name)
+  "Quit window of BUF-NAME, if any.
+Return non-nil iff such a window was found."
+  (-when-let* ((win (get-buffer-window buf-name)))
+    (save-selected-window
+      (quit-window nil win)
+      t)))
+
 (defun company-coq-state-change (&rest _args)
   "Handle changes of prover state."
   (unless (window-live-p company-coq-goals-window)
     (setq company-coq-goals-window (company-coq-get-goals-window)))
   ;; Hide the docs and redisplay the goals buffer
-  (-when-let* ((doc-buf (get-buffer company-coq--doc-buffer)))
-    (bury-buffer doc-buf))
+  (dolist (buf `(,company-coq--doc-buffer
+                 ,company-coq--goal-diff-buffer
+                 ,company-coq--unification-diff-buffer))
+    (when (setq buf (get-buffer buf))
+      (company-coq--quit-window buf)))
   (-when-let* ((goals-buf proof-goals-buffer)
                (goals-win (company-coq-get-goals-window)))
     ;; Removing this test makes everything orders of magnitude slower on Jonathan's machine
@@ -2726,28 +2743,13 @@ Before calling INSERT-FUN, delete BEG .. END."
       (newline))
     (current-buffer)))
 
-(defun company-coq-diff-buffer-name (prefix)
-  "Compute a name for the diff buffer using PREFIX."
-  (format "*%s-diff*" prefix))
-
-(defun company-coq--close-diff-window (label)
-  "Close existing diff window with LABEL, if any.
-Return non-nil iff such a window was found."
-  (-if-let* ((buf (company-coq-diff-buffer-name label))
-             (win (get-buffer-window buf)))
-      (save-selected-window
-        (quit-window nil win)
-        t)
-    nil))
-
-(defun company-coq-diff-strings (s1 s2 prefix label context)
+(defun company-coq-diff-strings (s1 s2 prefix diff-buffer-name context)
   "Compare S1 and S2, with PREFIX.
-Use LABEL to name newly created buffers.  Display CONTEXT lines
+Use DIFF-BUFFER-NAME to name newly created buffers.  Display CONTEXT lines
 of context around differences."
   (let ((same-window-buffer-names '("*Diff*"))
-        (diff-buffer-name (company-coq-diff-buffer-name label))
-        (b1 (company-coq--make-diff-temp-buffer (format "*company-coq-%s-A*" label) s1 prefix))
-        (b2 (company-coq--make-diff-temp-buffer (format "*company-coq-%s-B*" label) s2 prefix)))
+        (b1 (company-coq--make-diff-temp-buffer (format "*company-coq-%s-A*" diff-buffer-name) s1 prefix))
+        (b2 (company-coq--make-diff-temp-buffer (format "*company-coq-%s-B*" diff-buffer-name) s2 prefix)))
     (set-window-dedicated-p (selected-window) nil)
     (company-coq-with-current-buffer-maybe diff-buffer-name
       (kill-buffer))
@@ -2789,7 +2791,7 @@ differences."
                   (post (company-coq--prepare-diff-chunks (match-string-no-properties 2)
                                                (match-string-no-properties 4))))
               (with-selected-window (or (company-coq-get-response-window) (selected-window))
-                (company-coq-diff-strings pre post " " "unification" (or context 10))))
+                (company-coq-diff-strings pre post " " company-coq--unification-diff-buffer (or context 10))))
           (user-error "No unification error message found"))))))
 
 (defun company-coq-diff-goals (&optional context)
@@ -2801,13 +2803,13 @@ differences."
   (unless company-coq--previous-context (user-error "Previous goal unknown"))
   (with-selected-window (or (company-coq-get-goals-window) (selected-window))
     (company-coq-diff-strings company-coq--previous-context company-coq--current-context
-                   " " "goals" (or context 5))))
+                   " " company-coq--goal-diff-buffer (or context 5))))
 
 (defun company-coq-diff-dwim ()
   "Compare unification error messages (if any) or goals."
   (interactive)
-  (unless (or (company-coq--close-diff-window "goals")
-              (company-coq--close-diff-window "unification"))
+  (unless (or (company-coq--quit-window company-coq--goal-diff-buffer)
+              (company-coq--quit-window company-coq--unification-diff-buffer))
     (condition-case nil
         (company-coq-diff-unification-error)
       (user-error (company-coq-diff-goals)))
