@@ -1872,8 +1872,7 @@ Nothing is reloaded immediately; instead the relevant flags are set."
                (goals-win (company-coq-get-goals-window)))
     ;; Removing this test makes everything orders of magnitude slower on Jonathan's machine
     (unless (eq (window-buffer goals-win) goals-buf)
-      (when (window-dedicated-p goals-win)
-	(set-window-dedicated-p goals-win nil))
+      (set-window-dedicated-p goals-win nil)
       (set-window-buffer goals-win goals-buf))))
 
 (defun company-coq-coq-mode-p ()
