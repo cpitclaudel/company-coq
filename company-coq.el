@@ -3068,7 +3068,8 @@ COMMAND, ARG and IGNORED: see `company-backends'."
     (`interactive (company-begin-backend 'company-coq-math-symbols-backend))
     (_ (let ((result (apply #'company-math-symbols-unicode command arg ignored)))
          (pcase command
-           (`prefix (when result (cons result t)))
+           (`prefix (when (and result (not (string-prefix-p "_" result)))
+                      (cons result t)))
            (_ result))))))
 
 (defun company-coq-tagged-candidates (backend prefix)
