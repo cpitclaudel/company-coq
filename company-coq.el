@@ -2279,7 +2279,7 @@ FQN-FUNCTIONS: see `company-coq-locate-internal'."
 (defun company-coq--save-location ()
   "Push point to xref marker stack and to global mark ring."
   (push-mark nil t)
-  (when (functionp #'xref-push-marker-stack)
+  (when (fboundp 'xref-push-marker-stack)
     (xref-push-marker-stack)))
 
 (defun company-coq-jump-to-definition-1 (target location fallback)
