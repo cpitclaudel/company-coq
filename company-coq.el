@@ -805,7 +805,8 @@ Useful as a value for `company-coq-completion-predicate'."
   :group 'company-coq-faces)
 
 (defconst company-coq-goal-separator-spec
-  `(("^   *=====+ *$" 0 '(face nil display "") append))
+  `(("^   *\\(=====+ *\\)$"
+     1 '(face (:strike-through t) display (space :align-to right)) append))
   "Font-lock spec for a sequence of '=' signs.")
 
 (defconst company-coq-deprecated-spec
@@ -4448,39 +4449,8 @@ wrapping the line."
   "Face used to spaces before the goal line."
   :group 'company-coq-faces)
 
-(defun company-coq-features/pg-improvements--update-display-table ()
-  "Prettify ^K as a goal separator in the current buffer.
-Inspired by the excellent ‘page-break-lines-mode’."
-  (company-coq-with-current-buffer-maybe proof-goals-buffer
-    (-when-let* ((win (get-buffer-window (current-buffer))))
-      (unless buffer-display-table
-        (setq buffer-display-table (make-display-table)))
-      (let ((default-height (face-attribute 'default :height nil 'default)))
-        (set-face-attribute 'company-coq-goal-line-face nil :height default-height)
-        (set-face-attribute 'company-coq-goal-line-space-face nil :height default-height)
-        (let* ((line-width (max 1 (- (window-width win) 3)))
-               (space (make-glyph-code ?\s 'company-coq-goal-line-space-face))
-               (dash (make-glyph-code company-coq-goal-line-character 'company-coq-goal-line-face))
-               (display-entry (vconcat (make-list 2 space) (make-list line-width dash))))
-          (unless (equal display-entry (elt buffer-display-table ?\^K))
-            (aset buffer-display-table ?\^K display-entry)))))))
-
-(defun company-coq-features/pg-improvements--update-display-table-if-new-goal ()
-  "Update  in the display table if there's a new goal."
-  (unless (memq 'no-goals-display proof-shell-delayed-output-flags)
-    (company-coq-features/pg-improvements--update-display-table)))
-
-(defun company-coq-features/pg-improvements--clear-display-table ()
-  "Remove prettification of ^K in the current buffer."
-  (when buffer-display-table
-    (aset buffer-display-table ?\^K nil)))
-
 (defun company-coq-features/pg-improvements--goals-buffer-enable ()
   "Apply company-coq improvements to current buffer."
-  (add-hook 'linum-mode-hook #'company-coq-features/pg-improvements--update-display-table)
-  (add-hook 'window-configuration-change-hook #'company-coq-features/pg-improvements--update-display-table)
-  (add-hook 'proof-shell-handle-delayed-output-hook #'company-coq-features/pg-improvements--update-display-table-if-new-goal t)
-  (company-coq-features/pg-improvements--update-display-table)
   (font-lock-add-keywords nil company-coq-goal-separator-spec t)
   (add-to-list (make-local-variable 'font-lock-extra-managed-props) 'display)
   (setq-local show-trailing-whitespace nil)
@@ -4488,10 +4458,6 @@ Inspired by the excellent ‘page-break-lines-mode’."
 
 (defun company-coq-features/pg-improvements--goals-buffer-disable ()
   "Remove company-coq improvements from current buffer."
-  (remove-hook 'linum-mode-hook #'company-coq-features/pg-improvements--update-display-table)
-  (remove-hook 'window-configuration-change-hook #'company-coq-features/pg-improvements--update-display-table)
-  (remove-hook 'proof-shell-handle-delayed-output-hook #'company-coq-features/pg-improvements--update-display-table-if-new-goal)
-  (company-coq-features/pg-improvements--clear-display-table)
   (font-lock-remove-keywords nil company-coq-goal-separator-spec)
   (kill-local-variable 'show-trailing-whitespace)
   (company-coq-request-refontification))
