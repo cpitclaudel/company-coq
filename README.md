@@ -124,7 +124,7 @@ Loading `company-coq` also binds the following keys:
 * <kbd>M-RET</kbd> inserts a new `match` case (`| _ => _`).
 * <kbd>M-S-RET</kbd> inserts a new `match goal` rule (`| [ H: _ |- _ ] => _`).
 * <kbd>C-c C-a C-x</kbd> extracts the current goal into a separate lemma.
-* <kbd>C-down-mouse-1</kbd> (i.e. <kbd>C-click</kbd>) shows an inline quick help box for the identifier under point. The box disappears when the mouse is released. Pressing the <kbd>&lt;menu></kbd> key or <kbd>M-F12</kdb> also works.
+* <kbd>C-down-mouse-1</kbd> (i.e. <kbd>C-click</kbd>) shows an inline quick help box for the identifier under point. The box disappears when the mouse is released. Pressing the <kbd>&lt;menu></kbd> key or <kbd>M-F12</kbd> also works.
 * <kbd>M-.</kbd> jumps to the source of the identifier at point, when available.
 * <kbd>C-c C-d</kbd> opens the documentation of the identifier at point (for theorems and definitions; for tactics, use <kbd>C-h</kbd> during completion).
 * <kbd>C-c C-,</kbd> opens an outline of the code in a separate buffer (using `occur`).
@@ -150,7 +150,7 @@ Loading `company-coq` also binds the following keys:
 
 ### Empty squares in place of math operators, or incorrect line spacing
 
-If you see blank squares appear where there should be math symbols (`forall`, `exists`, etc.), or if some lines suddenly become very tall, you may be missing a proper math font. See [Installing a math font](#installing-a-math-font), or insert the following snippet in your .emacs to disable symbols beautification:
+If you see blank squares appear where there should be math symbols (`forall`, `exists`, etc.), or if some lines suddenly become very tall, you may be missing a proper math font. See [Installing a math font](#installing-a-math-font), or insert the following snippet in your `.emacs` to disable symbols beautification:
 
 ```elisp
 ;; Disable symbol prettification
