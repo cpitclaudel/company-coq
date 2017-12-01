@@ -671,10 +671,10 @@ Useful as a value for `company-coq-completion-predicate'."
   "Fast regexp to check if current response is a unification error.")
 
 (defconst company-coq-unification-error-messages
-  '("Refiner was given an argument \".*\" of type \"\\(?1:.*?\\)\" instead of \"\\(?2:.*?\\)\"."
-    "Unable to unify \"\\(?1:.*?\\)\" with \"\\(?2:.*?\\)\"."
-    "Impossible to unify \"\\(?1:.*?\\)\" with \"\\(?2:.*?\\)\"."
-    "\\(?:In environment.*\\)?The term \".*\" has type \"\\(?1:.*?\\)\" while it is expected to have type \"\\(?2:.*?\\)\".")
+  '("Refiner was given an argument \".*\" of type \"\\(?1:.*\\)\" instead of \"\\(?2:.*\\)\"."
+    "Unable to unify \"\\(?1:.*\\)\" with \"\\(?2:.*\\)\"."
+    "Impossible to unify \"\\(?1:.*\\)\" with \"\\(?2:.*\\)\"."
+    "\\(?:In environment.*\\)?The term \".*\" has type \"\\(?1:.*\\)\" while it is expected to have type \"\\(?2:.*\\)\".")
   "Bodies of unification errors.")
 
 (defconst company-coq-unification-error-message
@@ -684,7 +684,7 @@ Useful as a value for `company-coq-completion-predicate'."
     "[ \n]" (replace-quote "\\s-*")
     (concat "\\(?:" company-coq-unification-error-header " \\)+" "\\(?:"
             (mapconcat #'identity company-coq-unification-error-messages "\\|")
-            "\\)\\s-*\\(?:" "(cannot unify \"\\(?3:.*?\\)\" and \"\\(?4:.*?\\)\")." "\\)?")))
+            "\\)\\s-*\\(?:" "(cannot unify \"\\(?3:.*\\)\" and \"\\(?4:.*\\)\")." "\\)?")))
   "Rexep matching unification error messages.")
 
 (defconst company-coq-deprecated-options '("Equality Scheme" "Record Elimination Schemes"
