@@ -38,10 +38,14 @@ sudo su vagrant <<-EOF
 	echo '*** Downloading and building Coq ***'
 	echo '************************************'
 
+	echo '* OPAM upgrade'
+	yes | opam upgrade >> /vagrant/provision.log 2>&1
 	echo '* OPAM init'
 	yes | opam init >> /vagrant/provision.log 2>&1
 	echo '* OPAM repo add'
 	yes | opam repo add coq-core-dev https://coq.inria.fr/opam/core-dev >> /vagrant/provision.log 2>&1
+	echo '* OPAM update'
+	yes | opam update >> /vagrant/provision.log 2>&1
 	echo '* OPAM install (will take a while; maybe 30 minutes)'
 	yes | opam install -j2 coq.8.5~rc1 >> /vagrant/provision.log 2>&1
 
