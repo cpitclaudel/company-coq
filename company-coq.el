@@ -804,9 +804,15 @@ Useful as a value for `company-coq-completion-predicate'."
   "Face used to highlight coqdoc's **** comments."
   :group 'company-coq-faces)
 
+(defface company-coq-goal-separator-face
+  '((((supports :strike-through t)) :strike-through t)
+    (t :underline t))
+  "Face used to highlight the goal line."
+  :group 'company-coq-faces)
+
 (defconst company-coq-goal-separator-spec
   `(("^   *\\(=====+ *\\)$"
-     1 '(face (:strike-through t) display (space :align-to right)) append))
+     1 '(face company-coq-goal-separator-face display (space :align-to right)) append))
   "Font-lock spec for a sequence of '=' signs.")
 
 (defconst company-coq-deprecated-spec
@@ -4426,29 +4432,6 @@ added to `company-coq-custom-snippets'."
   (pcase arg
     (`on (company-coq-add-backend #'company-coq-user-snippets-backend))
     (`off (company-coq-remove-backend #'company-coq-user-snippets-backend))))
-
-(defcustom company-coq-goal-line-character (if (display-graphic-p) ?\s ?─)
-  "Character used to display the goal line.
-Set to a space by default on graphical displays; the line is
-emulated using a :strike-through property (set as part of
-`company-coq-goal-line-face').  That doesn't work on TTYs, so we
-use a box character there.  Suggested values: `═' or `─'."
-  :group 'company-coq
-  :type '(character))
-
-(defface company-coq-goal-line-face
-  '((((type tty)) ())
-    (t (:strike-through t)))
-  "Face used to highlight the goal line.
-This face is made to inherit the height of the default face,
-every time it is used, to prevent the face-remapping-alist from
-wrapping the line."
-  :group 'company-coq-faces)
-
-(defface company-coq-goal-line-space-face
-  '((t ()))
-  "Face used to spaces before the goal line."
-  :group 'company-coq-faces)
 
 (defun company-coq-features/pg-improvements--goals-buffer-enable ()
   "Apply company-coq improvements to current buffer."
