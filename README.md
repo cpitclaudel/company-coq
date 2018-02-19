@@ -169,7 +169,14 @@ Technical note: Proof General [also offers](http://proofgeneral.inf.ed.ac.uk/htm
 
 ### Installing a math font
 
-For font beautification to work properly, you'll need a font with proper symbol support. [Symbola](http://users.teilar.gr/~g1951d/Symbola.zip), FreeMono, STIX Math, Segoe UI Symbol, Latin Modern, and Cambria Math will all work. If Emacs doesn't fallback properly, you can use the following snippet:
+For prettification to work properly, you'll need a font with proper symbol support. [Symbola](http://users.teilar.gr/~g1951d/Symbola.zip), FreeMono, XITS Math, Segoe UI Symbol, Latin Modern, and Cambria Math will all work. If Emacs doesn't fallback properly, you can use the following snippet (change `Symbola` and `DejaVu sans Mono` to the Unicode font you just downloaded and to your usual monospace font, respectively):
+
+```elisp
+(set-fontset-font t 'unicode (font-spec :name "Symbola") nil 'prepend)
+(set-fontset-font t 'greek (font-spec :name "DejaVu sans Mono") nil 'prepend)
+```
+
+Or, in Emacs < 25:
 
 ```elisp
 (dolist (ft (fontset-list))
@@ -182,9 +189,15 @@ For font beautification to work properly, you'll need a font with proper symbol 
 Using a variable-width font for symbols will break indentation. See [this other project of mine](https://github.com/cpitclaudel/monospacifier#pre-monospacified-fonts-monospace-fonts-with-good-unicode-coverage) to download a monospace-friendly symbols font. You'll want to replace the snippet above by following (adjusting `Symbola` and `DejaVu sans Mono` as appropriate):
 
 ```elisp
+(set-fontset-font t 'unicode (font-spec :name "Symbola Monospacified for DejaVu sans Mono") nil 'prepend)
+```
+
+Or, in Emacs < 25:
+
+```elisp
 (dolist (ft (fontset-list))
-  (set-fontset-font ft 'unicode (font-spec :name "DejaVu Sans Mono"))
-  (set-fontset-font ft 'unicode (font-spec :name "Symbola monospacified for DejaVu Sans Mono") nil 'append))
+  (set-fontset-font ft 'unicode (font-spec :name "YOUR-USUAL-FONT"))
+  (set-fontset-font ft 'unicode (font-spec :name "Symbola Monospacified for YOUR-USUAL-FONT") nil 'append))
 ```
 
 ### Folding all goals when a file is opened
