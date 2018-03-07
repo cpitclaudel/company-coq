@@ -5486,7 +5486,7 @@ Tweaks company-mode settings for smoother use with Coq."
 
 (company-coq-define-feature unicode-math-backend (arg)
   "Completion of LaTeX macros.
-Inserts ⊕ when you type \oplus."
+Inserts ⊕ when you type \\oplus."
   ;; Insert directly in company's backend list, as it doesn't share the same
   ;; prefix as the other backends.
   (company-coq-do-in-coq-buffers
