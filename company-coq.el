@@ -3281,8 +3281,30 @@ These keybindings are activated by `company-coq--keybindings-minor-mode'.")
 
 (define-minor-mode company-coq--keybindings-minor-mode
   "Minor mode providing convenient company-coq keybindings."
+  nil
   :lighter nil
-  :keymap company-coq-map)
+  :keymap company-coq-map
+  (when (boundp 'evil-fold-list)
+    (if company-coq--keybindings-minor-mode
+        (add-to-list 'evil-fold-list
+                     '((company-coq-mode)
+                       :open company-coq-unfold
+                       :close company-coq-fold
+                       :toggle (lambda () (company-coq-features/code-folding-toggle-block nil))
+                       :open-all (lambda () (company-coq-call-compat 'outline-show-all 'show-all))
+                       :close-all (lambda () (company-coq-call-compat 'outline-hide-body 'hide-body))
+                       )
+                     )
+      (setq evil-fold-list (delete
+                            '((company-coq-mode)
+                              :open company-coq-unfold
+                              :close company-coq-fold
+                              :toggle (lambda () (company-coq-features/code-folding-toggle-block nil))
+                              :open-all (lambda () (company-coq-call-compat 'outline-show-all 'show-all))
+                              :close-all (lambda () (company-coq-call-compat 'outline-hide-body 'hide-body))
+                              )
+                            evil-fold-list)))
+    ))
 
 (defvar company-coq-electric-exit-characters '(?\; ?.)
   "Characters that exit the current snippet.")
