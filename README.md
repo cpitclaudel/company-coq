@@ -292,6 +292,8 @@ in which case you may want to use a custom font for Greek characters:
   (set-fontset-font ft 'greek (font-spec :name "DejaVu Sans Mono")))
 ```
 
+Tip: to add multi-character substitutions, you may want to consult [issue #201](https://github.com/cpitclaudel/company-coq/issues/201).
+
 ### Autocompleting symbols and tactics defined externally
 
 The procedure above will give you auto-completion and documentation for tactics, commands, and theorems that you define locally, but not for theorem names and symbols defined in the libraries you load. To get the latter, add the following to your `.emacs`, before `(company-coq-mode)`:
