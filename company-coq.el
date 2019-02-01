@@ -117,6 +117,23 @@
   (defvar shr-target-id)
   (defvar shr-external-rendering-functions))
 
+(defvar company-coq--libxml-available-p nil)
+
+(defun company-coq--libxml-available-p ()
+  "Check for libxml."
+  (unless (consp company-coq--libxml-available-p)
+    (setq company-coq--libxml-available-p
+          (list
+           (cond
+            ((fboundp 'libxml-available-p)
+             (libxml-available-p))
+            ((fboundp 'libxml-parse-xml-region)
+             ;; Just having libxml-parse-xml-region isn't enough on Windows
+             (with-temp-buffer
+               (insert "<a/>")
+               (libxml-parse-xml-region (point-min) (point-max))))))))
+  (car company-coq--libxml-available-p))
+
 ;; Shims for PG
 
 (eval-and-compile
@@ -2514,7 +2531,7 @@ directly.  With CENTER, center relevant point in window instead
 of aligning at top."
   (interactive)
   (company-coq-dbg "company-coq-doc-buffer-refman: Called for %s" name-or-anchor)
-  (when (fboundp 'libxml-parse-html-region)
+  (when (company-coq--libxml-available-p)
     (let* ((anchor         (if (stringp name-or-anchor) (company-coq-get-prop 'anchor name-or-anchor) name-or-anchor))
            (shr-target-id  (and anchor (concat "qh" (int-to-string (cdr anchor)))))
            (doc-short-path (and anchor (concat (car anchor) ".html.gz")))
