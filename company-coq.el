@@ -4596,7 +4596,8 @@ character."
              (run-with-idle-timer 0.2 t #'company-coq-features/show-key--echo))))
     (`off
      (when company-coq-features/show-key--timer
-       (cancel-timer company-coq-features/show-key--timer)))))
+       (cancel-timer company-coq-features/show-key--timer)
+       (setq company-coq-features/show-key--timer nil)))))
 
 (company-coq-define-feature title-comments (arg)
   "Special comments [(***, (*+, and (*!].
