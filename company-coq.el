@@ -209,7 +209,7 @@ forward-declare; instead, check that the declaration is valid."
   (company-coq-forward-declare-fun coq-last-prompt-info-safe "ext:coq.el")
   (company-coq-forward-declare-fun coq-find-comment-start "ext:coq.el")
   (company-coq-forward-declare-fun coq-find-comment-end "ext:coq.el")
-  (company-coq-forward-declare-fun coq-looking-at-comment "ext:coq-indent.el" cmd))
+  (company-coq-forward-declare-fun proof-inside-comment "ext:proof-syntax.el" cmd))
 
 (defun company-coq--get-comment-region ()
   "Local copy of `coq-get-comment-region'.
@@ -628,6 +628,13 @@ not in comment text.  This function should not change the point."
                  (const :tag "Complete only in code" company-coq-not-in-comment-p)
                  (const :tag "Offer completions everywhere" nil)))
 
+;; This function was formerly part of PG, but was removed in recent versions
+;; so we keep a local copy https://github.com/cpitclaudel/company-coq/issues/213
+(defun coq-looking-at-comment ()
+  "Return non-nil if point is inside a comment."
+  (or (proof-inside-comment (point))
+      (proof-inside-comment (+ 1 (point)))))
+  
 (defun company-coq-not-in-comment-p ()
   "Return nil if point is inside a comment.
 Useful as a value for `company-coq-completion-predicate'"
@@ -4120,7 +4127,7 @@ loading as much as possible."
   (require 'proof-config) ;; `proof-fly-past-comments'
   (require 'proof-script) ;; `proof-unprocessed-begin'
   (require 'coq-syntax)   ;; `coq-tactics-db'
-  (require 'coq-indent)   ;; `coq-looking-at-comment'
+  (require 'proof-syntax) ;; `proof-inside-comment'
   (require 'coq))         ;; `coq-insert-match'
 
 (defconst company-coq--input-hooks '(proof-assert-command-hook
