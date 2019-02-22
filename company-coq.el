@@ -543,7 +543,7 @@ The result matches any symbol in HEADERS, followed by BODY."
 (defconst company-coq-section-kwds '("Chapter" "Module" "Module Type" "Section")
   "Keywords opening a new section.")
 
-(defconst company-coq-named-outline-kwds `("Equations" "Remark"
+(defconst company-coq-named-outline-kwds `("Equations" "Remark" "End"
                                 "Add" ;; Add (Parametric)? Morphism
                                 ,@company-coq-section-kwds ,@company-coq-definitions-kwds)
   "Headers used in outline mode and in `company-coq-occur'.")
