@@ -590,6 +590,7 @@ The result matches any symbol in HEADERS, followed by BODY."
                                      ("True" . ?⊤) ("False" . ?⊥)
                                      ("fun" . ?λ) ("forall" . ?∀) ("exists" . ?∃)
                                      ("nat" . ?ℕ) ("Prop" . ?ℙ) ("Real" . ?ℝ) ("bool" . ?𝔹)
+				     ("->." . (?→ (Br . Bl) ?.)) ("<-." . (?← (Br . Bl) ?.)) ("|-." . (?⊢ (Br . Bl) ?.))
 
                                      ;; Extra symbols
                                      (">->" . ?↣)
