@@ -537,7 +537,7 @@ The result matches any symbol in HEADERS, followed by BODY."
 (defconst company-coq-dabbrev-to-yas-regexp "#\\|@{\\([^}]+\\)}"
   "Regexp matching holes in abbrevs.")
 
-(defconst company-coq-yasnippet-choice-regexp "${\\([a-z]+\\( | [a-z]+\\)+\\)}"
+(defconst company-coq-yasnippet-choice-regexp "\\${\\([a-z]+\\( | [a-z]+\\)+\\)}"
   "Regexp matching alternatives in abbrevs.")
 
 (defconst company-coq-section-kwds '("Chapter" "Module" "Module Type" "Section")
@@ -1309,8 +1309,8 @@ not fast."
               'face '(company-coq-snippet-hole-face)))
 
 (defconst company-coq--placeholder-regexps
-  '("#" "$[0-9]" "@{\\(?1:[^}]+\\)}"
-    "${\\(?:[0-9]+:\\)?\\(?1:[^}]+\\)}")
+  '("#" "\\$[0-9]" "@{\\(?1:[^}]+\\)}"
+    "\\${\\(?:[0-9]+:\\)?\\(?1:[^}]+\\)}")
   "List of regular expressions matching holes in abbrevs.")
 
 (defconst company-coq--all-placeholders-regexp
