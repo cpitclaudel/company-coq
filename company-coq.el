@@ -5205,14 +5205,13 @@ Lets you jump to the definition of a symbol by pressing M-. on it.")
 Concatenate PRE, LINK, and POST to get the link's text, only
 applying the link to LINK.  ACTION and HELP-ECHO are passed to the button
 library."
-  (with-temp-buffer
-    (insert pre)
-    (insert-text-button link
-                        'follow-link t
-                        'action action
-                        'help-echo help-echo)
-    (insert post)
-    (buffer-string)))
+  (concat
+   pre
+   (make-text-button link nil
+                     'follow-link t
+                     'action action
+                     'help-echo help-echo)
+   post))
 
 (defun company-coq-features/error-diffs--make-link-string ()
   "Create link to diff of unification error."
