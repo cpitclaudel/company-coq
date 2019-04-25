@@ -11,63 +11,33 @@ See [screenshots](#screenshots) below, or jump right to [setup instructions](#se
 
 ### MELPA
 
-Both `proof-general` and `company-coq` are on [MELPA](https://melpa.org/#/getting-started), a repository of Emacs packages. Skip this step if you already use MELPA. Otherwise, add the following to your `.emacs`:
+Both `proof-general` and `company-coq` are on [MELPA](https://melpa.org/#/getting-started), a repository of Emacs packages. Skip this step if you already use MELPA. Otherwise, add the following to your `.emacs` and restart Emacs:
 
 ```elisp
 (require 'package)
-(let* ((no-ssl (and (memq system-type '(windows-nt ms-dos))
-                    (not (gnutls-available-p))))
-       (proto (if no-ssl "http" "https")))
-  (add-to-list 'package-archives
-               (cons "melpa" (concat proto "://melpa.org/packages/")) t))
+(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
 (package-initialize)
 ```
 
-Then follow one of the following two approaches:
+### Proof General and Company-Coq
 
-* install Proof General and Company-Coq automatically by using
-    [use-package (see below)](#use-package);
-* or restart Emacs and install Proof General and Company-Coq manually
-    by typing successively:
-    * <kbd>M-x package-refresh-contents RET</kbd>
-    * <kbd>M-x package-install RET proof-general RET</kbd>
-    * <kbd>M-x package-install RET company-coq RET</kbd>
+Install and byte-compile Proof General, Company-Coq, and its
+dependencies by typing successively:
+
+* <kbd>M-x package-refresh-contents RET</kbd>
+* <kbd>M-x package-install RET proof-general RET</kbd>
+* <kbd>M-x package-install RET company-coq RET</kbd>
     
-	(when byte-compiling all dependencies, some of them will produce a few warnings; that's OK).
+(some dependencies will produce a few warnings; that's OK).
 
-### use-package
-
-To automatically install and byte-compile Proof General and
-Company-Coq using
-[`use-package`](https://github.com/jwiegley/use-package/), add the
-following to your `.emacs` (after the line `(package-initialize)`) and
-restart Emacs:
+To enable company-coq automatically, add the following to your `.emacs`:
 
 ```elisp
-;; Bootstrap use-package
-(unless (package-installed-p 'use-package)
-  (package-refresh-contents)
-  (package-install 'use-package))
-(eval-when-compile
-  (require 'use-package))
-
-;; Configure proof-general and company-coq
-(use-package proof-general
-  :ensure t
-  :mode ("\\.v\\'" . coq-mode)
-  :custom-face
-  (proof-locked-face ((t (:background "#add8e6")))))
-  ; to obtain a better rendering on video-projectors
-
-(use-package company-coq
-  :ensure t
-  :hook
-  (coq-mode . company-coq-mode)
-  :init
-  (setq company-coq-disabled-features '(hello)))
+;; Load company-coq when opening Coq files
+(add-hook 'coq-mode-hook #'company-coq-mode)
 ```
 
-Upon restart, you can launch the tutorial with <kbd>M-x company-coq-tutorial</kbd>!
+Then restart and launch the tutorial with <kbd>M-x company-coq-tutorial</kbd>!
 
 ## Screenshots
 
