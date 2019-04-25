@@ -2538,7 +2538,9 @@ directly.  With CENTER, center relevant point in window instead
 of aligning at top."
   (interactive)
   (company-coq-dbg "company-coq-doc-buffer-refman: Called for %s" name-or-anchor)
-  (when (company-coq--libxml-available-p)
+  (if (not (company-coq--libxml-available-p))
+      (ignore (display-warning 'company-coq "LibXML isn't available; \
+please install libxml to browse documentation."))
     (let* ((anchor         (if (stringp name-or-anchor) (company-coq-get-prop 'anchor name-or-anchor) name-or-anchor))
            (shr-target-id  (and anchor (concat "qh" (int-to-string (cdr anchor)))))
            (doc-short-path (and anchor (concat (car anchor) ".html.gz")))
