@@ -9,36 +9,26 @@ See [screenshots](#screenshots) below, or jump right to [setup instructions](#se
 
 ## Setup
 
-### Proof General
-
-Download and install Proof General from [GitHub](https://github.com/ProofGeneral/PG):
-
-```bash
-git clone https://github.com/ProofGeneral/PG ~/.emacs.d/lisp/PG
-cd ~/.emacs.d/lisp/PG
-make
-```
-
-Then add the following to your `.emacs`:
-
-```elisp
-;; Open .v files with Proof General's Coq mode
-(load "~/.emacs.d/lisp/PG/generic/proof-site")
-```
-
 ### MELPA
 
-MELPA is a repository of Emacs packages. Skip this step if you already use [MELPA](http://melpa.org/#/getting-started). Otherwise, add the following to your `.emacs` and restart Emacs:
+Both `proof-general` and `company-coq` are on [MELPA](https://melpa.org/#/getting-started), a repository of Emacs packages. Skip this step if you already use MELPA. Otherwise, add the following to your `.emacs` and restart Emacs:
 
 ```elisp
 (require 'package)
-(add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/") t)
+(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
 (package-initialize)
 ```
 
-### Company-Coq
+### Proof General and Company-Coq
 
-This should be easier: `company-coq` is on [MELPA](http://melpa.org/#/getting-started). Just use <kbd>M-x package-refresh-contents RET</kbd> followed by <kbd>M-x package-install RET company-coq RET</kbd> to install and byte-compile `company-coq` and its dependencies (some of them will produce a few warnings; that's OK).
+Install and byte-compile Proof General, Company-Coq, and its
+dependencies by typing successively:
+
+* <kbd>M-x package-refresh-contents RET</kbd>
+* <kbd>M-x package-install RET proof-general RET</kbd>
+* <kbd>M-x package-install RET company-coq RET</kbd>
+    
+(some dependencies will produce a few warnings; that's OK).
 
 To enable company-coq automatically, add the following to your `.emacs`:
 
