@@ -207,8 +207,8 @@ forward-declare; instead, check that the declaration is valid."
   (company-coq-forward-declare-fun coq-response-mode "ext:coq.el")
   (company-coq-forward-declare-fun coq-insert-match "ext:coq.el")
   (company-coq-forward-declare-fun coq-last-prompt-info-safe "ext:coq.el")
-  (company-coq-forward-declare-fun coq-find-comment-start "ext:coq.el")
-  (company-coq-forward-declare-fun coq-find-comment-end "ext:coq.el")
+  (company-coq-forward-declare-fun coq-find-comment-start "ext:coq-indent.el")
+  (company-coq-forward-declare-fun coq-find-comment-end "ext:coq-indent.el")
   (company-coq-forward-declare-fun proof-inside-comment "ext:proof-syntax.el" cmd))
 
 (defun company-coq--get-comment-region ()
