@@ -3641,9 +3641,12 @@ With prefix ARG, insert output at point."
   (interactive "P")
   (let ((standard-output (if arg (current-buffer) t))
         (question (format "Eval compute in (%s)."
-                          (buffer-substring-no-properties
-                           (save-excursion (backward-sexp) (point))
-                           (point)))))
+                          (if (region-active-p)
+                              (buffer-substring-no-properties
+                               (region-beginning) (region-end))
+                            (buffer-substring-no-properties
+                             (save-excursion (backward-sexp) (point))
+                             (point))))))
     (message "%s" (company-coq-ask-prover question))))
 
 (defun company-coq-search-in-coq-buffer (regexp)
