@@ -4450,6 +4450,14 @@ Transparently displays subscripts."
      (company-coq-do-in-all-buffers (company-coq-features/smart-subscripts--disable))
      (company-coq--remove-auxiliary-buffers-hook #'company-coq-features/smart-subscripts--enable))))
 
+(company-coq-define-feature compile-command (arg)
+  "Adjust compile-command automatically when a `dune' file is present."
+  (pcase arg
+    (`on (when (and (file-exists-p "dune")
+                    (not (file-exists-p "Makefile")))
+           (setq-local compile-command "dune build ")))
+    (`off (kill-local-variable 'compile-command))))
+
 (company-coq-define-feature snippets (arg)
   "Snippets for various common Coq forms.
 Enables keybindings and completion for common Coq patterns, such
