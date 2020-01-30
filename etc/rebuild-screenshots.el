@@ -6,7 +6,6 @@
 
 (require 'company)
 (require 'dash)
-(require 'noflet)
 (require 'screenshots)
 
 (my/basic-setup)

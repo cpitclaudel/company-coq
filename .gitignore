@@ -2,6 +2,8 @@
 *.elc
 
 # Packaging
+company-coq-pkg.el
+company-coq-autoloads.el
 .cask
 dist/
 TODO.org

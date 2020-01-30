@@ -5,7 +5,6 @@
 ;;; Code:
 
 (require 'dash)
-(require 'noflet)
 
 (defvar my/fringe-width 8)
 
@@ -128,7 +127,7 @@
        (set-window-buffer nil --buf--)
        (coq-mode)
        (message nil)
-       (noflet ((set-window-dedicated-p (&rest args) nil))
+       (cl-letf (((symbol-function 'set-window-dedicated-p) #'ignore))
          ,@(mapcar (lambda (f) `(progn
                              (proof-shell-wait)
                              (unless (or (eq last-command 'my/keep-window) (minibuffer-window-active-p (selected-window)))
@@ -181,9 +180,9 @@
   (declare (indent defun))
   `(progn
      (my/with-coq-buffer-and-stable-windows ,frame-w-spec ,frame-h-columns ,buf-name ,capture-prefix
-       (setq my/screencast-frame-id 0)
-       ,@(-mapcat (lambda (form) `(,form (my/save-screencast-frame ,capture-prefix ,frame-w-spec ,gravity ,include-children)))
-                  (my/compile-screencast-dsl body)))
+                                            (setq my/screencast-frame-id 0)
+                                            ,@(-mapcat (lambda (form) `(,form (my/save-screencast-frame ,capture-prefix ,frame-w-spec ,gravity ,include-children)))
+                                                       (my/compile-screencast-dsl body)))
      (let ((last-frame (1- my/screencast-frame-id)))
        ;; repeat last frame to lengthen final image
        (my/save-screencast ,capture-prefix ,frame-duration (append (number-sequence 0 last-frame)
@@ -192,7 +191,7 @@
 
 (defun my/start-pg-no-windows ()
   (save-window-excursion
-    (noflet ((proof-layout-windows () nil))
+    (cl-letf (((symbol-function 'proof-layout-windows) #'ignore))
       (proof-activate-scripting)))
   (message nil))
 

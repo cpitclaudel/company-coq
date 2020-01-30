@@ -207,16 +207,7 @@ forward-declare; instead, check that the declaration is valid."
   (company-coq-forward-declare-fun coq-response-mode "ext:coq.el")
   (company-coq-forward-declare-fun coq-insert-match "ext:coq.el")
   (company-coq-forward-declare-fun coq-last-prompt-info-safe "ext:coq.el")
-  (company-coq-forward-declare-fun coq-find-comment-start "ext:coq-indent.el")
-  (company-coq-forward-declare-fun coq-find-comment-end "ext:coq-indent.el")
   (company-coq-forward-declare-fun proof-inside-comment "ext:proof-syntax.el" cmd))
-
-(defun company-coq--get-comment-region ()
-  "Local copy of `coq-get-comment-region'.
-It isn't available in old versions of PG."
-  (save-excursion
-    (cons (save-excursion (coq-find-comment-start))
-          (save-excursion (coq-find-comment-end)))))
 
 ;; This doesn't run at compile time
 (unless (require 'proof-site nil t)
@@ -628,12 +619,14 @@ not in comment text.  This function should not change the point."
                  (const :tag "Complete only in code" company-coq-not-in-comment-p)
                  (const :tag "Offer completions everywhere" nil)))
 
-;; This function was formerly part of PG, but was removed in recent versions so
-;; we keep a local copy (https://github.com/cpitclaudel/company-coq/issues/213)
+(defun company-coq--in-comment-p (&optional point)
+  "Check if POINT is in a comment."
+  (nth 4 (syntax-ppss (or point (point)))))
+
 (defun company-coq--looking-at-comment ()
   "Return non-nil if point is inside a comment."
-  (or (proof-inside-comment (point))
-      (proof-inside-comment (+ 1 (point)))))
+  (or (company-coq--in-comment-p (point))
+      (company-coq--in-comment-p (1+ (point)))))
 
 (defun company-coq-not-in-comment-p ()
   "Return nil if point is inside a comment.
@@ -2081,9 +2074,9 @@ KILL: See `quit-window'."
 (defun company-coq-scroll-above-definition-at-pt ()
   "Highlight the current line and scroll up to for context."
   (forward-line -2)
-  (or (and (company-coq--looking-at-comment)
-           (car (company-coq--get-comment-region)))
-      (point)))
+  (if (company-coq--in-comment-p)
+      (nth 8 (syntax-ppss))
+    (point)))
 
 (defun company-coq-search-then-scroll-up-1 (target fallback) ;; FIXME remove fallback?
   "Compute target point and window pos from TARGET and FALLBACK."
