@@ -980,7 +980,7 @@ Optionally adds an ELLIPSIS at the end."
     (let* ((from  (point))
            (to    (progn (insert "\n") (point)))
            (color (or (face-attribute 'highlight :background) "black")))
-      (add-text-properties from to `(face (:height 1 :background ,color))))))
+      (add-text-properties from to `(face (:height 1 :background ,color :extend t))))))
 
 (defun company-coq-get-header (str)
   "Extract contents of STR, until the first blank line."
