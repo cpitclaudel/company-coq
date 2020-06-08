@@ -4255,10 +4255,12 @@ REF-BUFFER is used to retrieve the buffer-local values of
 
 (defun company-coq-features/prettify-symbols--same-ish-syntax (other ref)
   "Check if the syntax class of OTHER is similar to that of REF."
-  (memq (char-syntax (or other ?\s))
-        (if (memq (char-syntax ref) '(?w ?_))
-            '(?w ?_)
-          '(?. ?\\))))
+  (and
+   (not (memq other '(?. ?, ?\;)))
+   (memq (char-syntax (or other ?\s))
+         (if (memq (char-syntax ref) '(?w ?_))
+             '(?w ?_)
+           '(?. ?\\)))))
 
 (defun company-coq-features/prettify-symbols--predicate-1 (pos)
   "Check if POS should be prettified."
