@@ -3849,18 +3849,17 @@ subsequent invocations)."
 
 (defun company-coq-syntactic-face-function (state)
   "Determine which face to use based on parsing state STATE."
-  (pcase-let ((`(_ _ _ ,in-string ,comment-depth _ _ _ ,comment-opener-pos . ,_) state))
-    (cond
-     (in-string font-lock-string-face)
-     ((or comment-depth (numberp comment-depth))
-      (let* ((comment-opener (company-coq-get-comment-opener comment-opener-pos))
-             (matches        (lambda (pattern) (string-match-p (concat "\\`" (regexp-quote pattern)) comment-opener))))
-        (cond
-         ((funcall matches "(*!")   'company-coq-comment-h3-face)
-         ((funcall matches "(*+")   'company-coq-comment-h2-face)
-         ((funcall matches "(*** ") 'company-coq-comment-h1-face)
-         ((funcall matches "(**")   font-lock-doc-face)
-         (t        font-lock-comment-face)))))))
+  (let ((comment-opener-pos (nth 8 state)))
+    (cl-flet ((looking-at-quoted
+               (pattern)
+               (looking-at-p (regexp-quote pattern))))
+      (when comment-opener-pos
+        (save-excursion
+          (goto-char comment-opener-pos)
+          (cond
+           ((looking-at-quoted "(*!")   'company-coq-comment-h3-face)
+           ((looking-at-quoted "(*+")   'company-coq-comment-h2-face)
+           ((looking-at-quoted "(*** ") 'company-coq-comment-h1-face)))))))
 
 (defun company-coq-fill-nobreak-predicate ()
   "Check if paragraph surrounding point may be filled."
@@ -4625,8 +4624,12 @@ Handles comments beginning with (***, (*+, and (*! as title
 markers of decreasing importance."
   (company-coq-do-in-coq-buffers
     (pcase arg
-      (`on (setq-local font-lock-syntactic-face-function #'company-coq-syntactic-face-function))
-      (`off (kill-local-variable 'font-lock-syntactic-face-function)))
+      (`on
+       (add-function :before-until (local 'font-lock-syntactic-face-function)
+                     #'company-coq-syntactic-face-function))
+      (`off
+       (remove-function (local 'font-lock-syntactic-face-function)
+                        #'company-coq-syntactic-face-function)))
     (company-coq-request-refontification)))
 
 (defconst company-coq-features/coqdoc--spec
