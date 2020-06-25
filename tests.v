@@ -20,12 +20,12 @@ Qed.
 Unset Undo. (* Putting cursor or point on error should show help-echo *)
 
 (* With 8.5, does this jump to the right definition? *)
-Fail plus.
+Fail Compute 1 + plus.
 
 (* This should not be underlined *)
-Fail abc_Unset Undo.
+Fail Compute abc_Unset Undo.
 
-Fail discrR. (* Does C-h here crash with OOM? *)
+Fail Compute discrR. (* Does C-h here crash with OOM? *)
 
 Inductive AAABBB :=
 | AAA1
@@ -66,7 +66,7 @@ Proof.
     + idtac.                    (* and this? *)
       apply I.
       (* Do folded sections automatically unfold when stepping in? *)
-      Show Script.
+      (* Show Script. *)
 Qed.
 
 (* What do the input hints say for ∈, ⊕, α, and ∅? *)
