@@ -4189,16 +4189,21 @@ LOCAL is as in `add-hook'."
   (remove-hook 'coq-response-mode-hook hook local)
   (remove-hook 'coq-goals-mode-hook hook local))
 
+(defvar company-coq--hello-shown nil
+  "Whether we've already said hello in this session.")
+
 (defun company-coq--hello ()
   "Show a company-coq–related greeting."
-  (message "%s" (substitute-command-keys "Welcome to company-coq! Use \\[company-coq-tutorial] to get started.")))
+  (message "%s" (substitute-command-keys "Welcome to company-coq! Use \\[company-coq-tutorial] to get started."))
+  (setq-default company-coq--hello-shown t))
 
 (company-coq-define-feature hello (arg)
   "Startup message.
 Shows a greeting when company-coq starts."
   (pcase arg
     (`on
-     (when (and company-coq-mode (buffer-name) (not (string-match-p "\\` ?\\*" (buffer-name))))
+     (when (and company-coq-mode (not company-coq--hello-shown)
+                (buffer-name) (not (string-match-p "\\` ?\\*" (buffer-name))))
        (run-with-timer 0 nil #'company-coq--hello)))))
 
 (defun company-coq-features/keybindings--enable ()
