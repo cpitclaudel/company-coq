@@ -2174,9 +2174,10 @@ to a non-existent file (for an example of such a case, try
 \[Locate Library Peano] in 8.4pl3)."
   (if (and (equal lib-path "")
            (or (equal mod-name "Top")
-               (and (buffer-file-name proof-script-buffer)
-                    (equal (concat mod-name ".v")
-                           (file-name-nondirectory (buffer-file-name proof-script-buffer))))))
+               (and proof-script-buffer
+                    (and (buffer-file-name proof-script-buffer)
+                         (equal (concat mod-name ".v")
+                                (file-name-nondirectory (buffer-file-name proof-script-buffer)))))))
       proof-script-buffer
     (let* ((lib-name (concat lib-path mod-name))
            (output   (company-coq-ask-prover-swallow-errors (format company-coq-locate-lib-cmd lib-name))))
