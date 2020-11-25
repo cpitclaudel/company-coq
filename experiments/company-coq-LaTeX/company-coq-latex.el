@@ -21,7 +21,7 @@ Search is case-insensitive."
 Uses ALT as help-echo."
   (overlay-put ov 'company-coq-latex t)
   (overlay-put ov 'help-echo alt)
-  (overlay-put ov 'display `(image :type imagemagick
+  (overlay-put ov 'display `(image :type png
                                    :file ,(expand-file-name fname default-directory)
                                    :ascent center)))
 
