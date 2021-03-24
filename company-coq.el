@@ -3961,7 +3961,7 @@ changes."
           (company-coq-toggle-features newly-enabled t)))))
   (set-default symbol value))
 
-(defcustom company-coq-disabled-features nil
+(defcustom company-coq-disabled-features '(spinner)
   "List of disabled company-coq features.
 
 The list of all available features is in
@@ -5644,6 +5644,8 @@ Use `company-coq-live-on-the-edge' to enable this feature."
     (`off (company-coq-remove-backend #'company-coq-dynamic-symbols-backend))))
 
 (eval-and-compile
+  (put (company-coq-feature-toggle-function 'spinner)
+       'company-coq-feature-experimental t)
   (put (company-coq-feature-toggle-function 'dynamic-symbols-backend)
        'company-coq-feature-experimental t)
   (put (company-coq-feature-toggle-function 'dynamic-symbols-backend)
