@@ -3359,7 +3359,7 @@ keybinding that called this not been intercepted."
 
 (defun company-coq-proof-goto-point (&rest args)
   "Pass ARGS to `proof-goto-point', hiding company dialog."
-  (interactive "P")
+  (interactive)
   (when (bound-and-true-p company-mode)
     (company-abort))
   (apply #'proof-goto-point args))
