@@ -3864,7 +3864,8 @@ subsequent invocations)."
           (cond
            ((looking-at-quoted "(*!")   'company-coq-comment-h3-face)
            ((looking-at-quoted "(*+")   'company-coq-comment-h2-face)
-           ((looking-at-quoted "(*** ") 'company-coq-comment-h1-face)))))))
+           ((looking-at-quoted "(*** ") 'company-coq-comment-h1-face)
+           ((looking-at-quoted "(** ")  'font-lock-doc-face)))))))
 
 (defun company-coq-fill-nobreak-predicate ()
   "Check if paragraph surrounding point may be filled."
