@@ -3268,7 +3268,6 @@ COMMAND, ARG and IGNORED: see `company-backends'."
 
 (defconst company-coq--core-map
   (let ((cc-map (make-sparse-keymap)))
-    (define-key cc-map [remap proof-goto-point] #'company-coq-proof-goto-point)
     cc-map)
   "Keymap for core company-coq keybindings.
 Do not edit this keymap: instead, edit `company-coq-map'.")
@@ -3357,12 +3356,10 @@ keybinding that called this not been intercepted."
 ;; Needed for delete-selection-mode to work properly
 (put 'company-coq-maybe-exit-snippet 'delete-selection t)
 
-(defun company-coq-proof-goto-point (&rest args)
-  "Pass ARGS to `proof-goto-point', hiding company dialog."
-  (interactive)
+(defun company-coq--proof-goto-point-advice (&rest _)
+  "Hide company dialog."
   (when (bound-and-true-p company-mode)
-    (company-abort))
-  (apply #'proof-goto-point args))
+    (company-abort)))
 
 (defmacro company-coq-repeat-until-fixpoint-or-scan-error (body retform)
   "Repeat BODY until a fixpoint or a scan error is reached, then eval RETFORM.
@@ -5497,11 +5494,13 @@ Configures `company-mode' for use with Coq."
       (`on
        (company-mode)
        (make-local-variable 'company-backends)
+       (advice-add 'proof-goto-point :before #'company-coq--proof-goto-point-advice)
        (dolist (backend '(company-coq-master-backend company-coq-choices-backend))
          (setq company-backends (remove backend company-backends))
          (push backend company-backends)))
       (`off
        (company-mode -1)
+       (advice-remove 'proof-goto-point #'company-coq--proof-goto-point-advice)
        (kill-local-variable 'company-backends)))))
 
 (defun company-coq-features/company-defaults--indent-or-complete-common ()
