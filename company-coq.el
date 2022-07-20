@@ -2187,6 +2187,7 @@ to a non-existent file (for an example of such a case, try
                                          (concat (match-string-no-properties 2 output) ".v"))))
                          (and fallback-spec (expand-file-name (concat mod-name ".v") (cdr fallback-spec)))))
            (stripped (replace-regexp-in-string "_build/default" "" path nil 'literal)))
+           (message "orig %s striped %s" path stripped)
            (if (file-exists-p stripped)
                stripped
              path
@@ -2264,6 +2265,8 @@ Returns a cons as specified by `company-coq--locate-name'."
   ;; FIXME this doesn't find modules other than file-level ones.
   ;; Try using Locate Module.
   (let ((candidates (company-coq-candidates-modules module)))
+    (message "candidates %s" candidates)
+    (message "candidatesm %s" (mapcar (lambda (x) (company-coq-get-prop 'location x)) candidates))
     (cl-loop for candidate in candidates
              when (string= module candidate)
              thereis (cons (company-coq-get-prop 'location candidate) nil))))
