@@ -2269,7 +2269,7 @@ Returns a cons as specified by `company-coq--locate-name'."
     (message "candidatesm %s" (mapcar (lambda (x) (company-coq-get-prop 'location x)) candidates))
     (cl-loop for candidate in candidates
              when (string= module candidate)
-             thereis (cons (company-coq-get-prop 'location candidate) nil))))
+             thereis (cons (replace-regexp-in-string "_build/default" "" (company-coq-get-prop 'location candidate) nil 'literal) nil))))
 
 (defun company-coq--maybe-complain-docs-not-found (interactive-p doc-type name)
   "If INTERACTIVE-P, complain that do DOC-TYPE was found for NAME."
