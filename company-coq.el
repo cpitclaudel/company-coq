@@ -70,6 +70,7 @@
 ;; an answer from the prover (company-coq-talking-to-prover).
 
 (require 'cl-lib)       ;; Compatibility
+(require 'f)            ;; File io convenience to open .glob files
 (require 'company)      ;; Autocompletion
 (require 'company-math) ;; Math symbols
 (require 'dash)         ;; -when-let, -if-let, -zip, -keep, etc.
@@ -412,6 +413,15 @@ The result matches any symbol in HEADERS, followed by BODY."
   (concat "^[[:blank:]]*\\_<\\(" (regexp-opt headers) "\\)\\_>"
           (when body (concat "\\s-*\\(" body "\\)"))))
 
+(defconst company-coq-definitions-kwds-globfile `("def" "ind" "constr");; add regexp-opt here
+  "Keywords that introduce a definition in a .glob file.")
+
+(defun company-coq-make-headers-regexp-glob (body)
+  "Construct a regexp from HEADERS and BODY.
+The result matches any symbol in HEADERS, followed by BODY."
+  (concat "^[[:blank:]]*\\_<\\(" (regexp-opt company-coq-definitions-kwds-globfile) "\\)\\_> \\([0-9]*\\):\\([0-9]*\\)"
+          (when body (concat "\\s-*\\(" body "\\)"))))
+
 (defconst company-coq-definitions-kwds `("Class" "CoFixpoint" "CoInductive" "Coercion" "Corollary"
                               "Declare Module" "Definition" "Example" "Fact" "Fixpoint"
                               "Function" "Functional Scheme" "Global Instance" "Inductive"
@@ -419,6 +429,7 @@ The result matches any symbol in HEADERS, followed by BODY."
                               "Program Instance" "Program Fixpoint" "Record" "Scheme" "Theorem"
                               "Variant" "with")
   "Keywords that introduce a definition.")
+
 
 (defconst company-coq-definitions-regexp (company-coq-make-headers-regexp company-coq-definitions-kwds
                                                     company-coq-id-regexp)
@@ -2104,6 +2115,7 @@ for FALLBACK (followed by \\s-*:[^=]) instead.  If the target can
 be found, call CALLBACK with the point where TARGET or FALLBACK
 was found, and the value to be returned."
   (let ((point-pos (company-coq-search-then-scroll-up-1 target fallback)))
+    (message "point-pos is %s" point-pos)
     (if point-pos
         (when (functionp callback)
           (apply callback point-pos))
@@ -2166,27 +2178,6 @@ Returns the corresponding (logical name . real name) pair."
                      (setq longest (cons logical real)))
            finally return longest))
 
-(defun company-coq-library-path (lib-path mod-name fallback-spec)
-  "Find a .v file likely to hold the definition of (LIB-PATH MOD-NAME).
-May also return a buffer visiting that file.  FALLBACK-SPEC is a
-module path specification to be used if [Locate Library] points
-to a non-existent file (for an example of such a case, try
-\[Locate Library Peano] in 8.4pl3)."
-  (if (and (equal lib-path "")
-           proof-script-buffer
-           (or (equal mod-name "Top")
-               (and (buffer-file-name proof-script-buffer)
-                    (equal (concat mod-name ".v")
-                           (file-name-nondirectory (buffer-file-name proof-script-buffer))))))
-      proof-script-buffer
-    (let* ((lib-name (concat lib-path mod-name))
-           (output   (company-coq-ask-prover-swallow-errors (format company-coq-locate-lib-cmd lib-name))))
-      (or (and output (save-match-data
-                        (when (and (string-match company-coq-locate-lib-output-format output)
-                                   (string-match-p company-coq-compiled-regexp (match-string-no-properties 3 output)))
-                          (concat (match-string-no-properties 2 output) ".v"))))
-          (and fallback-spec (expand-file-name (concat mod-name ".v") (cdr fallback-spec)))))))
-
 (defun company-coq--locate-name (name functions)
   "Find location of NAME using FUNCTIONS.
 FUNCTIONS are called successively with NAME until one of them
@@ -2201,11 +2192,19 @@ in that file."
   (concat "\\`" (regexp-opt headers) "\\_>[\n[:space:]]+" "\\(" company-coq-symbol-regexp "\\)"))
 
 (defun company-coq--loc-fully-qualified-name (fqn)
-  "Find source file for fully qualified name FQN."
-  (let* ((spec (company-coq-longest-matching-path-spec fqn))
-         (logical (if spec (concat (car spec) ".") ""))
-         (mod-name (replace-regexp-in-string "\\..*\\'" "" fqn nil nil nil (length logical))))
-    (company-coq-library-path logical mod-name spec)))
+  (cl-labels
+      ((recs (fqn)
+	     (message "fqn-loc %s" fqn)
+	     (let* ((output (company-coq-ask-prover-swallow-errors (format company-coq-locate-lib-cmd fqn))))
+	       (or (and output
+			(save-match-data
+			  (when (and (string-match company-coq-locate-lib-output-format output)
+				     (string-match-p company-coq-compiled-regexp (match-string-no-properties 3 output)))
+			    (cons (match-string-no-properties 2 output) fqn))))
+		   (let* ((prefixfqn (file-name-sans-extension fqn)))
+		     (if (< (length prefixfqn) (length fqn)) (recs prefixfqn)))))))
+    (recs fqn)));; do if file exists as it was done before
+;; (replace-regexp-in-string "_build/default" "" (recs fqn) nil 'literal)
 
 (defun company-coq--fqn-with-regexp-1 (name cmd-format response-format)
   "Find qualified name of NAME using CMD-FORMAT and RESPONSE-FORMAT."
@@ -2218,14 +2217,39 @@ in that file."
   "Find qualified name of NAME using CMD-FORMAT and RESPONSE-HEADERS."
   (company-coq--fqn-with-regexp-1 name cmd-format (company-coq--loc-output-regexp response-headers)))
 
+(defun company-coq--loc-from-globfile (globfile glob_relative_fqn)
+  "Find qualified char offset of GLOB_RELATIVE_FQN in GLOBFILE. GLOB_RELATIVE_FQN the fully qualified name (fqn) relative to the fqn of the file, except that it is in the globfile format: the last . is replaced by a space"
+  (message "looking for %s in globfile %s" glob_relative_fqn globfile)
+  (-when-let* ((globfile-content (f-read-text globfile))
+	       (startindex  (save-match-data
+			      (and (string-match (company-coq-make-headers-regexp-glob glob_relative_fqn) globfile-content)
+				   (match-string-no-properties 2 globfile-content)))))
+    (string-to-number startindex)))
+
+(defun glob_relative_fqn (vfile_fqn short-name fqn)
+  "compute the name of this definition as expected to be in the .glob file in the line corresponding to the declartion side. fqn is the fully qualified name (fqn) of this definition. vfile_fqn is the fqn of the .v file corresponding to the .glob file. shortname is the leaf of fqn"
+  (if (string= (concat vfile_fqn "." short-name) fqn)
+      (concat "<> " short-name)
+      (let ((relative_fqn_except_leaf (substring fqn (1+(length vfile_fqn)) (-(1+(length short-name))))));; the middle part of fqn excluding the fully qualified name for the file and excluding the leaf
+	(concat relative_fqn_except_leaf " " short-name))))
+
 (defun company-coq--loc-with-regexp (name cmd-format response-headers)
   "Find location of NAME using CMD-FORMAT and RESPONSE-HEADERS.
 Returns a cons as specified by `company-coq--locate-name'."
   (-when-let* ((fqn (company-coq--fqn-with-regexp name cmd-format response-headers))
-               (loc (company-coq--loc-fully-qualified-name fqn))
-               (short-name (replace-regexp-in-string "\\`.*\\." "" fqn)))
-    (cons loc (concat (company-coq-make-headers-regexp response-headers)
-                      "\\s-*\\(" (regexp-quote short-name) "\\)\\_>"))))
+	 (short-name (replace-regexp-in-string "\\`.*\\." "" fqn)))
+  (or (-when-let* ((loc (company-coq--loc-fully-qualified-name fqn));; will fail iff the definition is in current file
+	       (vfile (concat (replace-regexp-in-string "_build/default" "" (car loc) nil 'literal) ".v"))
+	       (globfile (concat (car loc) ".glob"))
+	       (vfile_fqn (cdr loc))
+	       (glob_name (glob_relative_fqn vfile_fqn short-name fqn)))
+    (cons vfile (or (company-coq--loc-from-globfile globfile glob_name)
+		    (concat (company-coq-make-headers-regexp response-headers)
+			    "\\s-*\\(" (regexp-quote short-name) "\\)\\_>"))
+	  ))
+      (cons proof-script-buffer (concat (company-coq-make-headers-regexp response-headers);; only reached if the definition is in current file. see comment in prev. or case
+			    "\\s-*\\(" (regexp-quote short-name) "\\)\\_>"))
+  )))
 
 (defun company-coq--loc-symbol (symbol)
   "Find the location of SYMBOL."
@@ -2261,7 +2285,7 @@ Returns a cons as specified by `company-coq--locate-name'."
   (let ((candidates (company-coq-candidates-modules module)))
     (cl-loop for candidate in candidates
              when (string= module candidate)
-             thereis (cons (company-coq-get-prop 'location candidate) nil))))
+             thereis (cons (replace-regexp-in-string "_build/default" "" (company-coq-get-prop 'location candidate) nil 'literal) nil))))
 
 (defun company-coq--maybe-complain-docs-not-found (interactive-p doc-type name)
   "If INTERACTIVE-P, complain that do DOC-TYPE was found for NAME."
@@ -2331,6 +2355,7 @@ FQN-FUNCTIONS: see `company-coq-locate-internal'."
 
 (defun company-coq-jump-to-definition-1 (target location fallback)
   "Jump to TARGET in LOCATION.  If not found, jump to FALLBACK."
+  (message "jump target is %s" target)
   (cond
    ((bufferp location)
     (company-coq--save-location)
@@ -2341,6 +2366,7 @@ FQN-FUNCTIONS: see `company-coq-locate-internal'."
    (t (user-error "Not found: %S" location)))
   (company-coq-search-then-scroll-up target fallback #'company-coq--pulse-and-recenter))
 
+;; top level entry point for jump-to-definition.
 (defun company-coq-jump-to-definition (name &optional fqn-functions)
   "Jump to the definition of NAME, using FQN-FUNCTIONS to find it.
 Interactively, use the identifier at point."
