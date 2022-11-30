@@ -2239,7 +2239,7 @@ Returns a cons as specified by `company-coq--locate-name'."
   "Find the location of CONSTRUCTOR."
   ;; First check if CONSTRUCTOR is indeed a constructor
   (when (company-coq--fqn-with-regexp constructor "Locate %s." '("Constructor"))
-    ;; Then obtain it's parent type using Print
+    ;; Then obtain its parent type using Print
     (-when-let* ((parent (company-coq--fqn-with-regexp
                           constructor "Print %s." '("Inductive" "CoInductive" "Variant"))))
       (company-coq--loc-with-regexp parent "Locate %s." '("Inductive")))))
