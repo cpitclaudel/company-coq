@@ -2180,12 +2180,17 @@ to a non-existent file (for an example of such a case, try
                            (file-name-nondirectory (buffer-file-name proof-script-buffer))))))
       proof-script-buffer
     (let* ((lib-name (concat lib-path mod-name))
-           (output   (company-coq-ask-prover-swallow-errors (format company-coq-locate-lib-cmd lib-name))))
-      (or (and output (save-match-data
-                        (when (and (string-match company-coq-locate-lib-output-format output)
-                                   (string-match-p company-coq-compiled-regexp (match-string-no-properties 3 output)))
-                          (concat (match-string-no-properties 2 output) ".v"))))
-          (and fallback-spec (expand-file-name (concat mod-name ".v") (cdr fallback-spec)))))))
+           (output   (company-coq-ask-prover-swallow-errors (format company-coq-locate-lib-cmd lib-name)))
+           (path     (or (and output (save-match-data
+                                       (when (and (string-match company-coq-locate-lib-output-format output)
+                                                  (string-match-p company-coq-compiled-regexp (match-string-no-properties 3 output)))
+                                         (concat (match-string-no-properties 2 output) ".v"))))
+                         (and fallback-spec (expand-file-name (concat mod-name ".v") (cdr fallback-spec)))))
+           (stripped (replace-regexp-in-string "_build/default" "" path nil 'literal)))
+           (if (file-exists-p stripped)
+               stripped
+             path
+   ))))
 
 (defun company-coq--locate-name (name functions)
   "Find location of NAME using FUNCTIONS.
@@ -2261,7 +2266,7 @@ Returns a cons as specified by `company-coq--locate-name'."
   (let ((candidates (company-coq-candidates-modules module)))
     (cl-loop for candidate in candidates
              when (string= module candidate)
-             thereis (cons (company-coq-get-prop 'location candidate) nil))))
+             thereis (cons (replace-regexp-in-string "_build/default" "" (company-coq-get-prop 'location candidate) nil 'literal) nil))))
 
 (defun company-coq--maybe-complain-docs-not-found (interactive-p doc-type name)
   "If INTERACTIVE-P, complain that do DOC-TYPE was found for NAME."
