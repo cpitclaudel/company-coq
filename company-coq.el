@@ -413,14 +413,14 @@ The result matches any symbol in HEADERS, followed by BODY."
   (concat "^[[:blank:]]*\\_<\\(" (regexp-opt headers) "\\)\\_>"
           (when body (concat "\\s-*\\(" body "\\)"))))
 
-(defconst company-coq-definitions-kwds-globfile `("def" "ind" "constr");; add regexp-opt here
+(defconst company-coq-definitions-kwds-globfile `("def" "ind" "constr" "prf");; add regexp-opt here
   "Keywords that introduce a definition in a .glob file.")
 
 (defun company-coq-make-headers-regexp-glob (body)
   "Construct a regexp from HEADERS and BODY.
 The result matches any symbol in HEADERS, followed by BODY."
   (concat "^[[:blank:]]*\\_<\\(" (regexp-opt company-coq-definitions-kwds-globfile) "\\)\\_> \\([0-9]*\\):\\([0-9]*\\)"
-          (when body (concat "\\s-*\\(" body "\\)"))))
+          (when body (concat "\\s-*\\(" body "[^a-zA-Zα-ωΑ-Ω0-9_']" "\\)"))))
 
 (defconst company-coq-definitions-kwds `("Class" "CoFixpoint" "CoInductive" "Coercion" "Corollary"
                               "Declare Module" "Definition" "Example" "Fact" "Fixpoint"
@@ -2233,23 +2233,30 @@ in that file."
       (let ((relative_fqn_except_leaf (substring fqn (1+(length vfile_fqn)) (-(1+(length short-name))))));; the middle part of fqn excluding the fully qualified name for the file and excluding the leaf
 	(concat relative_fqn_except_leaf " " short-name))))
 
-(defun company-coq--loc-with-regexp (name cmd-format response-headers)
+(defun company-coq--loc-fqn-with-regexp (fqn regexp)
   "Find location of NAME using CMD-FORMAT and RESPONSE-HEADERS.
 Returns a cons as specified by `company-coq--locate-name'."
-  (-when-let* ((fqn (company-coq--fqn-with-regexp name cmd-format response-headers))
-	 (short-name (replace-regexp-in-string "\\`.*\\." "" fqn)))
   (or (-when-let* ((loc (company-coq--loc-fully-qualified-name fqn));; will fail iff the definition is in current file
 	       (vfile (concat (replace-regexp-in-string "_build/default" "" (car loc) nil 'literal) ".v"))
 	       (globfile (concat (car loc) ".glob"))
 	       (vfile_fqn (cdr loc))
+	       (short-name (replace-regexp-in-string "\\`.*\\." "" fqn))
 	       (glob_name (glob_relative_fqn vfile_fqn short-name fqn)))
     (cons vfile (or (company-coq--loc-from-globfile globfile glob_name)
-		    (concat (company-coq-make-headers-regexp response-headers)
-			    "\\s-*\\(" (regexp-quote short-name) "\\)\\_>"))
+		    regexp)
 	  ))
-      (cons proof-script-buffer (concat (company-coq-make-headers-regexp response-headers);; only reached if the definition is in current file. see comment in prev. or case
-			    "\\s-*\\(" (regexp-quote short-name) "\\)\\_>"))
-  )))
+      (cons proof-script-buffer regexp)
+  ))
+
+(defun company-coq--loc-with-regexp (name cmd-format response-headers)
+  "Find location of NAME using CMD-FORMAT and RESPONSE-HEADERS.
+Returns a cons as specified by `company-coq--locate-name'."
+  (-when-let* ((fqn (company-coq--fqn-with-regexp name cmd-format response-headers))
+	       (short-name (replace-regexp-in-string "\\`.*\\." "" fqn)))
+    (company-coq--loc-fqn-with-regexp
+     fqn
+     (concat (company-coq-make-headers-regexp response-headers)
+	     "\\s-*\\(" (regexp-quote short-name) "\\)\\_>"))))
 
 (defun company-coq--loc-symbol (symbol)
   "Find the location of SYMBOL."
@@ -2262,11 +2269,14 @@ Returns a cons as specified by `company-coq--locate-name'."
 (defun company-coq--loc-constructor (constructor)
   "Find the location of CONSTRUCTOR."
   ;; First check if CONSTRUCTOR is indeed a constructor
-  (when (company-coq--fqn-with-regexp constructor "Locate %s." '("Constructor"))
-    ;; Then obtain its parent type using Print
-    (-when-let* ((parent (company-coq--fqn-with-regexp
-                          constructor "Print %s." '("Inductive" "CoInductive" "Variant"))))
-      (company-coq--loc-with-regexp parent "Locate %s." '("Inductive")))))
+  (-when-let* ((fqn (company-coq--fqn-with-regexp constructor "Locate %s." '("Constructor")))
+	       (itype (company-coq--fqn-with-regexp
+                       constructor "Print %s." '("Inductive" "CoInductive" "Variant"))))
+    (company-coq--loc-fqn-with-regexp
+     fqn
+     (concat (company-coq-make-headers-regexp '("Inductive" "CoInductive" "Variant"))
+	     "\\s-*\\(" (regexp-quote itype) "\\)\\_>"));; it is hard to find the declaration of a constructor because there is no leading marker unlike declaration of Inductives. so we locate the inductive. of course, if the .glob file is available, this is ignored anyway
+    ))
 
 (defun company-coq--loc-field (field)
   "Find the location of FIELD (from a record)."
