@@ -893,7 +893,8 @@ goals and response windows."
                   (proof-shell-invisible-command question 'wait nil
                                                  'no-response-display
                                                  'no-error-display
-                                                 'no-goals-display))
+                                                 'no-goals-display
+                                                 'dont-show-when-silent))
                 (company-coq-trim (company-coq--last-output-without-eager-annotation-markers)))
             (setq company-coq-talking-to-prover nil)))
       (company-coq-dbg "Prover not available; [%s] discarded" question)
