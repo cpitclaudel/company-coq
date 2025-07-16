@@ -377,12 +377,12 @@ impossible, for example in `proof-shell-insert-hook'")
 (defvar company-coq-definition-overlay nil
   "Overlay used to show inline definitions.")
 
-(defconst company-coq-id-regexp "\\(?:[a-zA-Zα-ωΑ-Ω0-9_][a-zA-Zα-ωΑ-Ω0-9_']*\\)")
-(defconst company-coq-prefix-regexp "\\(?:[a-zA-Zα-ωΑ-Ω0-9_][a-zA-Zα-ωΑ-Ω0-9_.']*!?\\)?") ;; '!' included for [intros!] etc.
-(defconst company-coq-symbol-regexp "\\(?:[_a-zA-Zα-ωΑ-Ω]\\(?:[a-zA-Zα-ωΑ-Ω0-9_.']*[a-zA-Zα-ωΑ-Ω0-9_']\\)?\\)")
-(defconst company-coq-symbol-regexp-no-dots "\\(?:_*[a-zA-Zα-ωΑ-Ω]\\(?:[a-zA-Zα-ωΑ-Ω0-9_']*[a-zA-Zα-ωΑ-Ω0-9_']\\)?\\)")
-(defconst company-coq-symbol-regexp-no-dots-no-numbers "\\(?:_*[a-zA-Zα-ωΑ-Ω]\\(?:[a-zA-Zα-ωΑ-Ω0-9_']*[a-zA-Zα-ωΑ-Ω']\\)?\\)")
-(defconst company-coq-module-chunk-regexp "\\(?:[A-Z][a-zA-Zα-ωΑ-Ω0-9_]*\\)")
+(defconst company-coq-id-regexp "\\(?:[[:alnum:]_][[:alnum:]_']*\\)")
+(defconst company-coq-prefix-regexp "\\(?:[[:alnum:]_][[:alnum:]_.']*!?\\)?") ;; '!' included for [intros!] etc.
+(defconst company-coq-symbol-regexp "\\(?:[_[:alpha:]]\\(?:[[:alnum:]_.']*[[:alnum:]_']\\)?\\)")
+(defconst company-coq-symbol-regexp-no-dots "\\(?:_*[[:alpha:]]\\(?:[[:alnum:]_']*[[:alnum:]_']\\)?\\)")
+(defconst company-coq-symbol-regexp-no-dots-no-numbers "\\(?:_*[[:alpha:]]\\(?:[[:alnum:]_']*[[:alpha:]']\\)?\\)")
+(defconst company-coq-module-chunk-regexp "\\(?:[A-Z][[:alnum:]_]*\\)")
 (defconst company-coq-module-name-regexp (concat company-coq-module-chunk-regexp "\\(?:\\." company-coq-module-chunk-regexp "\\)*"))
 
 (defconst company-coq-all-symbols-slow-regexp (concat "^\\(" company-coq-symbol-regexp "\\):")
