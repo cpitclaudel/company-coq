@@ -2056,7 +2056,7 @@ KILL: See `quit-window'."
 (defmacro company-coq-with-clean-doc-buffer (&rest body)
   "Run BODY in a clean documentation buffer."
   (declare (indent defun)
-           (debug body))
+           (debug t))
   `(progn
      (company-coq-dbg "company-prepare-doc-buffer: Called")
      (prog1
@@ -2381,46 +2381,55 @@ If no command succeed, do the same with FALLBACKS as TEMPLATES."
                when output collect output)
       (and fallbacks (company-coq-doc-buffer-collect-outputs name fallbacks))))
 
-(defun company-coq-doc-buffer-generic (name cmds &optional interactive)
+(defun company-coq-doc-buffer-insert-contents (name chapters)
+  "Format documentation CHAPTERS for NAME and insert them into current buffer."
+  (let* ((fontized-name (propertize name 'font-lock-face 'company-coq-doc-i-face))
+         (doc-tagline   (format company-coq-doc-tagline fontized-name))
+         (doc-body      (mapconcat #'identity chapters company-coq-doc-def-sep))
+         (doc-full      (concat doc-tagline "\n\n" doc-body)))
+    (insert doc-full)
+    (coq-response-mode)
+    (goto-char (point-min))
+    (company-coq-make-title-line 'company-coq-doc-header-face-about)))
+
+(defun company-coq-doc-buffer-generic (name cmds silent)
   "Prepare a doc buffer for NAME, using CMDS to collect information.
-If INTERACTIVE is non-nil and no help is found, complain loudly."
+With non-nil SILENT, return a string instead of displaying a buffer."
   (company-coq-dbg "company-coq-doc-buffer-generic: Called for name %s" name)
-  (-if-let* ((chapters (company-coq-doc-buffer-collect-outputs name cmds)))
-      (let* ((fontized-name (propertize name 'font-lock-face 'company-coq-doc-i-face))
-             (doc-tagline   (format company-coq-doc-tagline fontized-name))
-             (doc-body      (mapconcat #'identity chapters company-coq-doc-def-sep))
-             (doc-full      (concat doc-tagline "\n\n" doc-body)))
-        (company-coq-with-clean-doc-buffer
-          (insert doc-full)
-          (coq-response-mode)
-          (goto-char (point-min))
-          (company-coq-make-title-line 'company-coq-doc-header-face-about)
-          (current-buffer)))
-    (company-coq--maybe-complain-docs-not-found interactive "documentation" name)))
+  (-when-let* ((chapters (company-coq-doc-buffer-collect-outputs name cmds)))
+    (if silent
+        (with-temp-buffer
+          (company-coq-doc-buffer-insert-contents name chapters)
+          (font-lock-ensure)
+          (buffer-string))
+      (company-coq-with-clean-doc-buffer
+        (company-coq-doc-buffer-insert-contents name chapters)
+        (current-buffer)))))
 
-(defun company-coq-doc-buffer-symbol (name)
-  "Prepare a company doc buffer for symbol NAME."
-  (company-coq-doc-buffer-generic name (list company-coq-doc-cmd
-                                  company-coq-def-cmd)))
+(defun company-coq-doc-buffer-symbol (name silent)
+  "Prepare a company doc buffer for symbol NAME.
+With non-nil SILENT, return a string instead of displaying a buffer."
+  (company-coq-doc-buffer-generic name (list company-coq-doc-cmd company-coq-def-cmd) silent))
 
-(defun company-coq-doc-buffer-definition (name)
-  "Prepare a company doc buffer for definition NAME."
-  (company-coq-doc-buffer-generic name (list company-coq-doc-cmd
-                                  company-coq-def-cmd
-                                  company-coq-tactic-def-cmd)))
+(defun company-coq-doc-buffer-definition (name silent)
+  "Prepare a company doc buffer for definition NAME.
+With non-nil SILENT, return a string instead of displaying a buffer."
+  (company-coq-doc-buffer-generic name (list company-coq-doc-cmd company-coq-def-cmd company-coq-tactic-def-cmd) silent))
 
-(defun company-coq-doc-buffer-tactic (name)
-  "Prepare a company doc buffer for tactic NAME."
+(defun company-coq-doc-buffer-tactic (name silent)
+  "Prepare a company doc buffer for tactic NAME.
+With non-nil SILENT, return a string instead of displaying a buffer."
   (setq name (replace-regexp-in-string " .*" "" name))
-  (company-coq-doc-buffer-generic name (list company-coq-tactic-def-cmd)))
+  (company-coq-doc-buffer-generic name (list company-coq-tactic-def-cmd) silent))
 
 (defun company-coq-doc (name cmds)
   "Show documentation for NAME, using CMDS to build docs.
 Interactively, use the identifier at point."
   (interactive (list (company-coq-symbol-at-point-with-error)
                      (list company-coq-doc-cmd company-coq-def-cmd company-coq-tactic-def-cmd)))
-  (when (company-coq-doc-buffer-generic name cmds t)
-    (company-coq--help-hide-docs)))
+  (if (company-coq-doc-buffer-generic name cmds nil)
+      (company-coq--help-hide-docs)
+    (company-coq--maybe-complain-docs-not-found t "documentation" name)))
 
 (defun company-coq-call-compat (func fallback &rest args)
   "Call FUNC, or FALLBACK if FUNC is undefined, on ARGS.
@@ -2529,11 +2538,12 @@ Highlights the surroundings of the first tag whose id is
   "Help the user hide the documentation window."
   (message (substitute-command-keys "Type \"\\<company-coq--temp-buffer-minor-mode-map>\\[company-coq-quit-window]\" in help window to restore previous buffer.")))
 
-(defun company-coq-doc-buffer-refman (name-or-anchor &optional center)
+(defun company-coq-doc-buffer-refman (name-or-anchor &optional center silent)
   "Prepare a doc buffer for element NAME-OR-ANCHOR.
 If NAME, read \\='anchor from it.  Otherwise use as anchor
-directly.  With CENTER, center relevant point in window instead
-of aligning at top."
+directly.  With non-nil CENTER, center relevant point in window
+instead of aligning at top.  With non-nil SILENT, return a string
+instead of displaying a buffer."
   (interactive)
   (company-coq-dbg "company-coq-doc-buffer-refman: Called for %s" name-or-anchor)
   (if (not (company-coq--libxml-available-p))
@@ -2544,12 +2554,16 @@ please install libxml to browse documentation."))
            (doc-short-path (and anchor (concat (car anchor) ".html.gz")))
            (doc-full-path  (and doc-short-path (expand-file-name doc-short-path company-coq-refman-path))))
       (when doc-full-path
-        (company-coq-with-clean-doc-buffer
-          (company-coq-doc-refman-put-html doc-full-path)
-          (beginning-of-line) ;; set-window-start needs point at bol
-          (if center (recenter)
-            (set-window-start (selected-window) (point)))
-          (cons (current-buffer) (point)))))))
+        (if silent
+            (with-temp-buffer
+              (company-coq-doc-refman-put-html doc-full-path)
+              (buffer-substring (point) (point-max)))
+          (company-coq-with-clean-doc-buffer
+            (company-coq-doc-refman-put-html doc-full-path)
+            (beginning-of-line) ;; set-window-start needs point at bol
+            (if center (recenter)
+              (set-window-start (selected-window) (point)))
+            (cons (current-buffer) (point))))))))
 
 (defun company-coq-candidates-symbols (prefix)
   "Find symbols matching PREFIX."
@@ -2898,7 +2912,8 @@ COMMAND, ARG and IGNORED: see `company-backends'."
     (`match (company-coq-get-prop 'match-end arg))
     (`annotation "def")
     (`location (company-coq-location-symbol arg))
-    (`doc-buffer (company-coq-doc-buffer-symbol arg))
+    (`doc-buffer (company-coq-doc-buffer-symbol arg nil))
+    (`quickhelp-string (company-coq-doc-buffer-symbol arg t))
     (`comparison-fun #'company-coq-string-lessp-match-beginning)
     (`require-match 'never)))
 
@@ -2918,7 +2933,8 @@ COMMAND, ARG and IGNORED: see `company-backends'."
     (`annotation (company-coq-annotation-tactic arg))
     (`location (company-coq-location-tactic arg))
     (`post-completion (company-coq-post-completion-snippet arg))
-    (`doc-buffer (company-coq-doc-buffer-tactic arg))
+    (`doc-buffer (company-coq-doc-buffer-tactic arg nil))
+    (`quickhelp-string (company-coq-doc-buffer-tactic arg t))
     (`comparison-fun #'company-coq-string-lessp-match-beginning)
     (`require-match 'never)))
 
@@ -2939,7 +2955,8 @@ COMMAND, ARG and IGNORED: see `company-backends'."
     (`match (company-coq-get-prop 'match-end arg))
     (`annotation "ldef")
     (`location (company-coq-location-local-definition arg))
-    (`doc-buffer (company-coq-doc-buffer-definition arg))
+    (`doc-buffer (company-coq-doc-buffer-definition arg nil))
+    (`quickhelp-string (company-coq-doc-buffer-definition arg t))
     (`comparison-fun #'company-coq-string-lessp-match-beginning)
     (`require-match 'never)))
 
@@ -2990,7 +3007,8 @@ backend.  COMMAND, ARG and IGNORED: see `company-backends'."
   (interactive (list 'interactive))
   (pcase command
     (`meta (company-coq-meta-refman arg))
-    (`doc-buffer (company-coq-doc-buffer-refman arg))
+    (`doc-buffer (company-coq-doc-buffer-refman arg nil nil))
+    (`quickhelp-string (company-coq-doc-buffer-refman arg nil t))
     (`location (company-coq-doc-buffer-refman arg))
     (`annotation (company-coq-annotation-snippet "ref" arg))
     (`sorted t) ;; The static abbrevs cache is kept sorted
@@ -3088,7 +3106,8 @@ COMMAND, ARG and IGNORED: see `company-backends'."
     (`duplicates nil)
     (`ignore-case nil)
     (`location (company-coq-location-definition arg))
-    (`doc-buffer (company-coq-doc-buffer-definition arg))
+    (`doc-buffer (company-coq-doc-buffer-definition arg nil))
+    (`quickhelp-string (company-coq-doc-buffer-definition arg t))
     (`meta (company-coq-meta-symbol arg))
     (`no-cache t)
     (`comparison-fun #'company-coq-string-lessp-match-beginning)
