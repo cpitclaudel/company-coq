@@ -1281,6 +1281,7 @@ not fast."
   (let ((abbrevs (append '(("Module! (interactive)" nil "Module # : #.\n#\nEnd #." nil nil coq-insert-section-or-module)
                            ("match! (from type)" nil "" nil "match" company-coq-insert-match-construct)
                            ("intros! (guess names)" nil "intros #" nil nil coq-insert-intros)
+                           ("goal! (guess names)" nil "[#]: #" nil nil coq-insert-named-goal-selectors)
                            ("as! (guess pattern)" nil "as #" nil nil company-coq-insert-as-clause)))))
     (-keep #'company-coq-parse-abbrevs-pg-entry abbrevs)))
 
