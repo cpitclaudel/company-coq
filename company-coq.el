@@ -1281,7 +1281,7 @@ not fast."
   (let ((abbrevs (append '(("Module! (interactive)" nil "Module # : #.\n#\nEnd #." nil nil coq-insert-section-or-module)
                            ("match! (from type)" nil "" nil "match" company-coq-insert-match-construct)
                            ("intros! (guess names)" nil "intros #" nil nil coq-insert-intros)
-                           ("goal! (guess names)" nil "[#]: #" nil nil coq-insert-named-goal-selectors)
+                           ("goal! (guess names)" nil "[#]: #" nil nil company-coq-insert-named-goal-selectors)
                            ("as! (guess pattern)" nil "as #" nil nil company-coq-insert-as-clause)))))
     (-keep #'company-coq-parse-abbrevs-pg-entry abbrevs)))
 
@@ -3538,6 +3538,26 @@ function."
           (let* ((cleaned (replace-regexp-in-string "\\s-+\\'" "" response))
                  (snippet (replace-regexp-in-string "=>$" "=> #" cleaned)))
             (yas-expand-snippet (company-coq-dabbrev-to-yas snippet)))
+        (error response)))))
+
+(defun company-coq-insert-named-goal-selectors ()
+  "Insert named goal selectors for the currently open goals, if any.
+Similar to `coq-insert-named-goal-selectors', but uses YAS by default.
+If the pg-improvements feature isn't active, fallback to the regular
+function."
+  (interactive)
+  (if (not (company-coq-feature-active-p 'pg-improvements))
+      (call-interactively #'coq-insert-named-goal-selectors)
+    (proof-shell-ready-prover)
+    (let* ((response (company-coq-ask-prover "Show Existentials"))
+           (goal-names (coq-get-goal-names response)))
+      (if (company-coq-unless-error response)
+          (let* ((format-selector (lambda (name) (format "[%s]: ${_}." name)))
+                 (goal-selectors (cl-mapcar format-selector goal-names))
+                 (snippet (string-join goal-selectors "\n")))
+            (if (equal goal-selectors nil)
+                (error "Couldn't find any named goals")
+              (yas-expand-snippet snippet)))
         (error response)))))
 
 (defun company-coq-insert-as-clause-1 ()
