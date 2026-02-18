@@ -404,7 +404,8 @@ impossible, for example in `proof-shell-insert-hook'")
 (defconst company-coq--hypotheses-block-closer company-coq--subgoal-header-regexp
   "Regexp matching the end of hypotheses.")
 
-(defconst company-coq-path-regexp  (concat "\\`\\(\\S-*\\) +\\(\\S-*\\)\\'"))
+(defconst company-coq-old-path-regexp "\\(?1:[^ \n]+\\)\\(?: \\|\n  \\)\\(?:\"\\(?2:[^\n]+\\)\"\\|\\(?2:[^\n]+\\)\\)")
+(defconst company-coq-new-path-regexp (concat "\\(?:i\\| \\)\\(?: \\|\n  \\)" company-coq-old-path-regexp))
 
 (defun company-coq-make-headers-regexp (headers &optional body)
   "Construct a regexp from HEADERS and BODY.
@@ -1246,15 +1247,27 @@ definitions in the unprocessed part of the buffer."
   "Return non-nil if point is at block end."
   (company-coq-looking-back company-coq-block-end-regexp (point-at-bol)))
 
+(defun company-coq-scan-path-specs (line-regex)
+  "Read module path specs from current buffer according to LINE-REGEX.
+Returns a list of pairs of (LOGICAL . PHYSICAL) paths."
+  (goto-char (point-min))
+  (let ((specs nil))
+    (forward-line 1) ;; Skip header
+    (save-match-data
+      (while (re-search-forward line-regex nil t)
+        (push `(,(match-string-no-properties 1) . ,(match-string-no-properties 2)) specs)))
+    (nreverse specs)))
+
 (defun company-coq-parse-path-specs (loadpath-output)
   "Parse LOADPATH-OUTPUT as a sequence of module path specs.
 Returns a list of pairs of (LOGICAL . PHYSICAL) paths."
   (when loadpath-output
-    (save-match-data
-      (cl-loop for     line
-               in      (cdr (company-coq-split-wrapped-lines loadpath-output))
-               if      (string-match company-coq-path-regexp line)
-               collect (cons (match-string 1 line) (match-string 2 line))))))
+    (with-temp-buffer
+      (insert loadpath-output)
+      (company-coq-scan-path-specs
+       (if (string-prefix-p "Installed / Logical Path / Physical path:" loadpath-output) ;; 9.1+
+           company-coq-new-path-regexp
+         company-coq-old-path-regexp)))))
 
 (defun company-coq-get-path-specs ()
   "Load available modules by querying the prover.
