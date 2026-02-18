@@ -2189,8 +2189,8 @@ to a non-existent file (for an example of such a case, try
                                                   (string-match-p company-coq-compiled-regexp (match-string-no-properties 3 output)))
                                          (concat (match-string-no-properties 2 output) ".v"))))
                          (and fallback-spec (expand-file-name (concat mod-name ".v") (cdr fallback-spec)))))
-           (stripped (replace-regexp-in-string "_build/default" "" path nil 'literal)))
-           (if (file-exists-p stripped)
+           (stripped (and path (replace-regexp-in-string "_build/default" "" path nil 'literal))))
+           (if (and stripped (file-exists-p stripped))
                stripped
              path
    ))))
