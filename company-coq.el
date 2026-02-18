@@ -2182,6 +2182,11 @@ Returns the corresponding (logical name . real name) pair."
                      (setq longest (cons logical real)))
            finally return longest))
 
+(defun company-coq--strip-dune-build-dir (path)
+  "Remove dune build directory part of PATH."
+  (let ((stripped (replace-regexp-in-string "_build/default/" "" path nil t)))
+    (if (file-exists-p stripped) stripped path)))
+
 (defun company-coq-library-path (lib-path mod-name fallback-spec)
   "Find a .v file likely to hold the definition of (LIB-PATH MOD-NAME).
 May also return a buffer visiting that file.  FALLBACK-SPEC is a
@@ -2201,12 +2206,8 @@ to a non-existent file (for an example of such a case, try
                                        (when (and (string-match company-coq-locate-lib-output-format output)
                                                   (string-match-p company-coq-compiled-regexp (match-string-no-properties 3 output)))
                                          (concat (match-string-no-properties 2 output) ".v"))))
-                         (and fallback-spec (expand-file-name (concat mod-name ".v") (cdr fallback-spec)))))
-           (stripped (and path (replace-regexp-in-string "_build/default" "" path nil 'literal))))
-           (if (and stripped (file-exists-p stripped))
-               stripped
-             path
-   ))))
+                         (and fallback-spec (expand-file-name (concat mod-name ".v") (cdr fallback-spec))))))
+      (and path (company-coq--strip-dune-build-dir path)))))
 
 (defun company-coq--locate-name (name functions)
   "Find location of NAME using FUNCTIONS.
