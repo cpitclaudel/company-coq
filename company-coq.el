@@ -1282,7 +1282,8 @@ Do not call if the prover process is busy."
 (defun company-coq-init-modules (&optional force)
   "Load modules if needed or FORCE'd, by querying the prover."
   (interactive '(t))
-  (when (company-coq-feature-active-p 'modules-backend)
+  (when (or (company-coq-feature-active-p 'modules-backend)
+            (company-coq-feature-active-p 'cross-ref))
     (company-coq-dbg "company-coq-init-modules: Loading modules (if never loaded)")
     (company-coq-reload-db 'company-coq-path-specs-cache #'company-coq-get-path-specs 'company-coq-modules-reload-needed t t force)))
 
